@@ -146,8 +146,7 @@ export default function WordPanel({
                       </>
                     ) : (
                       <>
-                        Related to <strong lang="id">{data.root}</strong>, but
-                        counted as its own word.
+                        Related to <strong lang="id">{data.root}</strong>
                       </>
                     )}
                   </Text>
