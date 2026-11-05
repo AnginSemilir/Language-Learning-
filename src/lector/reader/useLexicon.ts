@@ -56,6 +56,19 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     [vocab]
   );
 
+  // Exact spellings recorded on an entry (the forms marked together with it).
+  // Earlier versions grouped meN- and other forms under their root; this keeps
+  // the forms the user actually marked at the state they marked them.
+  const formStates = useMemo(() => {
+    const map = new Map<string, WordState>();
+    for (const v of vocab ?? []) {
+      for (const form of v.forms ?? []) {
+        if (!map.has(form)) map.set(form, v.state);
+      }
+    }
+    return map;
+  }, [vocab]);
+
   // Flashcards are indexed by the word on the card and, once the lemmatizer
   // is ready, by its headword too, so a card for "beli" matches "membeli".
   const cardIndex = useMemo(() => {
@@ -105,21 +118,27 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
       if (isNameToken(word, names)) return "name";
       const surface = fold(word);
       const headword = headwordOf(word);
-      // The headword's state wins; an entry saved under the form itself (by an
-      // older version, or before the user grouped it) is the fallback.
-      const state = known.get(headword) ?? known.get(surface);
+      // The headword's state wins; an entry saved under the form itself, or a
+      // spelling recorded on another entry, is the fallback.
+      const state =
+        known.get(headword) ?? known.get(surface) ?? formStates.get(surface);
       if (state) return state;
       if (cardIndex.has(surface) || cardIndex.has(headword)) return "level2";
       return "new";
     },
-    [names, headwordOf, known, cardIndex]
+    [names, headwordOf, known, formStates, cardIndex]
   );
 
+  // A card for the word itself, its headword, or (for the panel only) a
+  // related root: reading "membeli" shows your card for "beli".
   const cardFor = useCallback(
     (word: string) =>
       cardIndex.get(fold(word)) ??
-      (lex ? cardIndex.get(lex.lemma(word)) : undefined),
-    [cardIndex, lex]
+      (lex
+        ? (cardIndex.get(headwordOf(word)) ??
+          cardIndex.get(lex.looseLemma(word)))
+        : undefined),
+    [cardIndex, lex, headwordOf]
   );
 
   return {

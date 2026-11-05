@@ -82,9 +82,10 @@ export default function KnownWordsView() {
             {known?.length ?? 0} known words
           </h1>
           <Text size="sm">
-            Counted by root word: knowing <em>beli</em> covers <em>membeli</em>{" "}
-            and <em>dibeli</em>. Words in your flashcards are listed under
-            Manage Cards instead.
+            Passive forms count with their base word (<em>dibeli</em> with{" "}
+            <em>beli</em>); other forms such as <em>membeli</em> count as words
+            of their own. Words in your flashcards are listed under Manage Cards
+            instead.
           </Text>
         </div>
         <Group gap="sm" justify="space-between" wrap="wrap">

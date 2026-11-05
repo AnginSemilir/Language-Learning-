@@ -1,17 +1,20 @@
 // Grammar-aware word matching for Indonesian.
 //
-// A word in a text is matched to a headword so that its verb forms share one
-// learning state: membeli, dibeli, beli → beli. Sources, in order:
-//   1. Wiktionary's form table (active/passive/plural/spelling variants),
-//   2. Wiktionary etymologies that analyse a verb form (meN-, di-, ter-, ber-,
-//      per-, -kan, -i; built by scripts/build-dictionary-json.py),
-//   3. reduplication (buku-buku, berjalan-jalan) and clitics (-nya, -ku, -lah…)
-//      via Lector's morphology pack,
-//   4. the Sastrawi stemmer (vendored, MIT) over Wiktionary's root words, for
-//      forms Wiktionary doesn't list.
-// Derived nouns that have their own dictionary entry (pembelian, kebaikan)
-// stay separate headwords, and so does any verb form whose dictionary meaning
-// has drifted from its root's (merupakan "to constitute" vs rupa "shape").
+// Two levels of grouping:
+//
+// * lemma(): where a word's learning state is stored. Only forms that are the
+//   same word share it: di- passives with their base (dibeli → beli,
+//   diberikan → berikan) when the dictionary shows the same meaning, clitics
+//   (rumahnya → rumah) and plural reduplication (buku-buku → buku). Every other
+//   form — meN-, ber-, ter-, -kan/-i, derived nouns — counts as its own word.
+//
+// * looseLemma(): the root by form alone, shown in the word panel as related
+//   (membeli, merupakan, berjalan-jalan → beli, rupa, jalan). Sources, in order:
+//   Wiktionary's form table, Wiktionary etymologies (built by
+//   scripts/build-dictionary-json.py), reduplication and clitics via Lector's
+//   morphology pack, then the Sastrawi stemmer (vendored, MIT) for forms
+//   Wiktionary doesn't list.
+//
 // The reader lets the user override either way (see useLexicon).
 
 import Stemmer from "@/vendor/sastrawi/stemmer";
@@ -34,13 +37,12 @@ export interface GrammarData {
 
 export interface Lemmatizer {
   /**
-   * The headword a word's learning state is stored under. Forms are grouped
-   * with their root only when the dictionary shows they mean the same thing
-   * (membeli → beli, but merupakan "to constitute" stays apart from rupa
-   * "shape").
+   * The headword a word's learning state is stored under: the base of a di-
+   * passive (dibeli → beli), the word without clitics (rumahnya → rumah), the
+   * singular of a plural (buku-buku → buku); otherwise the word itself.
    */
   lemma(word: string): string;
-  /** The root by form alone, ignoring meaning: merupakan → rupa. */
+  /** The root by form alone, for showing related words: membeli → beli. */
   looseLemma(word: string): string;
   /** Root a derived noun comes from, for display ("from baik"). */
   derivedFrom(word: string): string | undefined;
@@ -149,11 +151,9 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
     return false;
   }
 
-  function resolve(w: string, depth: number, strict: boolean): string {
+  function resolve(w: string, depth: number): string {
     if (depth > 4) return w;
-    // Follow a link from w to its root, unless (strictly) the meanings differ.
-    const follow = (next: string) =>
-      strict && !sameMeaning(w, next) ? w : resolve(next, depth + 1, strict);
+    const follow = (next: string) => resolve(next, depth + 1);
 
     // Pronouns, prepositions and other function words keep their own entry
     // even when they look like verb forms (mereka, menurut, melalui).
@@ -197,15 +197,14 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
       const a = w.slice(0, dash);
       const b = w.slice(dash + 1);
       if (a === b || (b.length >= 3 && a.endsWith(b)) || known(a)) {
-        return resolve(a, depth + 1, strict);
+        return resolve(a, depth + 1);
       }
       return w;
     }
 
     // Clitics: rumahnya → rumah, bukunya → buku, dialah → dia.
     for (const candidate of stemCandidates(w, CLITICS_ONLY)) {
-      if (known(candidate.key))
-        return resolve(candidate.key, depth + 1, strict);
+      if (known(candidate.key)) return resolve(candidate.key, depth + 1);
     }
 
     // Anything else: affix stripping with the Sastrawi stemmer.
@@ -214,20 +213,57 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
     return w;
   }
 
+  /** The base of a di- passive, if w is one and means the same: dibeli → beli. */
+  function passiveBase(w: string): string | undefined {
+    if (!w.startsWith("di") || w.length < 5) return undefined;
+    const base = w.slice(2);
+    if (w in data.e) {
+      // Wiktionary calls it a passive ("passive of membeli"), or the base is a
+      // verb with the same meaning (dinas "government service" is not di + nas).
+      const saysPassive = gloss(w).words.has("passive");
+      if (saysPassive) return base;
+      return hasPos(base, VERB_POS) && sameMeaning(w, base) ? base : undefined;
+    }
+    // Not in the dictionary (dibelikan): the base must be a known verb.
+    return hasPos(base, VERB_POS) ? base : undefined;
+  }
+
+  function resolveShared(w: string, depth: number): string {
+    if (depth > 3) return w;
+    if (hasPos(w, FUNCTION_POS) || avoid.has(w)) return w;
+    const base = passiveBase(w);
+    if (base) return base;
+    if (w in data.e) return w;
+
+    // Plural reduplication only: buku-buku → buku (berjalan-jalan is its own word).
+    const dash = w.indexOf("-");
+    if (dash > 0) {
+      const a = w.slice(0, dash);
+      return a === w.slice(dash + 1) ? resolveShared(a, depth + 1) : w;
+    }
+
+    // Clitics: rumahnya → rumah, dibelinya → dibeli → beli.
+    for (const candidate of stemCandidates(w, CLITICS_ONLY)) {
+      if (known(candidate.key)) return resolveShared(candidate.key, depth + 1);
+    }
+    return w;
+  }
+
   const lookup =
-    (memo: Map<string, string>, strict: boolean) => (word: string) => {
+    (memo: Map<string, string>, find: (w: string, depth: number) => string) =>
+    (word: string) => {
       const w = fold(word);
       let result = memo.get(w);
       if (result === undefined) {
-        result = resolve(w, 0, strict);
+        result = find(w, 0);
         memo.set(w, result);
       }
       return result;
     };
 
   return {
-    lemma: lookup(strictMemo, true),
-    looseLemma: lookup(looseMemo, false),
+    lemma: lookup(strictMemo, resolveShared),
+    looseLemma: lookup(looseMemo, resolve),
     derivedFrom(word: string) {
       return data.n[fold(word)];
     },

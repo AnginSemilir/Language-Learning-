@@ -9,29 +9,58 @@ const data = JSON.parse(
 );
 const lex = createLemmatizer(data);
 
-describe("lemma", () => {
+describe("lemma (shared progress)", () => {
   it.each([
-    ["membeli", "beli"],
     ["dibeli", "beli"],
-    ["Membeli", "beli"],
-    ["menulis", "tulis"],
+    ["Dibeli", "beli"],
     ["ditulis", "tulis"],
-    ["memperbaiki", "baik"],
-    ["buku-buku", "buku"],
+    ["dijual", "jual"],
+    ["dimakan", "makan"],
+    ["diberikan", "berikan"],
+    ["digunakan", "gunakan"],
+    ["ditemukan", "temukan"],
+    ["dibelinya", "beli"],
     ["rumahnya", "rumah"],
     ["bukunya", "buku"],
-    ["menggunakan", "gunakan"],
-    ["digunakan", "gunakan"],
-    ["mendapat", "dapat"],
-    ["bertanya", "tanya"],
-    ["mengirim", "kirim"],
-    ["menikmati", "nikmat"],
-    ["memberikan", "beri"],
-    ["diberikan", "beri"],
-    ["menjual", "jual"],
-    ["dijual", "jual"],
+    ["buku-buku", "buku"],
   ])("%s → %s", (word, lemma) => {
     expect(lex.lemma(word)).toBe(lemma);
+  });
+
+  it("counts meN-, ber-, ter- and -kan forms as their own words", () => {
+    for (const w of [
+      "membeli",
+      "menulis",
+      "memberikan",
+      "menggunakan",
+      "bertanya",
+      "berjalan",
+      "berjalan-jalan",
+      "terlihat",
+      "memperbaiki",
+    ]) {
+      expect(lex.lemma(w)).toBe(w);
+    }
+  });
+
+  it("does not take every di- word for a passive", () => {
+    for (const w of ["dinas", "didik", "dingin", "dinding", "dirinya"]) {
+      expect(lex.lemma(w)).not.toBe(w.slice(2));
+    }
+    expect(lex.lemma("dirinya")).toBe("diri");
+  });
+});
+
+describe("looseLemma (related words)", () => {
+  it.each([
+    ["membeli", "beli"],
+    ["menulis", "tulis"],
+    ["memperbaiki", "baik"],
+    ["memberikan", "beri"],
+    ["merupakan", "rupa"],
+    ["berjalan-jalan", "jalan"],
+  ])("%s → %s", (word, root) => {
+    expect(lex.looseLemma(word)).toBe(root);
   });
 
   it("keeps derived nouns as their own headwords", () => {
