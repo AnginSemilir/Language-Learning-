@@ -1,5 +1,11 @@
 import Dexie, { Table } from "dexie";
 import "dexie-export-import";
+import type {
+  ClozeSentence,
+  DailyStats,
+  Lesson,
+  VocabEntry,
+} from "@/lector/types";
 import { Card } from "./card/card";
 import { Deck } from "./deck/deck";
 import { NoteType } from "./note/note";
@@ -13,6 +19,11 @@ export class Database extends Dexie {
   notes!: Table<Note<NoteType>>;
   statistics!: Table<DeckStatistics>;
   settings!: Table<Settings<keyof SettingsValues>>;
+  // Ported from Lector: reading vocabulary, lessons, activity and cloze practice.
+  vocab!: Table<VocabEntry>;
+  lessons!: Table<Lesson>;
+  dailyStats!: Table<DailyStats>;
+  cloze!: Table<ClozeSentence>;
 
   constructor() {
     super("skola_db", { cache: "immutable" });
@@ -22,6 +33,12 @@ export class Database extends Dexie {
       notes: "id, deck, sortField, *linkedNotes",
       statistics: "[deck+day], day",
       settings: "key",
+    });
+    this.version(23).stores({
+      vocab: "id, &text, state",
+      lessons: "id, source, sortOrder, createdAt",
+      dailyStats: "date",
+      cloze: "id, nextReview, collection, reviewCount",
     });
     this.open();
   }

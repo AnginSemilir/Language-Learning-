@@ -13,4 +13,5 @@ export {
   deleteFailed,
   genericFail,
   test,
+  notify,
 } from "./Notification";

@@ -133,3 +133,12 @@ export function useNotificationSetup() {
     setNotificationHandler(show);
   }
 }
+
+export function notify(
+  title: string,
+  message: string,
+  type: "success" | "error" | "info" = "info",
+  autoClose: number | false = 3000
+) {
+  return showNotification(title, message, type, autoClose);
+}

@@ -1,0 +1,83 @@
+// Ported from Lector (heuwels/lector@eb393ce, AGPL-3.0-only): src/types/index.ts
+// Only the shapes this app uses. Lector's server-side fields (sync, Anki,
+// entitlements) are left out.
+
+export type WordState =
+  | "new"
+  | "level1"
+  | "level2"
+  | "level3"
+  | "level4"
+  | "known"
+  | "ignored";
+export type VocabType = "word" | "phrase";
+export type ClozeMasteryLevel = 0 | 25 | 50 | 75 | 100;
+export type ClozeSource = "tatoeba" | "mined";
+export type ClozeCollection =
+  | "top500"
+  | "top1000"
+  | "top2000"
+  | "mined"
+  | "random";
+
+export interface VocabEntry {
+  id: string;
+  /** Folded (lower-cased, normalised) word or phrase — unique key. */
+  text: string;
+  type: VocabType;
+  sentence: string;
+  translation: string;
+  state: WordState;
+  stateUpdatedAt: Date;
+  reviewCount: number;
+  lessonId?: string;
+  createdAt: Date;
+  /** The flashcard note created from this word, if any. */
+  noteId?: string;
+}
+
+export interface ClozeSentence {
+  id: string;
+  sentence: string;
+  clozeWord: string;
+  clozeIndex: number;
+  tokens?: string[] | null;
+  translation: string;
+  source: ClozeSource;
+  collection: ClozeCollection;
+  wordRank?: number;
+  tatoebaSentenceId?: number;
+  vocabEntryId?: string;
+  masteryLevel: ClozeMasteryLevel;
+  nextReview: Date;
+  reviewCount: number;
+  lastReviewed?: Date;
+  timesCorrect: number;
+  timesIncorrect: number;
+  blacklisted?: boolean;
+}
+
+export interface DailyStats {
+  date: string; // YYYY-MM-DD, primary key
+  wordsRead: number;
+  newWordsSaved: number;
+  wordsMarkedKnown: number;
+  minutesRead: number;
+  clozePracticed: number;
+  points: number;
+  dictionaryLookups: number;
+  /** Lector's name for flashcard reviews; here, Skola card reviews. */
+  ankiReviews: number;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  author?: string;
+  content: string;
+  source: "starter" | "paste";
+  /** Order within the starter course. */
+  sortOrder?: number;
+  createdAt: Date;
+  lastReadAt?: Date;
+}
