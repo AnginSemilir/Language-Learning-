@@ -2,8 +2,15 @@ import ModalProps from "@/components/ModalProps";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { Deck } from "@/logic/deck/deck";
-import { IconClipboardText, IconJson, IconTxt } from "@tabler/icons-react";
+import { ImportResult } from "@/logic/import/importFlashcards";
+import {
+  IconClipboardText,
+  IconCsv,
+  IconJson,
+  IconTxt,
+} from "@tabler/icons-react";
 import React, { useState } from "react";
+import ImportFromCsv from "./ImportFromCsv";
 import ImportFromJSON from "./ImportFromJSON";
 import ImportFromPaste from "./ImportFromPaste";
 import ImportFromPlainText from "./ImportFromPlainText";
@@ -32,7 +39,8 @@ export default function ImportModal({
   setOpened,
   deck,
 }: ImportModalProps) {
-  const [tab, setTab] = useState("cardsfrompaste");
+  const [tab, setTab] = useState("cardsfromcsv");
+  const [result, setResult] = useState<ImportResult | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileText, setFileText] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<ImportStatus>("passive");
@@ -44,12 +52,18 @@ export default function ImportModal({
         setOpened(false);
         setFile(null);
         setFileText(null);
+        setResult(null);
+        setImportStatus("passive");
       }}
       title="Import"
     >
       {(importStatus === "passive" || importStatus === "importing") && (
         <Tabs value={tab} onChange={setTab} variant="pills">
           <Tabs.List>
+            <Tabs.Tab value="cardsfromcsv">
+              <IconCsv size={16} />
+              <span>From CSV</span>
+            </Tabs.Tab>
             <Tabs.Tab value="cardsfrompaste">
               <IconClipboardText size={16} />
               <span>From Paste</span>
@@ -63,6 +77,18 @@ export default function ImportModal({
               <span>From JSON</span>
             </Tabs.Tab>
           </Tabs.List>
+          <Tabs.Panel value="cardsfromcsv">
+            <ImportFromCsv
+              file={file}
+              setFile={setFile}
+              fileText={fileText}
+              setFileText={setFileText}
+              deck={deck}
+              importStatus={importStatus}
+              setImportStatus={setImportStatus}
+              onResult={setResult}
+            />
+          </Tabs.Panel>
           <Tabs.Panel value="cardsfrompaste">
             <ImportFromPaste
               file={file}
@@ -99,7 +125,11 @@ export default function ImportModal({
         </Tabs>
       )}
       {importStatus !== "passive" && (
-        <div className={`${BASE_URL}__status`}>{importStatus}</div>
+        <div className={`${BASE_URL}__status`}>
+          {importStatus === "success" && result
+            ? `Added ${result.added} notes${result.skipped ? `, skipped ${result.skipped} already in this deck` : ""}.`
+            : importStatus}
+        </div>
       )}
     </Modal>
   );
