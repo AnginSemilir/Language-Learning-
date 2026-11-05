@@ -26,7 +26,7 @@ function isValidSortKey(key: string | null): key is SortKey {
 }
 
 function NoteExplorerView() {
-  useDocumentTitle(`${t("manage-cards.title")} | Skola`);
+  useDocumentTitle(`${t("manage-cards.title")} | Kartu`);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const deckParam = searchParams.get("deck");

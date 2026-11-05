@@ -1,52 +1,69 @@
-# Skola
-_Note: Skola is still in early-ish development. Expect bugs, missing features, and breaking changes. Feedback is very welcome!_
+# Kartu
 
-<img width="1512" alt="Skola Main Interface" src="https://github.com/user-attachments/assets/466477b2-7a60-4587-b161-d17f14a1f4e2" />
+Indonesian flashcards, reading and sentence practice in one web app. It runs
+entirely in the browser, keeps your data on your device, works offline, and can
+be installed on a phone from the browser ("Add to Home screen").
 
-A modern, open-source spaced repetition application that reimagines flashcard learning with a focus on beautiful design, local-first architecture, and thoughtful user experience. Visit [skola.cards](https://skola.cards) now.
+Kartu combines two open-source projects instead of starting from scratch:
 
-## Core Features
+| From | What it provides |
+| --- | --- |
+| [Skola](https://github.com/h16nning/skola) (h16nning, AGPL-3.0) | The app itself: decks, card editor, FSRS spaced-repetition review, notes table, settings, offline PWA. |
+| [Lector](https://github.com/heuwels/lector) (heuwels, AGPL-3.0) | The Indonesian language pack (tokenizer, word folding, `meN-`/`ber-`/`-nya` stemming), the reader with colour-coded word states, cloze practice logic, streaks and activity heatmap, 20 graded starter stories, the Indonesian dictionary and sentence bank. |
 
-**Local-First Architecture** — Your data lives in your browser using IndexedDB, ensuring privacy, speed, and complete ownership of your learning materials. No account required.
+Lector is a server app (Next.js + API + SQLite). Its logic was ported as is
+under `src/lector/`, each file marked with where it came from; the parts that
+talked to its server were rewritten to use the browser database
+(`src/lector/data-layer.ts`).
 
-**Progressive Web App** — Install Skola on any device and use it offline. Full PWA support with caching.**
+## Features
 
-**Cloud Sync** — Optional cloud synchronization powered by Dexie Cloud lets to access your decks across devices.
+- **Your flashcards.** Import a CSV with a `front,back,hint` header from the
+  deck menu (Import Cards → From CSV). Extra columns are ignored, the hint is
+  shown under the front, and re-importing skips cards already in the deck.
+  Cards can be double-sided (both directions) or one-way.
+- **Read.** 20 graded starter stories, or paste any text. Tap a word to hear it,
+  see its dictionary entry, mark how well you know it, or add it as a
+  flashcard. Words already in your flashcards are highlighted as "learning".
+- **Practice.** Fill-in-the-gap on 7,220 Tatoeba sentences built around the
+  2,000 most common words. Typing or multiple choice, letter hints, points.
+  Correct answers come back after 1, 3, 7 and 14 days; misses reset.
+- **Statistics.** Daily streak, points, words known and learning, and a
+  year-long activity heatmap. Flashcard reviews, practice and word lookups all
+  count.
 
-**Spaced Repetition** — Skola implements the FSRS (Free Spaced Repetition Scheduler) algorithm to optimize review timing and maximize retention with minimal effort.
+Not ported from Lector (they need its server): YouTube import, AI translation
+and tutor, managed text-to-speech (the browser's own Indonesian voice is used),
+Anki sync.
 
-**Beautiful, Minimal Design** — Custom-built component system with a unique design language that introduces texture and physicality. Decks appear as real index cards.
+## Develop
 
-**Cognitive Prompts** — Beyond simple memorization, Skola strives to encourage higher-order thinking by challenging you with cognitive prompts on cards you've mastered, pushing you to deeper understanding.
+```bash
+pnpm install
+pnpm start        # dev server
+pnpm test         # vitest
+pnpm lint:type    # tsc
+pnpm lint         # biome
+pnpm build        # production build in dist/
+```
 
-**Rich Content Support** — Create normal, double-sided, and cloze deletion cards with full rich text (HTML) editing capabilities.
+## Deploy to GitHub Pages
 
-## Philosophy
+`.github/workflows/deploy.yml` builds and publishes the app on every push to
+`main` (or run it by hand from the Actions tab). One-time setup: in the
+repository's **Settings → Pages**, set **Source** to **GitHub Actions**. The app
+is then served at `https://<user>.github.io/<repo>/`. It uses relative paths and
+a hash router, so no other configuration is needed.
 
-Skola is built on the belief that spaced repetition software should be open, beautiful, and focused on the core learning experience. It challenges the notion that effective learning tools must sacrifice design for functionality or be locked behind paywalls.
+## Data
 
-AI is intentionally used sparingly – there's no AI flashcard generation. The act of creating cards is part of the learning process, and Skola is designed to support that work, not bypass it.
+- `public/data/dictionary-id.json`: Indonesian→English entries from English
+  Wiktionary via [kaikki.org](https://kaikki.org) (CC BY-SA), from Lector's
+  `dict-id-2026-08-21` release, converted with
+  `scripts/build-dictionary-json.py`.
+- `public/data/sentences-id.json`: sentences from
+  [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR), from Lector's sentence bank.
 
-## Current Limitations
+## License
 
-- Statistics view temporarily disabled during UI refactor (will return with lightweight charting)
-- Notebook view experimental and under evaluation
-- Image occlusion not yet implemented
-- Audio support not yet implemented
-- Limited note explorer and management features (e.g., bulk editing, tagging)
-
-## Stack
-
-- **React**
-- **Dexie.js**
-- **FSRS.js**
-
-## Motivation
-
-Many learners rely on spaced repetition tools like Anki, which are powerful but often have unintuitive interfaces that don't reward the learning process. Other alternatives are expensive or closed-source. Skola aims to provide a free, open-source alternative that doesn't compromise on user experience or design quality.
-
-## Contributing
-
-Contributions and feedback are very welcome! If you're interested in helping shape the future of Skola, please create an issue or start a discussion. This is an active project with ongoing development.
-
----
+AGPL-3.0, the license of both Skola and Lector. See [LICENSE](LICENSE).

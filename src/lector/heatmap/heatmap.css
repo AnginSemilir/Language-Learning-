@@ -1,0 +1,86 @@
+.heatmap {
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.heatmap__header,
+.heatmap__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+}
+
+.heatmap__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.heatmap__muted {
+  color: var(--theme-neutral-600);
+  font-size: var(--font-size-sm);
+}
+
+.heatmap__scroll {
+  overflow-x: auto;
+  margin: var(--spacing-md) 0;
+  direction: rtl;
+}
+
+.heatmap__inner {
+  direction: ltr;
+  width: max-content;
+}
+
+.heatmap__months {
+  display: grid;
+  grid-template-columns: repeat(53, 14px);
+  margin-left: 2.25rem;
+  font-size: 11px;
+  color: var(--theme-neutral-600);
+}
+
+.heatmap__grid-row {
+  display: flex;
+}
+
+.heatmap__days {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 2rem;
+  margin-right: 0.25rem;
+  font-size: 11px;
+  color: var(--theme-neutral-600);
+}
+
+.heatmap__days > div {
+  height: 12px;
+  line-height: 12px;
+}
+
+.heatmap__weeks {
+  display: grid;
+  grid-template-columns: repeat(53, 14px);
+}
+
+.heatmap__week {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heatmap__cell {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.heatmap__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}

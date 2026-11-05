@@ -16,7 +16,7 @@ import "./HomeView.css";
 const BASE = "home-view";
 
 export default function HomeView() {
-  useDocumentTitle("Skola");
+  useDocumentTitle("Kartu");
   const [t] = useTranslation();
   const [newDeckModalOpened, setNewDeckModalOpened] = useState(false);
   const [decks, isReady] = useTopLevelDecks();

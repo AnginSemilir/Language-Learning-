@@ -3,9 +3,11 @@ import { NavItem } from "@/components/ui/NavItem";
 import { breakpoints } from "@/lib/breakpoints";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
+  IconBook,
   IconCards,
   IconChartBar,
   IconHome,
+  IconPencil,
   IconSettings,
   IconX,
 } from "@tabler/icons-react";
@@ -55,12 +57,12 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
             <div className={`${BASE}__brand`}>
               <img
                 src={`${import.meta.env.BASE_URL}logo.svg`}
-                alt="Skola Logo"
+                alt="Kartu logo"
                 className={`${BASE}__logo`}
               />
               {!minimalMode && (
                 <div className={`${BASE}__brand-text`}>
-                  <h1 className={`${BASE}__title`}>Skola</h1>
+                  <h1 className={`${BASE}__title`}>Kartu</h1>
                   <div className={`${BASE}__version`}>v{APP_VERSION}</div>
                 </div>
               )}
@@ -82,6 +84,20 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               label={t("home.title")}
               path="/home"
               icon={<IconHome />}
+              collapsed={minimalMode}
+              onClick={fullscreenMode ? menuHandlers.close : undefined}
+            />
+            <NavItem
+              label="Read"
+              path="/read"
+              icon={<IconBook />}
+              collapsed={minimalMode}
+              onClick={fullscreenMode ? menuHandlers.close : undefined}
+            />
+            <NavItem
+              label="Practice"
+              path="/practice"
+              icon={<IconPencil />}
               collapsed={minimalMode}
               onClick={fullscreenMode ? menuHandlers.close : undefined}
             />

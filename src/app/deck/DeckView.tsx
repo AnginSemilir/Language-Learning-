@@ -34,7 +34,7 @@ function DeckView() {
 
   useScrollResetOnLocationChange();
 
-  useDocumentTitle(deck?.name ? deck?.name : "Skola");
+  useDocumentTitle(deck?.name ? deck?.name : "Kartu");
   useHotkeys([["n", () => navigate("/new/" + deck?.id)]]);
 
   const ready = isDeckReady && areCardsReady && areStatesReady;

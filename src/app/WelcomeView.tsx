@@ -11,17 +11,17 @@ export default function WelcomeView() {
     <div className={BASE}>
       <div className={`${BASE}__container`}>
         <header className={`${BASE}__header`}>
-          <h1 className={`${BASE}__title`}>Skola</h1>
+          <h1 className={`${BASE}__title`}>Kartu</h1>
           <p className={`${BASE}__tagline`}>
-            A local-first spaced-repetition flashcard app right here in your
-            browser.
+            Indonesian flashcards, reading and sentence practice, right here in
+            your browser.
           </p>
         </header>
 
         <section className={`${BASE}__hero`}>
           <p className={`${BASE}__description`}>
-            Your learning materials live in your browser using IndexedDB. No
-            account required, no tracking and complete ownership.
+            Everything is stored on this device. No account, no tracking. Add it
+            to your home screen to use it like an app, even offline.
           </p>
           <Button
             onClick={() => setRegistered(true)}
@@ -34,75 +34,28 @@ export default function WelcomeView() {
 
         <section className={`${BASE}__features`}>
           <div className={`${BASE}__feature`}>
-            <h2 className={`${BASE}__feature-title`}>Local-First Design</h2>
+            <h2 className={`${BASE}__feature-title`}>Your flashcards</h2>
             <p className={`${BASE}__feature-text`}>
-              Data stored directly in your browser. Private by default and
-              incredibly fast. You are never going to wait for responses from
-              some server.
+              Import your cards from a CSV and review them with FSRS spaced
+              repetition, the scheduler Anki uses.
             </p>
           </div>
 
           <div className={`${BASE}__feature`}>
-            <h2 className={`${BASE}__feature-title`}>FSRS Scheduling</h2>
+            <h2 className={`${BASE}__feature-title`}>Read and tap</h2>
             <p className={`${BASE}__feature-text`}>
-              We use the Free Spaced Repetition Scheduler algorithm, a state of
-              the art scheduling algorithm that optimizes timing based on your
-              past performance.
+              Read graded stories or paste any text. Tap a word to hear it, see
+              its meaning and turn it into a card.
             </p>
           </div>
 
           <div className={`${BASE}__feature`}>
-            <h2 className={`${BASE}__feature-title`}>Works Everywhere</h2>
+            <h2 className={`${BASE}__feature-title`}>Fill the gap</h2>
             <p className={`${BASE}__feature-text`}>
-              Skola is a progressive web app, meaning it can install everywhere.
-              It is even availabe offline and optimized for mobile and desktop.
+              Practise 7,000 real sentences built around the most common 2,000
+              words, with streaks and points.
             </p>
           </div>
-
-          <div className={`${BASE}__feature`}>
-            <h2 className={`${BASE}__feature-title`}>Rich Card Types</h2>
-            <p className={`${BASE}__feature-text`}>
-              Create standard, double-sided, and cloze deletion cards with full
-              HTML editing capabilities.
-            </p>
-          </div>
-
-          <div className={`${BASE}__feature`}>
-            <h2 className={`${BASE}__feature-title`}>Higher-Order Thinking</h2>
-            <p className={`${BASE}__feature-text`}>
-              Cognitive prompts challenge you to go beyond memorization by
-              rethinking cards you've mastered, encouraging deeper
-              understanding.
-            </p>
-          </div>
-
-          <div className={`${BASE}__feature`}>
-            <h2 className={`${BASE}__feature-title`}>Free & Open Source</h2>
-            <p className={`${BASE}__feature-text`}>
-              Skola is open source and free, it will forever stay that way. We
-              just believe thoughtful learning software.
-            </p>
-          </div>
-        </section>
-
-        <section className={`${BASE}__philosophy`}>
-          <h2 className={`${BASE}__section-title`}>Philosophy</h2>
-          <p className={`${BASE}__body-text`}>
-            Spaced repetition software should be open source, yet still
-            approachable and friendly. Effective tools shouldn't sacrifice
-            design for functionality or lock features behind paywalls. Skola is
-            being built by an flashcard enthusiatist who is frustrated with the
-            current open-source options.
-          </p>
-          <p className={`${BASE}__body-text`}>
-            <i style={{ fontFamily: "var(--font-serif)" }}>A word on AI.</i>{" "}
-            Creating flashcards is part of the learning process. Skola is
-            designed to support that work, not bypass it. AI has its place, but
-            not in replacing the cognitive effort of card creation. Instead,
-            Skola explores how technology can encourage higher-order thinking
-            through features like cognitive prompts that challenge you to
-            reconsider material you've already learned.
-          </p>
         </section>
 
         <footer className={`${BASE}__footer`}>
@@ -112,18 +65,28 @@ export default function WelcomeView() {
               alt=""
               className={`${BASE}__footer-logo`}
             />
-            <span className={`${BASE}__footer-name`}>Skola</span>
+            <span className={`${BASE}__footer-name`}>Kartu</span>
           </div>
           <p className={`${BASE}__footer-text`}>
-            Still in early development. Expect bugs and evolving features.{" "}
+            Built on the open-source apps{" "}
             <a
               href="https://github.com/h16nning/skola"
               target="_blank"
               rel="noopener noreferrer"
               className={`${BASE}__link`}
             >
-              Contribute on GitHub
+              Skola
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://github.com/heuwels/lector"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${BASE}__link`}
+            >
+              Lector
             </a>
+            .
           </p>
         </footer>
       </div>

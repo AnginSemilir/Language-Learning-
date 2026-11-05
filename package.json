@@ -33,8 +33,10 @@
     "react": "^19",
     "react-dom": "^19",
     "react-i18next": "14.1.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "6.22.3",
     "react-timer-hook": "3.0.7",
+    "remark-breaks": "^4.0.0",
     "uuid": "9.0.1",
     "vaul": "^1.1.2"
   },

@@ -69,6 +69,16 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         runtimeCaching: [
           {
+            // Dictionary and sentence bank: large, rarely change, needed offline.
+            urlPattern: /\/data\/.*\.json$/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "kartu-data",
+              expiration: { maxEntries: 10 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
             options: {

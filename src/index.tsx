@@ -4,6 +4,9 @@ import NewNotesView from "@/app/editor/NewNotesView";
 import NoteExplorerView from "@/app/explorer/NoteExplorerView";
 import HomeView from "@/app/home/HomeView";
 import LearnView from "@/app/learn/LearnView/LearnView";
+import PracticeView from "@/app/practice/PracticeView";
+import LibraryView from "@/app/reading/LibraryView";
+import ReaderView from "@/app/reading/ReaderView";
 import SettingsView from "@/app/settings/SettingsView";
 import StatsView from "@/app/statistics/StatsView";
 import React from "react";
@@ -49,6 +52,18 @@ const router = createHashRouter(
         {
           path: "/notes",
           element: <NoteExplorerView />,
+        },
+        {
+          path: "/read",
+          element: <LibraryView />,
+        },
+        {
+          path: "/read/:lessonId",
+          element: <ReaderView />,
+        },
+        {
+          path: "/practice",
+          element: <PracticeView />,
         },
         {
           path: "/stats/:deckId?",

@@ -1,0 +1,115 @@
+// Bridges Lector's reader vocabulary and Skola's flashcards: look up a word in
+// the user's own cards, and save a word from the reader as a new card.
+
+import { db } from "@/logic/db";
+import { newDeck } from "@/logic/deck/newDeck";
+import {
+  backHtml,
+  duplicateKey,
+  frontHtml,
+} from "@/logic/import/importFlashcards";
+import createDoubleSidedNote from "@/logic/type-implementations/double-sided/createDoubleSidedNote";
+import { vocabKey } from "./data-layer";
+
+export const DEFAULT_DECK_NAME = "Indonesian";
+const LAST_DECK_KEY = "kartu-reader-deck";
+
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Text of the first paragraph: the word itself, without the example sentence. */
+function firstParagraph(html: string) {
+  return stripHtml(html.match(/<p>(.*?)<\/p>/s)?.[1] ?? html);
+}
+
+export interface CardMatch {
+  noteId: string;
+  deckId: string;
+  front: string;
+  back: string;
+}
+
+/** The user's own cards keyed by the folded word on the Indonesian side. */
+export async function getUserCardIndex(): Promise<Map<string, CardMatch>> {
+  const notes = await db.notes.toArray();
+  const index = new Map<string, CardMatch>();
+  for (const n of notes) {
+    const c = n.content as {
+      field1?: string;
+      field2?: string;
+      front?: string;
+      back?: string;
+    };
+    const frontSide = c.field1 ?? c.front;
+    const backSide = c.field2 ?? c.back;
+    if (!frontSide || !backSide) continue;
+    const key = vocabKey(duplicateKey(frontSide));
+    if (!index.has(key)) {
+      index.set(key, {
+        noteId: n.id,
+        deckId: n.deck,
+        front: firstParagraph(frontSide),
+        back: stripHtml(backSide),
+      });
+    }
+  }
+  return index;
+}
+
+export function getLastDeckId(): string | null {
+  try {
+    return localStorage.getItem(LAST_DECK_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** The deck new reader cards go to: last used, else "Indonesian" (created if missing). */
+export async function resolveTargetDeck(deckId?: string | null) {
+  const wanted = deckId ?? getLastDeckId();
+  if (wanted) {
+    const deck = await db.decks.get(wanted);
+    if (deck) return deck;
+  }
+  const decks = await db.decks.toArray();
+  const named = decks.find(
+    (d) => d.name.trim().toLowerCase() === DEFAULT_DECK_NAME.toLowerCase()
+  );
+  if (named) return named;
+  const id = await newDeck(DEFAULT_DECK_NAME);
+  const created = await db.decks.get(id);
+  if (!created) throw new Error("Could not create deck");
+  return created;
+}
+
+export async function addWordAsCard(input: {
+  word: string;
+  translation: string;
+  sentence: string;
+  deckId?: string | null;
+}): Promise<{ noteId: string; deckName: string }> {
+  const deck = await resolveTargetDeck(input.deckId);
+  const row = {
+    front: input.word,
+    back: input.translation,
+    hint: input.sentence,
+  };
+  const noteId = await createDoubleSidedNote(
+    { field1: frontHtml(row), field2: backHtml(row) },
+    deck
+  );
+  try {
+    localStorage.setItem(LAST_DECK_KEY, deck.id);
+  } catch {
+    // Remembering the deck is a convenience only.
+  }
+  return { noteId, deckName: deck.name };
+}
