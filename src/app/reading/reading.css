@@ -1,0 +1,121 @@
+.library-view,
+.reading-view {
+  width: var(--max-content-width);
+  max-width: 100%;
+  margin: 0 auto;
+  padding-bottom: var(--spacing-3xl);
+}
+
+.library-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.library-view__intro {
+  color: var(--theme-neutral-700);
+  margin: 0;
+}
+
+.library-view__heading {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: var(--font-size-lg);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.library-view__list {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.library-view__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.library-view__open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  background: none;
+  border: 0;
+  padding: var(--spacing-xs) 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.library-view__open .text {
+  flex-basis: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--theme-neutral-600);
+}
+
+.library-view__number {
+  font-variant-numeric: tabular-nums;
+  color: var(--theme-neutral-500);
+  min-width: 1.5em;
+}
+
+.library-view__title {
+  font-weight: 600;
+}
+
+.reading-view__title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  margin: var(--spacing-md) 0 0;
+  text-wrap: balance;
+}
+
+.reading-view__author {
+  color: var(--theme-neutral-600);
+  margin: var(--spacing-xs) 0 0;
+}
+
+.word-panel__card {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--theme-primary-50);
+}
+
+.word-panel__label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--theme-neutral-600);
+  margin-bottom: var(--spacing-xs);
+}
+
+.word-panel__senses {
+  margin: var(--spacing-xs) 0;
+  padding-left: 1.4em;
+  line-height: 1.5;
+}
+
+.word-panel__pos {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--theme-neutral-500);
+}
+
+.word-panel__credit {
+  color: var(--theme-neutral-500);
+}
+
+.word-panel__sentence {
+  font-style: italic;
+  color: var(--theme-neutral-700);
+  border-left: 3px solid var(--theme-neutral-200);
+  padding-left: var(--spacing-sm);
+}
