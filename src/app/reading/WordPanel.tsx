@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import type { DictionaryEntry } from "@/lector/dictionary";
 import type { CardMatch } from "@/lector/flashcards";
+import { fold } from "@/lector/lemma";
 import { speak } from "@/lector/tts";
 import type { WordState } from "@/lector/types";
 import { Deck } from "@/logic/deck/deck";
@@ -27,6 +28,16 @@ import { useEffect, useState } from "react";
 export interface WordPanelData {
   word: string;
   sentence: string;
+  /** The headword the word's state is stored under (membeli → beli). */
+  headword: string;
+  /** The root by form alone, even when counted separately (merupakan → rupa). */
+  root: string;
+  /** The user's grouping override for this form, if any. */
+  link?: "separate" | "group";
+  /** For derived nouns with their own entry: the root (kebaikan → baik). */
+  derivedFrom?: string;
+  /** Treated as a proper noun in this text. */
+  isName?: boolean;
   state: WordState;
   entry: DictionaryEntry | undefined | "loading" | "error";
   card: CardMatch | undefined;
@@ -38,6 +49,7 @@ interface WordPanelProps {
   defaultDeckId: string | null;
   onClose: () => void;
   onSetState: (state: WordState) => void;
+  onSetGrouping: (mode: "separate" | "group") => void;
   onAddCard: (translation: string, deckId: string | null) => Promise<void>;
 }
 
@@ -59,6 +71,7 @@ export default function WordPanel({
   defaultDeckId,
   onClose,
   onSetState,
+  onSetGrouping,
   onAddCard,
 }: WordPanelProps) {
   const [translation, setTranslation] = useState("");
@@ -73,6 +86,9 @@ export default function WordPanel({
   useEffect(() => setDeckId(defaultDeckId), [defaultDeckId]);
 
   const entry = data?.entry;
+  const surface = data ? fold(data.word) : "";
+  const grouped = !!data && data.headword !== surface;
+  const related = !!data && !grouped && data.root !== surface;
   return (
     <Modal opened={data !== null} onClose={onClose} title={data?.word}>
       {data && (
@@ -96,6 +112,58 @@ export default function WordPanel({
               </Button>
             )}
           </Group>
+
+          {(grouped || related || data.derivedFrom || data.isName) && (
+            <div className="word-panel__grammar">
+              {data.isName && (
+                <Text size="sm">Treated as a name in this text.</Text>
+              )}
+              {grouped && (
+                <div className="word-panel__grouping">
+                  <Text size="sm">
+                    Form of <strong lang="id">{data.headword}</strong>; it
+                    shares that word's progress.
+                  </Text>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onSetGrouping("separate")}
+                  >
+                    Count separately
+                  </Button>
+                </div>
+              )}
+              {related && (
+                <div className="word-panel__grouping">
+                  <Text size="sm">
+                    {data.link === "separate" ? (
+                      <>
+                        Counted separately from{" "}
+                        <strong lang="id">{data.root}</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Related to <strong lang="id">{data.root}</strong>, but
+                        counted as its own word because the meanings differ.
+                      </>
+                    )}
+                  </Text>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onSetGrouping("group")}
+                  >
+                    Group with {data.root}
+                  </Button>
+                </div>
+              )}
+              {data.derivedFrom && !grouped && !related && (
+                <Text size="sm">
+                  Derived from <strong lang="id">{data.derivedFrom}</strong>.
+                </Text>
+              )}
+            </div>
+          )}
 
           {data.card && (
             <div className="word-panel__card">

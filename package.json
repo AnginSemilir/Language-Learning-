@@ -30,6 +30,7 @@
     "html-react-parser": "5.1.8",
     "html-to-text": "9.0.5",
     "i18next": "23.15.1",
+    "jszip": "^3.10.2",
     "react": "^19",
     "react-dom": "^19",
     "react-i18next": "14.1.0",

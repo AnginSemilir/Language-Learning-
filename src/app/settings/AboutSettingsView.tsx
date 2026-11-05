@@ -32,6 +32,16 @@ export default function AboutSettingsView() {
           by heuwels: the Indonesian language pack, reader, cloze practice,
           streaks and starter lessons.
         </li>
+        <li>
+          <a
+            href="https://github.com/damzaky/sastrawijs"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Sastrawi
+          </a>{" "}
+          (MIT): the Indonesian stemmer used to match word forms.
+        </li>
       </ul>
       <p>Data used:</p>
       <ul>

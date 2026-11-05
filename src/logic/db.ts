@@ -5,6 +5,7 @@ import type {
   DailyStats,
   Lesson,
   VocabEntry,
+  WordLink,
 } from "@/lector/types";
 import { Card } from "./card/card";
 import { Deck } from "./deck/deck";
@@ -24,6 +25,8 @@ export class Database extends Dexie {
   lessons!: Table<Lesson>;
   dailyStats!: Table<DailyStats>;
   cloze!: Table<ClozeSentence>;
+  /** The user's choices to group a word form with its root, or not. */
+  wordLinks!: Table<WordLink>;
 
   constructor() {
     super("skola_db", { cache: "immutable" });
@@ -39,6 +42,9 @@ export class Database extends Dexie {
       lessons: "id, source, sortOrder, createdAt",
       dailyStats: "date",
       cloze: "id, nextReview, collection, reviewCount",
+    });
+    this.version(24).stores({
+      wordLinks: "form",
     });
     this.open();
   }

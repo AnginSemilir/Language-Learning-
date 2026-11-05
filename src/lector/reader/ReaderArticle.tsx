@@ -2,7 +2,8 @@
 // src/components/MarkdownReader/ReaderArticle/index.tsx
 // Changes: dropped ruby annotations, stored segmentation, phrase highlighting
 // and prose-style settings (none apply to Indonesian here); Tailwind classes
-// replaced with reader.css.
+// replaced with reader.css; word state comes from a grammar-aware `stateOf`
+// instead of a surface-form map.
 import {
   Fragment,
   type ReactElement,
@@ -14,10 +15,9 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { id as pack } from "../languages/id/manifest";
-import { lookupByVocabKeys } from "../languages/morphology";
 import { splitSentences } from "../languages/tokenizer";
-import type { WordState } from "../types";
 import WordCell from "./WordCell";
+import type { DisplayState } from "./useLexicon";
 import { readableText, splitWords } from "./utils";
 import "./reader.css";
 
@@ -30,7 +30,7 @@ interface ReaderBlockProps {
   as: "p" | "li";
   children: ReactNode;
   blockId: number;
-  knownWordsMap: Map<string, WordState>;
+  stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
   onWordClick: (word: string, sentence: string) => void;
   onActivateWord: (word: ActiveReaderWord) => void;
@@ -50,7 +50,7 @@ function ReaderBlock({
   as: Tag,
   children,
   blockId,
-  knownWordsMap,
+  stateOf,
   activeWord,
   onWordClick,
   onActivateWord,
@@ -71,7 +71,7 @@ function ReaderBlock({
           );
         }
         const wordIndex = context.i++;
-        const state = lookupByVocabKeys(knownWordsMap, part.text, pack);
+        const state = stateOf(part.text);
         const isActive =
           activeWord?.blockId === blockId && activeWord.wordIndex === wordIndex;
         return (
@@ -116,7 +116,7 @@ function ReaderBlock({
 
 interface ReaderArticleProps {
   content: string;
-  knownWordsMap: Map<string, WordState>;
+  stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
   onWordClick: (word: string, sentence: string) => void;
   onActivateWord: (word: ActiveReaderWord) => void;
@@ -124,13 +124,13 @@ interface ReaderArticleProps {
 
 function ReaderArticle({
   content,
-  knownWordsMap,
+  stateOf,
   activeWord,
   onWordClick,
   onActivateWord,
 }: ReaderArticleProps) {
   const blockProps = {
-    knownWordsMap,
+    stateOf,
     activeWord,
     onWordClick,
     onActivateWord,
