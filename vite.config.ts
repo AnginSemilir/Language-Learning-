@@ -9,13 +9,13 @@ import viteTsconfigPaths from "vite-tsconfig-paths";
 const pkg = JSON.parse(fs.readFileSync("./package.json", "utf-8"));
 
 export default defineConfig({
-  base: "/",
+  base: "./",
   css: {
     modules: {},
   },
   define: {
     ENABLE_FIREBASE: process.env.ENABLE_FIREBASE || true,
-    PUBLIC_URL: JSON.stringify(process.env.PUBLIC_URL || "/"),
+    PUBLIC_URL: JSON.stringify(process.env.PUBLIC_URL || "./"),
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
   },
   resolve: {
@@ -35,14 +35,16 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["logo.svg", "logo256.png", "logo512.png", "fonts/**/*"],
       manifest: {
-        name: "Skola Cards",
-        short_name: "Skola",
-        description: "Skola is a free and open source flash card app.",
+        name: "Kartu – Indonesian flashcards",
+        short_name: "Kartu",
+        description:
+          "Indonesian flashcards, reading and cloze practice. Built on Skola and Lector.",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "fullscreen",
         orientation: "portrait-primary",
-        start_url: "/",
+        start_url: "./",
+        scope: "./",
         icons: [
           {
             src: "logo256.png",

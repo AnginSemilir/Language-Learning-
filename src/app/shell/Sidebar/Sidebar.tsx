@@ -1,4 +1,3 @@
-import { CloudSyncState } from "@/components/CloudSyncState";
 import { IconButton } from "@/components/ui/IconButton";
 import { NavItem } from "@/components/ui/NavItem";
 import { breakpoints } from "@/lib/breakpoints";
@@ -55,7 +54,7 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
           <header className={`${BASE}__header`}>
             <div className={`${BASE}__brand`}>
               <img
-                src="/logo.svg"
+                src={`${import.meta.env.BASE_URL}logo.svg`}
                 alt="Skola Logo"
                 className={`${BASE}__logo`}
               />
@@ -111,8 +110,6 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
 
           <DeckList minimalMode={minimalMode} />
         </div>
-
-        <CloudSyncState minimal={minimalMode} />
       </div>
     </aside>
   );

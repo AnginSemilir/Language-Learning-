@@ -107,7 +107,11 @@ export default function WelcomeView() {
 
         <footer className={`${BASE}__footer`}>
           <div className={`${BASE}__footer-branding`}>
-            <img src="/logo.svg" alt="" className={`${BASE}__footer-logo`} />
+            <img
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt=""
+              className={`${BASE}__footer-logo`}
+            />
             <span className={`${BASE}__footer-name`}>Skola</span>
           </div>
           <p className={`${BASE}__footer-text`}>

@@ -1,6 +1,6 @@
 {
   "name": "skola",
-  "homepage": "https://skola.cards/",
+  "homepage": "https://anginsemilir.github.io/Language-Learning-/",
   "version": "0.3.4",
   "private": false,
   "dependencies": {
@@ -24,7 +24,6 @@
     "@tiptap/starter-kit": "2.27.1",
     "clsx": "^2.1.1",
     "dexie": "^4.3.0",
-    "dexie-cloud-addon": "^4.3.9",
     "dexie-export-import": "4.1.1",
     "dexie-react-hooks": "1.1.7",
     "fsrs.js": "1.2.2",
@@ -50,8 +49,7 @@
     "extract": "i18next --config i18next-parser.config.mjs 'src/**/*.{ts,tsx}'",
     "format": "biome check --apply",
     "tauri": "tauri",
-    "add-domain": "echo https://skola.cards> dist/CNAME",
-    "predeploy": "pnpm run add-domain && pnpm run build",
+    "predeploy": "pnpm run build",
     "deploy": "gh-pages -d dist",
     "build-and-deploy": "pnpm run predeploy && pnpm run deploy"
   },

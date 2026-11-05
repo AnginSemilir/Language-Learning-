@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { I18nextProvider } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
 import WelcomeView from "./app/WelcomeView";
-import LoginUI from "./app/login/LoginUI";
 import Header from "./app/shell/Header/Header";
 import Sidebar from "./app/shell/Sidebar/Sidebar";
 import {
@@ -100,7 +99,6 @@ function AppContent() {
               </div>
             </main>
           </div>
-          <LoginUI />
         </div>
       ) : (
         <WelcomeView />
