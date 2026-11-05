@@ -109,6 +109,13 @@
   padding: 0;
   opacity: 0.6;
 }
+.word-cell--name {
+  font-weight: inherit;
+  padding: 0;
+  text-decoration: underline dotted
+    color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 0.25em;
+}
 .word-cell--active {
   outline: 2px solid var(--w-active);
   background: color-mix(in srgb, var(--w-active) 22%, transparent);

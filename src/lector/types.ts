@@ -34,6 +34,8 @@ export interface VocabEntry {
   createdAt: Date;
   /** The flashcard note created from this word, if any. */
   noteId?: string;
+  /** Spellings seen in texts when `text` is a headword (membeli, dibeli → beli). */
+  forms?: string[];
 }
 
 export interface ClozeSentence {
@@ -80,4 +82,10 @@ export interface Lesson {
   sortOrder?: number;
   createdAt: Date;
   lastReadAt?: Date;
+  /** Reading position: page index and how many pages the lesson had. */
+  lastPage?: number;
+  pageCount?: number;
+  finishedAt?: Date;
+  /** Book or series the lesson belongs to (EPUB chapters share one). */
+  collection?: string;
 }

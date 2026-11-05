@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import type { DictionaryEntry } from "@/lector/dictionary";
 import type { CardMatch } from "@/lector/flashcards";
+import { fold } from "@/lector/lemma";
 import { speak } from "@/lector/tts";
 import type { WordState } from "@/lector/types";
 import { Deck } from "@/logic/deck/deck";
@@ -27,6 +28,12 @@ import { useEffect, useState } from "react";
 export interface WordPanelData {
   word: string;
   sentence: string;
+  /** The headword the word's state is stored under (membeli → beli). */
+  headword: string;
+  /** For derived nouns with their own entry: the root (kebaikan → baik). */
+  derivedFrom?: string;
+  /** Treated as a proper noun in this text. */
+  isName?: boolean;
   state: WordState;
   entry: DictionaryEntry | undefined | "loading" | "error";
   card: CardMatch | undefined;
@@ -96,6 +103,25 @@ export default function WordPanel({
               </Button>
             )}
           </Group>
+
+          {(data.headword !== fold(data.word) ||
+            data.derivedFrom ||
+            data.isName) && (
+            <Text size="sm" className="word-panel__grammar">
+              {data.isName && "Treated as a name in this text. "}
+              {data.headword !== fold(data.word) && (
+                <>
+                  Form of <strong lang="id">{data.headword}</strong>; it shares
+                  that word's progress.
+                </>
+              )}
+              {data.derivedFrom && data.headword === fold(data.word) && (
+                <>
+                  Derived from <strong lang="id">{data.derivedFrom}</strong>.
+                </>
+              )}
+            </Text>
+          )}
 
           {data.card && (
             <div className="word-panel__card">

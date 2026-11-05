@@ -9,6 +9,7 @@
 import { id as pack } from "./languages/id/manifest";
 import { stemCandidates } from "./languages/morphology";
 import { foldWord } from "./languages/text";
+import { type GrammarData, type Lemmatizer, createLemmatizer } from "./lemma";
 
 export interface DictionarySense {
   partOfSpeech: string;
@@ -23,19 +24,17 @@ export interface DictionaryEntry {
   lemmaInfo?: { stem: string; label: string };
 }
 
-interface DictionaryData {
-  e: Record<string, [string, string][]>;
-  i: Record<string, [string, string]>;
-}
+type DictionaryData = Pick<GrammarData, "e" | "i">;
 
-let loading: Promise<DictionaryData> | null = null;
+let loading: Promise<GrammarData> | null = null;
+let grammar: Promise<{ data: GrammarData; lex: Lemmatizer }> | null = null;
 
-export function loadDictionary(): Promise<DictionaryData> {
+export function loadDictionary(): Promise<GrammarData> {
   if (!loading) {
     loading = fetch(`${import.meta.env.BASE_URL}data/dictionary-id.json`)
       .then((r) => {
         if (!r.ok) throw new Error(`Dictionary failed to load (${r.status})`);
-        return r.json() as Promise<DictionaryData>;
+        return r.json() as Promise<GrammarData>;
       })
       .catch((e) => {
         loading = null;
@@ -43,6 +42,19 @@ export function loadDictionary(): Promise<DictionaryData> {
       });
   }
   return loading;
+}
+
+/** The dictionary plus a lemmatizer built from it, loaded once. */
+export function loadGrammar(): Promise<{ data: GrammarData; lex: Lemmatizer }> {
+  if (!grammar) {
+    grammar = loadDictionary()
+      .then((data) => ({ data, lex: createLemmatizer(data) }))
+      .catch((e) => {
+        grammar = null;
+        throw e;
+      });
+  }
+  return grammar;
 }
 
 const OPAQUE_INFLECTION_TAGS = new Set(["form", "error-unrecognized-form"]);

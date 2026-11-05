@@ -1,12 +1,12 @@
 // Ported from Lector (heuwels/lector@eb393ce, AGPL-3.0-only): src/components/WordCell/index.tsx
 // Changes: Tailwind classes replaced with reader.css; ruby annotations removed
 // (not used for Indonesian).
-import type { WordState } from "../types";
+import type { DisplayState } from "./useLexicon";
 
 export interface WordCellProps {
   text: string;
-  /** Word state from the known-words map; undefined renders as 'new'. */
-  state?: WordState;
+  /** Word state; undefined renders as 'new'. "name" is a proper noun. */
+  state?: DisplayState;
   /** The currently looked-up word (panel open). */
   isActive?: boolean;
   /** Tap/Enter/Space. The element is passed so callers can find the sentence. */

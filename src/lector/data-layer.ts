@@ -134,6 +134,101 @@ export async function updateWordState(
   }
 }
 
+// ── Headwords (grammar-aware states) ───────────────────────────────────────
+//
+// The reader stores a word's state under its headword (lemma), so membeli,
+// dibeli and beli share one entry. `forms` records the spellings seen.
+// Entries saved earlier under a surface form are merged in when touched.
+
+export interface HeadwordPatch {
+  state: WordState;
+  form?: string;
+  sentence?: string;
+  translation?: string;
+  lessonId?: string;
+  noteId?: string;
+}
+
+export async function setHeadwordState(
+  headword: string,
+  patch: HeadwordPatch
+): Promise<VocabEntry> {
+  return db.transaction("rw", db.vocab, async () => {
+    const key = vocabKey(headword);
+    const existing = await db.vocab.where("text").equals(key).first();
+    const formKey = patch.form ? vocabKey(patch.form) : undefined;
+    const legacy =
+      formKey && formKey !== key
+        ? await db.vocab.where("text").equals(formKey).first()
+        : undefined;
+    const now = new Date();
+    const forms = new Set([
+      ...(existing?.forms ?? []),
+      ...(legacy?.forms ?? []),
+      ...(formKey && formKey !== key ? [formKey] : []),
+    ]);
+    const row: VocabEntry = {
+      type: "word",
+      sentence: "",
+      translation: "",
+      reviewCount: 0,
+      ...legacy,
+      ...existing,
+      id: existing?.id ?? legacy?.id ?? uuidv4(),
+      text: key,
+      state: patch.state,
+      stateUpdatedAt: now,
+      createdAt: existing?.createdAt ?? legacy?.createdAt ?? now,
+      forms: [...forms],
+      ...(patch.sentence ? { sentence: patch.sentence } : {}),
+      ...(patch.translation ? { translation: patch.translation } : {}),
+      ...(patch.lessonId ? { lessonId: patch.lessonId } : {}),
+      ...(patch.noteId ? { noteId: patch.noteId } : {}),
+    };
+    if (legacy && legacy.id !== row.id) await db.vocab.delete(legacy.id);
+    await db.vocab.put(row);
+    return row;
+  });
+}
+
+/** Marks many headwords known at once (the reader's "mark the rest as known"). */
+export async function markHeadwordsKnown(
+  items: { headword: string; forms: string[] }[],
+  lessonId?: string
+) {
+  if (items.length === 0) return;
+  const now = new Date();
+  await db.transaction("rw", db.vocab, async () => {
+    for (const item of items) {
+      const key = vocabKey(item.headword);
+      const existing = await db.vocab.where("text").equals(key).first();
+      const forms = new Set([
+        ...(existing?.forms ?? []),
+        ...item.forms.map(vocabKey).filter((f) => f !== key),
+      ]);
+      await db.vocab.put({
+        type: "word",
+        sentence: "",
+        translation: "",
+        reviewCount: 0,
+        ...existing,
+        id: existing?.id ?? uuidv4(),
+        text: key,
+        state: "known",
+        stateUpdatedAt: now,
+        createdAt: existing?.createdAt ?? now,
+        forms: [...forms],
+        ...(lessonId && !existing ? { lessonId } : {}),
+      });
+    }
+  });
+  await incrementDailyStat("wordsMarkedKnown", items.length);
+}
+
+export function deleteVocab(id: string) {
+  return db.vocab.delete(id);
+}
+
 // ── Lessons ────────────────────────────────────────────────────────────────
 
 const starterFiles = import.meta.glob("./content/starter/*.md", {
@@ -184,12 +279,44 @@ export async function saveLesson(input: {
   return id;
 }
 
+/** Saves several lessons at once, e.g. the chapters of a book, in order. */
+export async function saveLessons(
+  items: {
+    title: string;
+    author?: string;
+    collection?: string;
+    content: string;
+  }[]
+): Promise<string[]> {
+  const now = Date.now();
+  const lessons: Lesson[] = items.map((item, i) => ({
+    id: uuidv4(),
+    title: item.title,
+    author: item.author,
+    collection: item.collection,
+    content: item.content,
+    source: "paste",
+    sortOrder: i,
+    createdAt: new Date(now + i),
+  }));
+  await db.lessons.bulkAdd(lessons);
+  return lessons.map((l) => l.id);
+}
+
 export function deleteLesson(id: string) {
   return db.lessons.delete(id);
 }
 
 export function touchLesson(id: string) {
   return db.lessons.update(id, { lastReadAt: new Date() });
+}
+
+export function saveLessonPage(id: string, page: number, pageCount: number) {
+  return db.lessons.update(id, {
+    lastPage: page,
+    pageCount,
+    ...(page >= pageCount - 1 ? { finishedAt: new Date() } : {}),
+  });
 }
 
 // ── Cloze sentences ────────────────────────────────────────────────────────
