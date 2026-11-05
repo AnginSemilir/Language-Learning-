@@ -73,6 +73,6 @@
     }
   },
   "files": {
-    "ignore": ["public/data/**"]
+    "ignore": ["public/data/**", "src/vendor/**"]
   }
 }
