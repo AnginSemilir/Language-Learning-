@@ -36,16 +36,16 @@ talked to its server were rewritten to use the browser database
   you didn't look up or rate as known (you can leave words out, or have it
   happen without asking). Names and numbers are skipped. Known words are
   listed under Read → Known words.
-- **Grammar-aware matching.** Word states are kept per root word: verb forms
-  share one entry (*membeli*, *dibeli*, *beli*; *berjalan-jalan* → *jalan*;
-  *rumahnya* → *rumah*). A form is only grouped when the dictionary shows it
-  means the same as its root, so *merupakan* ("to constitute") stays apart from
-  *rupa* ("shape"), as do *terdapat*/*dapat* and *berangkat*/*angkat*. Derived
-  nouns (*pembelian*, *kebaikan*) and function words (*mereka*, *menurut*) stay
-  separate too. The word panel has **Count separately** / **Group with …** to
-  override any of this per word. Sources: Wiktionary's verb-form table and
-  etymologies, then the [Sastrawi](https://github.com/damzaky/sastrawijs)
-  stemmer (MIT) for forms Wiktionary doesn't list.
+- **Grammar-aware matching.** Only forms that are the same word share
+  progress: *di-* passives with their base (*dibeli* → *beli*, *diberikan* →
+  *berikan*, unless the dictionary shows a different meaning), clitics
+  (*rumahnya* → *rumah*) and plurals (*buku-buku* → *buku*). Other forms
+  (*membeli*, *bertanya*, *merupakan*, *pembelian*) count as words of their
+  own; the word panel shows the related root ("Related to *beli*") and has
+  **Group with …** / **Count separately** to override per word. Roots come from
+  Wiktionary's verb-form table and etymologies, then the
+  [Sastrawi](https://github.com/damzaky/sastrawijs) stemmer (MIT) for forms
+  Wiktionary doesn't list.
 - **Practice.** Fill-in-the-gap on 7,220 Tatoeba sentences built around the
   2,000 most common words. Typing or multiple choice, letter hints, points.
   Correct answers come back after 1, 3, 7 and 14 days; misses reset.

@@ -121,8 +121,11 @@ export default function WordPanel({
               {grouped && (
                 <div className="word-panel__grouping">
                   <Text size="sm">
-                    Form of <strong lang="id">{data.headword}</strong>; it
-                    shares that word's progress.
+                    {surface === `di${data.headword}`
+                      ? "Passive of"
+                      : "Form of"}{" "}
+                    <strong lang="id">{data.headword}</strong>; it shares that
+                    word's progress.
                   </Text>
                   <Button
                     size="sm"
@@ -143,8 +146,7 @@ export default function WordPanel({
                       </>
                     ) : (
                       <>
-                        Related to <strong lang="id">{data.root}</strong>, but
-                        counted as its own word because the meanings differ.
+                        Related to <strong lang="id">{data.root}</strong>
                       </>
                     )}
                   </Text>
