@@ -121,7 +121,18 @@
 }
 
 .word-panel__grammar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
   color: var(--theme-neutral-700);
+}
+
+.word-panel__grouping {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs) var(--spacing-sm);
 }
 
 .reading-view__page {

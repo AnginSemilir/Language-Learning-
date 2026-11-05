@@ -89,3 +89,13 @@ export interface Lesson {
   /** Book or series the lesson belongs to (EPUB chapters share one). */
   collection?: string;
 }
+
+/**
+ * A word form the user has chosen to count separately from its root, or to
+ * group with it, overriding the automatic choice (merupakan / rupa).
+ */
+export interface WordLink {
+  /** Folded word form, e.g. "merupakan". */
+  form: string;
+  mode: "separate" | "group";
+}

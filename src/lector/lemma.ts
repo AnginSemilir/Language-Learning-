@@ -10,7 +10,9 @@
 //   4. the Sastrawi stemmer (vendored, MIT) over Wiktionary's root words, for
 //      forms Wiktionary doesn't list.
 // Derived nouns that have their own dictionary entry (pembelian, kebaikan)
-// stay separate headwords: their meaning differs from the root's.
+// stay separate headwords, and so does any verb form whose dictionary meaning
+// has drifted from its root's (merupakan "to constitute" vs rupa "shape").
+// The reader lets the user override either way (see useLexicon).
 
 import Stemmer from "@/vendor/sastrawi/stemmer";
 import { id as pack } from "./languages/id/manifest";
@@ -31,8 +33,15 @@ export interface GrammarData {
 }
 
 export interface Lemmatizer {
-  /** The headword a word's learning state is stored under. */
+  /**
+   * The headword a word's learning state is stored under. Forms are grouped
+   * with their root only when the dictionary shows they mean the same thing
+   * (membeli → beli, but merupakan "to constitute" stays apart from rupa
+   * "shape").
+   */
   lemma(word: string): string;
+  /** The root by form alone, ignoring meaning: merupakan → rupa. */
+  looseLemma(word: string): string;
   /** Root a derived noun comes from, for display ("from baik"). */
   derivedFrom(word: string): string | undefined;
   /** Whether the dictionary only knows this word as a name. */
@@ -42,6 +51,30 @@ export interface Lemmatizer {
 
 const FUNCTION_POS = new Set(["pron", "prep", "conj", "det", "particle"]);
 const VERB_POS = new Set(["verb"]);
+
+// Words that say nothing about meaning in a gloss ("active of", "to be",
+// "something", "form of").
+const GLOSS_STOP = new Set(
+  (
+    "the a an to of be is are was or and in on at for with as by from into " +
+    "up out about it its that this which who what one one's oneself someone " +
+    "something somebody sth sb etc used use form forms active passive " +
+    "alternative spelling synonym basic infinitive imperative colloquial " +
+    "standard nonstandard verb noun adjective object person thing " +
+    "have having become being not no"
+  ).split(" ")
+);
+
+/** A crude English stem so "enjoy" matches "enjoyable" and "follow" "following". */
+function englishStem(word: string) {
+  return word
+    .replace(
+      /(ings|ing|ers|er|ed|es|s|ations|ation|ions|ion|ments|ment|able|ible|ness|ly|age)$/,
+      ""
+    )
+    .replace(/y$/, "i")
+    .replace(/e$/, "");
+}
 
 const CLITICS_ONLY = {
   clitics: pack.morphology?.clitics ?? [],
@@ -60,7 +93,8 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
   for (const form of Object.keys(data.n)) roots.delete(form);
   const stemmer = new Stemmer(roots);
   const names = new Set(data.p);
-  const memo = new Map<string, string>();
+  const strictMemo = new Map<string, string>();
+  const looseMemo = new Map<string, string>();
 
   const known = (w: string) =>
     w in data.e || w in data.i || w in data.v || w in data.n;
@@ -68,14 +102,64 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
     data.e[w]?.some(([pos]) => wanted.has(pos)) ?? false;
   const avoid = pack.avoidWords;
 
-  function resolve(w: string, depth: number): string {
+  const glossCache = new Map<
+    string,
+    { words: Set<string>; stems: Set<string> }
+  >();
+  function gloss(w: string) {
+    let cached = glossCache.get(w);
+    if (!cached) {
+      const words = new Set(
+        (data.e[w] ?? [])
+          .flatMap(([, g]) => g.toLowerCase().split(/[^\p{L}-]+/u))
+          .filter(Boolean)
+      );
+      const stems = new Set(
+        [...words]
+          .filter((x) => x.length > 2 && !GLOSS_STOP.has(x))
+          .map(englishStem)
+          .filter((x) => x.length > 2)
+      );
+      cached = { words, stems };
+      glossCache.set(w, cached);
+    }
+    return cached;
+  }
+
+  /**
+   * Whether a form and the root it links to mean the same thing: one's
+   * definition names the other ("active of lihat", "basic form of
+   * menggunakan"), or their English definitions share a content word. A form
+   * with no definition of its own gives no sign of a different meaning.
+   */
+  function sameMeaning(form: string, root: string): boolean {
+    if (!(form in data.e) || !(root in data.e)) return true;
+    const a = gloss(form);
+    const b = gloss(root);
+    if (a.words.has(root) || b.words.has(form)) return true;
+    // "passive of membeli" names a sibling form that links straight to the
+    // same root (membeli → beli). A derivative of the form itself doesn't
+    // count: gunakan "basic form of menggunakan" says nothing about guna.
+    for (const word of a.words) {
+      if (word !== form && (data.i[word]?.[0] ?? data.v[word]) === root) {
+        return true;
+      }
+    }
+    for (const stem of a.stems) if (b.stems.has(stem)) return true;
+    return false;
+  }
+
+  function resolve(w: string, depth: number, strict: boolean): string {
     if (depth > 4) return w;
+    // Follow a link from w to its root, unless (strictly) the meanings differ.
+    const follow = (next: string) =>
+      strict && !sameMeaning(w, next) ? w : resolve(next, depth + 1, strict);
+
     // Pronouns, prepositions and other function words keep their own entry
     // even when they look like verb forms (mereka, menurut, melalui).
     if (hasPos(w, FUNCTION_POS) || avoid.has(w)) return w;
     const inflection = data.i[w];
-    if (inflection && inflection[0] !== w)
-      return resolve(inflection[0], depth + 1);
+    if (inflection && inflection[0] !== w) return follow(inflection[0]);
     const verbRoot = data.v[w];
     if (verbRoot && verbRoot !== w) {
       // berikan is both ber- + ikan ("having fish") and beri + -kan; when the
@@ -83,10 +167,10 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
       for (const suffix of ["kan", "i"]) {
         const base = w.slice(0, -suffix.length);
         if (w.endsWith(suffix) && base.length >= 3 && hasPos(base, VERB_POS)) {
-          return resolve(base, depth + 1);
+          return follow(base);
         }
       }
-      return resolve(verbRoot, depth + 1);
+      return follow(verbRoot);
     }
     // Passive and stative verbs Wiktionary lists without a link to their
     // base: dijual → jual. Only when the base is itself a verb (dingin, an
@@ -100,27 +184,28 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
           base.length >= 3 &&
           hasPos(base, VERB_POS)
         ) {
-          return resolve(base, depth + 1);
+          return follow(base);
         }
       }
       return w;
     }
     if (w in data.e) return w;
 
-    // Reduplication: buku-buku → buku, berjalan-jalan → berjalan → jalan.
+    // Reduplication: buku-buku → buku, berjalan-jalan → berjalan.
     const dash = w.indexOf("-");
     if (dash > 0) {
       const a = w.slice(0, dash);
       const b = w.slice(dash + 1);
-      if (a === b || (b.length >= 3 && a.endsWith(b)))
-        return resolve(a, depth + 1);
-      if (known(a)) return resolve(a, depth + 1);
+      if (a === b || (b.length >= 3 && a.endsWith(b)) || known(a)) {
+        return resolve(a, depth + 1, strict);
+      }
       return w;
     }
 
     // Clitics: rumahnya → rumah, bukunya → buku, dialah → dia.
     for (const candidate of stemCandidates(w, CLITICS_ONLY)) {
-      if (known(candidate.key)) return resolve(candidate.key, depth + 1);
+      if (known(candidate.key))
+        return resolve(candidate.key, depth + 1, strict);
     }
 
     // Anything else: affix stripping with the Sastrawi stemmer.
@@ -129,16 +214,20 @@ export function createLemmatizer(data: GrammarData): Lemmatizer {
     return w;
   }
 
-  return {
-    lemma(word: string) {
+  const lookup =
+    (memo: Map<string, string>, strict: boolean) => (word: string) => {
       const w = fold(word);
       let result = memo.get(w);
       if (result === undefined) {
-        result = resolve(w, 0);
+        result = resolve(w, 0, strict);
         memo.set(w, result);
       }
       return result;
-    },
+    };
+
+  return {
+    lemma: lookup(strictMemo, true),
+    looseLemma: lookup(looseMemo, false),
     derivedFrom(word: string) {
       return data.n[fold(word)];
     },

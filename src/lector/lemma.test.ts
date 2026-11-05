@@ -17,13 +17,15 @@ describe("lemma", () => {
     ["menulis", "tulis"],
     ["ditulis", "tulis"],
     ["memperbaiki", "baik"],
-    ["berjalan", "jalan"],
-    ["berjalan-jalan", "jalan"],
     ["buku-buku", "buku"],
     ["rumahnya", "rumah"],
     ["bukunya", "buku"],
-    ["menggunakan", "guna"],
-    ["digunakan", "guna"],
+    ["menggunakan", "gunakan"],
+    ["digunakan", "gunakan"],
+    ["mendapat", "dapat"],
+    ["bertanya", "tanya"],
+    ["mengirim", "kirim"],
+    ["menikmati", "nikmat"],
     ["memberikan", "beri"],
     ["diberikan", "beri"],
     ["menjual", "jual"],
@@ -37,6 +39,23 @@ describe("lemma", () => {
     expect(lex.lemma("kebaikan")).toBe("kebaikan");
     expect(lex.lemma("makanan")).toBe("makanan");
     expect(lex.derivedFrom("kebaikan")).toBe("baik");
+  });
+
+  it("keeps forms whose meaning drifted from the root apart", () => {
+    for (const [w, root] of [
+      ["merupakan", "rupa"],
+      ["terdapat", "dapat"],
+      ["berangkat", "angkat"],
+      ["termasuk", "masuk"],
+      ["meninggalkan", "tinggal"],
+      ["belajar", "ajar"],
+      ["berdiri", "diri"],
+      ["berjalan", "jalan"],
+      ["berjalan-jalan", "jalan"],
+    ]) {
+      expect(lex.lemma(w)).toBe(w);
+      expect(lex.looseLemma(w)).toBe(root);
+    }
   });
 
   it("keeps function words that look like verb forms", () => {

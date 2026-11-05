@@ -16,6 +16,7 @@ import {
   markHeadwordsKnown,
   saveLessonPage,
   setHeadwordState,
+  setWordLink,
   touchLesson,
 } from "@/lector/data-layer";
 import { loadGrammar, lookupWord } from "@/lector/dictionary";
@@ -121,6 +122,8 @@ export default function ReaderView() {
         word,
         sentence,
         headword,
+        root: lexicon.rootOf(word),
+        link: lexicon.linkOf(word),
         derivedFrom: lexicon.lex?.derivedFrom(word),
         isName: state === "name",
         state: state === "name" ? "new" : state,
@@ -136,6 +139,27 @@ export default function ReaderView() {
     },
     [lexicon]
   );
+
+  // Keep the open panel in step with grouping and state changes.
+  const { stateOf, headwordOf, linkOf } = lexicon;
+  useEffect(() => {
+    setPanel((p) => {
+      if (!p) return p;
+      const display = stateOf(p.word);
+      const state = display === "name" ? "new" : display;
+      const headword = headwordOf(p.word);
+      const link = linkOf(p.word);
+      if (p.state === state && p.headword === headword && p.link === link) {
+        return p;
+      }
+      return { ...p, state, headword, link };
+    });
+  }, [stateOf, headwordOf, linkOf]);
+
+  const setGrouping = async (mode: "separate" | "group") => {
+    if (!panel) return;
+    await setWordLink(panel.word, mode, panel.root);
+  };
 
   const closePanel = () => {
     setPanel(null);
@@ -432,6 +456,7 @@ export default function ReaderView() {
         defaultDeckId={getLastDeckId()}
         onClose={closePanel}
         onSetState={setState}
+        onSetGrouping={setGrouping}
         onAddCard={addCard}
       />
       <MarkKnownSheet

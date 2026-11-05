@@ -38,11 +38,14 @@ talked to its server were rewritten to use the browser database
   listed under Read → Known words.
 - **Grammar-aware matching.** Word states are kept per root word: verb forms
   share one entry (*membeli*, *dibeli*, *beli*; *berjalan-jalan* → *jalan*;
-  *rumahnya* → *rumah*). Derived nouns with their own meaning (*pembelian*,
-  *kebaikan*) and function words (*mereka*, *menurut*) stay separate. Sources:
-  Wiktionary's verb-form table and etymologies, then the
-  [Sastrawi](https://github.com/damzaky/sastrawijs) stemmer (MIT) for forms
-  Wiktionary doesn't list.
+  *rumahnya* → *rumah*). A form is only grouped when the dictionary shows it
+  means the same as its root, so *merupakan* ("to constitute") stays apart from
+  *rupa* ("shape"), as do *terdapat*/*dapat* and *berangkat*/*angkat*. Derived
+  nouns (*pembelian*, *kebaikan*) and function words (*mereka*, *menurut*) stay
+  separate too. The word panel has **Count separately** / **Group with …** to
+  override any of this per word. Sources: Wiktionary's verb-form table and
+  etymologies, then the [Sastrawi](https://github.com/damzaky/sastrawijs)
+  stemmer (MIT) for forms Wiktionary doesn't list.
 - **Practice.** Fill-in-the-gap on 7,220 Tatoeba sentences built around the
   2,000 most common words. Typing or multiple choice, letter hints, points.
   Correct answers come back after 1, 3, 7 and 14 days; misses reset.

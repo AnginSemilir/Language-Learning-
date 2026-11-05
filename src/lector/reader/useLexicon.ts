@@ -19,7 +19,12 @@ export interface ReaderLexicon {
   error: boolean;
   names: Set<string>;
   stateOf: (word: string) => DisplayState;
+  /** Where the word's state is stored: its root, or itself if counted separately. */
   headwordOf: (word: string) => string;
+  /** The root by form alone (merupakan → rupa), whatever the grouping. */
+  rootOf: (word: string) => string;
+  /** The user's override for this form, if any. */
+  linkOf: (word: string) => "separate" | "group" | undefined;
   cardFor: (word: string) => CardMatch | undefined;
   isName: (word: string) => boolean;
 }
@@ -33,6 +38,11 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
   const [error, setError] = useState(false);
   const [cards, setCards] = useState<Map<string, CardMatch>>(new Map());
   const vocab = useLiveQuery(() => db.vocab.toArray(), []);
+  const linkRows = useLiveQuery(() => db.wordLinks.toArray(), []);
+  const links = useMemo(
+    () => new Map((linkRows ?? []).map((l) => [l.form, l.mode])),
+    [linkRows]
+  );
 
   useEffect(() => {
     loadGrammar()
@@ -67,9 +77,23 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
   );
 
   const headwordOf = useCallback(
-    (word: string) => (lex ? lex.lemma(word) : fold(word)),
+    (word: string) => {
+      const surface = fold(word);
+      if (!lex) return surface;
+      const link = links.get(surface);
+      if (link === "separate") return surface;
+      if (link === "group") return lex.looseLemma(word);
+      return lex.lemma(word);
+    },
+    [lex, links]
+  );
+
+  const rootOf = useCallback(
+    (word: string) => (lex ? lex.looseLemma(word) : fold(word)),
     [lex]
   );
+
+  const linkOf = useCallback((word: string) => links.get(fold(word)), [links]);
 
   const isName = useCallback(
     (word: string) => isNameToken(word, names),
@@ -80,13 +104,15 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     (word: string): DisplayState => {
       if (isNameToken(word, names)) return "name";
       const surface = fold(word);
-      const headword = lex ? lex.lemma(word) : surface;
-      const state = known.get(surface) ?? known.get(headword);
+      const headword = headwordOf(word);
+      // The headword's state wins; an entry saved under the form itself (by an
+      // older version, or before the user grouped it) is the fallback.
+      const state = known.get(headword) ?? known.get(surface);
       if (state) return state;
       if (cardIndex.has(surface) || cardIndex.has(headword)) return "level2";
       return "new";
     },
-    [names, lex, known, cardIndex]
+    [names, headwordOf, known, cardIndex]
   );
 
   const cardFor = useCallback(
@@ -96,5 +122,15 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     [cardIndex, lex]
   );
 
-  return { lex, error, names, stateOf, headwordOf, cardFor, isName };
+  return {
+    lex,
+    error,
+    names,
+    stateOf,
+    headwordOf,
+    rootOf,
+    linkOf,
+    cardFor,
+    isName,
+  };
 }

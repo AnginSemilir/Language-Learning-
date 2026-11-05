@@ -225,6 +225,31 @@ export async function markHeadwordsKnown(
   await incrementDailyStat("wordsMarkedKnown", items.length);
 }
 
+/**
+ * Group a word form with its root or count it separately; null goes back to
+ * the automatic choice. Separating also drops the form from the root's list
+ * of spellings seen.
+ */
+export async function setWordLink(
+  form: string,
+  mode: "separate" | "group" | null,
+  root?: string
+) {
+  const key = vocabKey(form);
+  await db.transaction("rw", db.wordLinks, db.vocab, async () => {
+    if (mode === null) await db.wordLinks.delete(key);
+    else await db.wordLinks.put({ form: key, mode });
+    if (mode === "separate" && root) {
+      const entry = await db.vocab.where("text").equals(vocabKey(root)).first();
+      if (entry?.forms?.includes(key)) {
+        await db.vocab.update(entry.id, {
+          forms: entry.forms.filter((f) => f !== key),
+        });
+      }
+    }
+  });
+}
+
 export function deleteVocab(id: string) {
   return db.vocab.delete(id);
 }
