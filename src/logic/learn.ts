@@ -8,6 +8,8 @@ import {
 import { Card } from "./card/card";
 import { useCardsWith } from "./card/hooks/useCardsWith";
 import { updateCardModel } from "./card/updateCardModel";
+import { db } from "./db";
+import { invalidateDeckStatsCacheForCard } from "./deck/deckStatsCacheManager";
 import { NoteType } from "./note/note";
 import { DeckStatistics, newStatistics } from "./statistics";
 
@@ -39,11 +41,29 @@ export type LearnController = {
   answerCard: (rating: Rating) => void;
   requestNextCard: () => void;
 
+  /** Whether there's an answer in this session that "Back" can take back. */
+  canUndo: boolean;
+  /** Takes back the last answer: the card's schedule is restored and it is shown again. */
+  undo: () => Promise<void>;
+
   statistics: DeckStatistics;
   isFinished: boolean;
 
   options: LearnOptions;
 };
+
+/** What "Back" needs to take back one answer. */
+interface UndoEntry {
+  /** The card as it was before it was answered. */
+  card: Card<NoteType>;
+  /** The save of the answer, or null when the card wasn't changed. */
+  saved: Promise<void> | null;
+  /** The card was queued again for later in this session. */
+  requeued: boolean;
+  statistics: DeckStatistics;
+}
+
+const MAX_UNDO = 50;
 
 export function useLearning(
   cardQuerier: CardQuerier,
@@ -82,6 +102,7 @@ export function useLearning(
   const [statistics, setStatistics] = useState<DeckStatistics>(() =>
     newStatistics()
   );
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
 
   useEffect(() => {
     //Check if there are already cards provided
@@ -205,6 +226,7 @@ export function useLearning(
   const answer = useCallback(
     (rating: Rating) => {
       if (currentCard && currentCardRepeatInfo) {
+        let saved: Promise<void> | null = null;
         //Don't update the card if it is already learned and not due for a review
         if (
           !(
@@ -212,13 +234,19 @@ export function useLearning(
             currentCard.model.due.getTime() >= Date.now()
           )
         ) {
-          updateCardModel(
+          saved = updateCardModel(
             currentCard,
             currentCardRepeatInfo[rating].card,
             currentCardRepeatInfo[rating].review_log
           );
         }
-        if (currentCardRepeatInfo[rating].card.scheduled_days === 0) {
+        const requeued =
+          currentCardRepeatInfo[rating].card.scheduled_days === 0;
+        setUndoStack((stack) => [
+          ...stack.slice(-(MAX_UNDO - 1)),
+          { card: currentCard, saved, requeued, statistics },
+        ]);
+        if (requeued) {
           setTimeCriticalCards((tcCards) =>
             [
               ...tcCards,
@@ -244,6 +272,50 @@ export function useLearning(
     [currentCard, currentCardRepeatInfo, timeCriticalCards, statistics]
   );
 
+  //Puts a card back at the front of the list it was taken from
+  const requeueFront = useCallback((card: Card<NoteType>) => {
+    const state = card.model.state;
+    if (state === State.New) {
+      setNewCards((cards) => [card, ...cards]);
+    } else if (state === State.Learning || state === State.Relearning) {
+      setTimeCriticalCards((cards) =>
+        [card, ...cards].sort(
+          (a, b) => a.model.due.getTime() - b.model.due.getTime()
+        )
+      );
+    } else if (card.model.due.getTime() <= Date.now()) {
+      setToReviewCards((cards) => [card, ...cards]);
+    } else {
+      setLearnedCards((cards) => [card, ...cards]);
+    }
+  }, []);
+
+  //Takes back the last answer of this session
+  const undo = useCallback(async () => {
+    const entry = undoStack[undoStack.length - 1];
+    if (!entry || isFinished) return;
+    setUndoStack((stack) => stack.slice(0, -1));
+    const { card } = entry;
+    if (entry.saved) {
+      await entry.saved;
+      await db.cards.update(card.id, {
+        model: card.model,
+        history: card.history,
+      });
+      await invalidateDeckStatsCacheForCard(card.id);
+    }
+    if (entry.requeued) {
+      setTimeCriticalCards((cards) => {
+        const i = cards.findIndex((c) => c.id === card.id);
+        return i < 0 ? cards : cards.filter((_, j) => j !== i);
+      });
+    }
+    if (currentCard && currentCard.id !== card.id) requeueFront(currentCard);
+    setCurrentCard(card);
+    setShowingAnswer(true);
+    setStatistics(entry.statistics);
+  }, [undoStack, isFinished, currentCard, requeueFront]);
+
   return {
     newCardsNumber: newCards.length,
     timeCriticalCardsNumber: timeCriticalCards.length,
@@ -258,6 +330,9 @@ export function useLearning(
 
     answerCard: answer,
     requestNextCard: setRequestedNextCard.bind(null, true),
+
+    canUndo: undoStack.length > 0 && !isFinished,
+    undo,
 
     statistics: statistics,
     isFinished: isFinished,

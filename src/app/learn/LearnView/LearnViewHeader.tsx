@@ -7,7 +7,7 @@ import { Card } from "@/logic/card/card";
 import { Deck } from "@/logic/deck/deck";
 import { LearnController } from "@/logic/learn";
 import { NoteType } from "@/logic/note/note";
-import { IconX } from "@tabler/icons-react";
+import { IconArrowBackUp, IconX } from "@tabler/icons-react";
 import { t } from "i18next";
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +42,16 @@ function LearnViewHeader({
 }: LearnViewHeaderProps) {
   const navigate = useNavigate();
 
-  useHotkeys([["d", () => navigate("/deck/" + deck?.id)]]);
+  // Back: take back the last answer (Ctrl/Cmd+Z, or Backspace).
+  const undo = () => {
+    if (controller.canUndo) controller.undo();
+  };
+  useHotkeys([
+    ["d", () => navigate("/deck/" + deck?.id)],
+    ["ctrl+z", undo],
+    ["meta+z", undo],
+    ["Backspace", undo],
+  ]);
 
   const progress = useMemo(
     () =>
@@ -85,6 +94,24 @@ function LearnViewHeader({
               variant="subtle"
             >
               <IconX />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            position="right"
+            label={
+              <>
+                Back: undo your last answer <Kbd>Ctrl Z</Kbd>
+              </>
+            }
+          >
+            <IconButton
+              onClick={undo}
+              variant="subtle"
+              disabled={!controller.canUndo}
+              aria-label="Back: undo your last answer"
+              className={BASE + "__undo"}
+            >
+              <IconArrowBackUp />
             </IconButton>
           </Tooltip>
           <Stopwatch />
