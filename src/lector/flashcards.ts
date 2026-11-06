@@ -31,6 +31,35 @@ function firstParagraph(html: string) {
   return stripHtml(html.match(/<p>(.*?)<\/p>/s)?.[1] ?? html);
 }
 
+function noteFields(content: unknown) {
+  const c = content as {
+    field1?: string;
+    field2?: string;
+    front?: string;
+    back?: string;
+  };
+  return { frontSide: c.field1 ?? c.front, backSide: c.field2 ?? c.back };
+}
+
+/**
+ * A note as plain text: the word, its meaning, and the example sentence an
+ * imported card keeps under the word (the CSV's hint column).
+ */
+export function noteText(
+  content: unknown
+): { front: string; back: string; example: string } | null {
+  const { frontSide, backSide } = noteFields(content);
+  if (!frontSide || !backSide) return null;
+  const paragraphs = [...frontSide.matchAll(/<p>(.*?)<\/p>/gs)].map((m) =>
+    stripHtml(m[1])
+  );
+  return {
+    front: paragraphs[0] ?? stripHtml(frontSide),
+    back: stripHtml(backSide),
+    example: paragraphs[1] ?? "",
+  };
+}
+
 export interface CardMatch {
   noteId: string;
   deckId: string;
@@ -71,14 +100,7 @@ export async function getUserCardIndex(): Promise<Map<string, CardMatch>> {
   ]);
   const index = new Map<string, CardMatch>();
   for (const n of notes) {
-    const c = n.content as {
-      field1?: string;
-      field2?: string;
-      front?: string;
-      back?: string;
-    };
-    const frontSide = c.field1 ?? c.front;
-    const backSide = c.field2 ?? c.back;
+    const { frontSide, backSide } = noteFields(n.content);
     if (!frontSide || !backSide) continue;
     const key = vocabKey(duplicateKey(frontSide));
     if (!index.has(key)) {

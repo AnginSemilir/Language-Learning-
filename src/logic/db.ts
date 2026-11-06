@@ -1,6 +1,7 @@
 import type {
   ActivityRow,
   ClozeSentence,
+  ClozeWord,
   Lesson,
   VocabEntry,
   WordLink,
@@ -27,7 +28,10 @@ export class Database extends Dexie {
   lessons!: Table<Lesson>;
   /** Daily activity, one row per device and day (summed for statistics). */
   activity!: Table<ActivityRow>;
+  /** Lector's sentence-bank practice (no longer offered; kept for synced data). */
   cloze!: Table<ClozeSentence>;
+  /** Gap-fill progress per flashcard word. */
+  clozeWords!: Table<ClozeWord>;
   /** The user's choices to group a word form with its root, or not. */
   wordLinks!: Table<WordLink>;
 
@@ -73,6 +77,9 @@ export class Database extends Dexie {
     this.version(26).stores({
       vocab: null,
       dailyStats: null,
+    });
+    this.version(27).stores({
+      clozeWords: "id, nextReview",
     });
     // Opened below, after sync is configured.
   }

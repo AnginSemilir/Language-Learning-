@@ -51,8 +51,11 @@ export default function AboutSettingsView() {
         </li>
         <li>Word frequencies: wordfreq (data CC BY-SA 4.0).</li>
         <li>
-          Practice sentences: Tatoeba (tatoeba.org), CC BY 2.0 FR, as packaged
-          by Lector.
+          Practice sentences: Tatoeba (tatoeba.org, CC BY 2.0 FR); Wiktionary
+          examples (CC BY-SA); TALPCo, the TUFS Asian Language Parallel Corpus
+          (CC BY 4.0); Amazon MASSIVE (CC BY 4.0); the Asian Language Treebank
+          by NICT (CC BY 4.0); Global Voices via OPUS (CC BY); TICO-19 (CC0);
+          and the Leipzig Corpora Collection (wortschatz.uni-leipzig.de, CC BY).
         </li>
       </ul>
       <p>

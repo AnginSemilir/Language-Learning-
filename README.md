@@ -46,9 +46,16 @@ talked to its server were rewritten to use the browser database
   Wiktionary's verb-form table and etymologies, then the
   [Sastrawi](https://github.com/damzaky/sastrawijs) stemmer (MIT) for forms
   Wiktionary doesn't list.
-- **Practice.** Fill-in-the-gap on 7,220 Tatoeba sentences built around the
-  2,000 most common words. Typing or multiple choice, letter hints, points.
-  Correct answers come back after 1, 3, 7 and 14 days; misses reset.
+- **Practice.** Fill-in-the-gap on the words of your flashcards: each word
+  in a real sentence, a different one every time, with the English
+  translation when there is one and the card's meaning otherwise. Typing
+  (the card's word or the form in the sentence both count) or multiple
+  choice, letter hints, points. Each word comes back after 1, 3, 7 and 14
+  days; a miss resets it. Choose cards you've studied or all cards; hide a
+  bad sentence and it won't come back. A new card gets sentences straight
+  away: the app downloads the small sentence file holding that word (and
+  keeps it for offline use), then falls back to the example on the card and
+  sentences from your reading library.
 - **Known words.** Words marked known while reading, plus flashcard words
   you've learned (the Indonesian → English card reviewed with a gap of 21
   days or more, Anki's "mature"). Shows how many of the top 1,000 / 2,000 /
@@ -108,8 +115,26 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
 - `public/data/frequency-id.json`: the 9,000 most frequent Indonesian word
   forms in the dictionary, from [wordfreq](https://github.com/rspeer/wordfreq)
   3.1.1 (data CC BY-SA 4.0).
-- `public/data/sentences-id.json`: sentences from
-  [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR), from Lector's sentence bank.
+- `public/data/sentences/`: up to 20 example sentences for each of about
+  29,000 Indonesian words and phrases (20 for the 5,000 most frequent
+  words), split into 512 files by word. Built with
+  `scripts/extract-sentences.py` (download commands in its header) and
+  `pnpm build:sentences <tsv>`. Translated sentences come first. As a
+  compilation the files are CC BY-SA 4.0; each sentence keeps its source's
+  licence:
+  - [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR)
+  - Wiktionary usage examples via [kaikki.org](https://kaikki.org) (CC BY-SA)
+  - [TALPCo](https://github.com/matbahasa/TALPCo), the TUFS Asian Language
+    Parallel Corpus (CC BY 4.0)
+  - [Amazon MASSIVE](https://github.com/alexa/massive) (CC BY 4.0), requests
+    that name localised people or places left out
+  - [Asian Language Treebank](https://www2.nict.go.jp/astrec-att/member/mutiyama/ALT/)
+    (NICT, CC BY 4.0)
+  - [Global Voices](https://globalvoices.org) via [OPUS](https://opus.nlpl.eu)
+    (CC BY)
+  - [TICO-19](https://tico-19.github.io) (CC0)
+  - [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de), news 2023
+    and Wikipedia 2021 (CC BY), Indonesian only
 
 ## License
 
