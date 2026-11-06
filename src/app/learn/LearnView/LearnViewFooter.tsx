@@ -114,7 +114,7 @@ function LearnViewFooter({ controller, answer }: LearnViewFooterProps) {
       ) : (
         <Button
           onClick={controller.showAnswer}
-          style={{ height: "2.5rem" }}
+          className={`${BASE}__show-answer`}
           variant="primary"
         >
           {t("learning.show-answer")}

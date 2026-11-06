@@ -36,7 +36,12 @@ export function textBlocks(content: string) {
 export function useLexicon(content: string | undefined): ReaderLexicon {
   const [lex, setLex] = useState<Lemmatizer | null>(null);
   const [error, setError] = useState(false);
-  const [cards, setCards] = useState<Map<string, CardMatch>>(new Map());
+  // Live, so a card that matures in review counts as known straight away.
+  const cardRows = useLiveQuery(() => getUserCardIndex(), []);
+  const cards = useMemo(
+    () => cardRows ?? new Map<string, CardMatch>(),
+    [cardRows]
+  );
   const vocab = useLiveQuery(() => db.words.toArray(), []);
   const linkRows = useLiveQuery(() => db.wordLinks.toArray(), []);
   const links = useMemo(
@@ -48,7 +53,6 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     loadGrammar()
       .then((g) => setLex(g.lex))
       .catch(() => setError(true));
-    getUserCardIndex().then(setCards);
   }, []);
 
   const known = useMemo(
@@ -120,10 +124,14 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
       const headword = headwordOf(word);
       // The headword's state wins; an entry saved under the form itself, or a
       // spelling recorded on another entry, is the fallback.
-      const state =
+      const explicit =
         known.get(headword) ?? known.get(surface) ?? formStates.get(surface);
-      if (state) return state;
-      if (cardIndex.has(surface) || cardIndex.has(headword)) return "level2";
+      const card = cardIndex.get(surface) ?? cardIndex.get(headword);
+      // A word learned through flashcards is known, whatever level it was
+      // given while reading (unless the reader said to ignore it).
+      if (card?.mature && explicit !== "ignored") return "known";
+      if (explicit) return explicit;
+      if (card) return "level2";
       return "new";
     },
     [names, headwordOf, known, formStates, cardIndex]

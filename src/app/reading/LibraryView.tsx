@@ -7,6 +7,7 @@ import {
   ensureStarterLessons,
   saveLessons,
 } from "@/lector/data-layer";
+import { getKnownWords } from "@/lector/knownWords";
 import type { Lesson } from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
@@ -74,7 +75,7 @@ export default function LibraryView() {
 
   const lessons = useLiveQuery(() => db.lessons.toArray(), []);
   const knownCount = useLiveQuery(
-    () => db.words.where("state").equals("known").count(),
+    async () => (await getKnownWords()).length,
     []
   );
 

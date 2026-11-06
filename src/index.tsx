@@ -5,6 +5,7 @@ import NoteExplorerView from "@/app/explorer/NoteExplorerView";
 import HomeView from "@/app/home/HomeView";
 import LearnView from "@/app/learn/LearnView/LearnView";
 import PracticeView from "@/app/practice/PracticeView";
+import FrequencyListView from "@/app/reading/FrequencyListView";
 import KnownWordsView from "@/app/reading/KnownWordsView";
 import LibraryView from "@/app/reading/LibraryView";
 import ReaderView from "@/app/reading/ReaderView";
@@ -61,6 +62,10 @@ const router = createHashRouter(
         {
           path: "/read/known",
           element: <KnownWordsView />,
+        },
+        {
+          path: "/read/known/top/:band",
+          element: <FrequencyListView />,
         },
         {
           path: "/read/:lessonId",
