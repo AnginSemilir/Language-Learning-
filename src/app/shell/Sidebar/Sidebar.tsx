@@ -1,3 +1,4 @@
+import { CloudSyncState } from "@/components/CloudSyncState";
 import { IconButton } from "@/components/ui/IconButton";
 import { NavItem } from "@/components/ui/NavItem";
 import { breakpoints } from "@/lib/breakpoints";
@@ -126,6 +127,8 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
 
           <DeckList minimalMode={minimalMode} />
         </div>
+
+        <CloudSyncState minimal={minimalMode} />
       </div>
     </aside>
   );

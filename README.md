@@ -49,6 +49,13 @@ talked to its server were rewritten to use the browser database
 - **Practice.** Fill-in-the-gap on 7,220 Tatoeba sentences built around the
   2,000 most common words. Typing or multiple choice, letter hints, points.
   Correct answers come back after 1, 3, 7 and 14 days; misses reset.
+- **Sync between devices (optional).** Settings → Sync: sign in with your
+  email and a one-time code to sync cards, word progress, lessons and
+  statistics between phone and laptop through
+  [Dexie Cloud](https://dexie.org/cloud/) (the sync service Skola was built
+  for). Signed out, everything stays in the browser as before. Signing out
+  removes the data from that device (it stays in the cloud), so export a
+  backup first.
 - **Statistics.** Daily streak, points, words known and learning, and a
   year-long activity heatmap. Flashcard reviews, practice and word lookups all
   count.
@@ -75,6 +82,14 @@ pnpm build        # production build in dist/
 repository's **Settings → Pages**, set **Source** to **GitHub Actions**. The app
 is then served at `https://<user>.github.io/<repo>/`. It uses relative paths and
 a hash router, so no other configuration is needed.
+
+## Sync setup
+
+The app syncs with the Dexie Cloud database in `src/logic/db.ts`. To use your
+own: `npx dexie-cloud create` (asks for your email and a one-time code; writes
+`dexie-cloud.json` and the secret `dexie-cloud.key`, which must not be
+committed), then `npx dexie-cloud whitelist https://<user>.github.io`, and put
+the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
 
 ## Data
 

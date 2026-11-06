@@ -4,7 +4,7 @@
 // flashcard reviews (each card's FSRS review log) fill that role.
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { Paper, Text } from "@/components/ui";
-import { todayKey } from "@/lector/data-layer";
+import { getAllDailyStats, todayKey } from "@/lector/data-layer";
 import ActivityHeatmap from "@/lector/heatmap/ActivityHeatmap";
 import type { ActivityDay } from "@/lector/heatmap/types";
 import { activeDateSet, computeStreaks } from "@/lector/lib/streak";
@@ -19,9 +19,9 @@ import "./StatsView.css";
 function useActivity() {
   return useLiveQuery(async () => {
     const [daily, cards, vocab, cloze] = await Promise.all([
-      db.dailyStats.toArray(),
+      getAllDailyStats(),
       db.cards.toArray(),
-      db.vocab.toArray(),
+      db.words.toArray(),
       db.cloze.toArray(),
     ]);
     const reviewsByDay = new Map<string, number>();

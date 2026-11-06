@@ -1,12 +1,13 @@
-import Dexie, { Table } from "dexie";
-import "dexie-export-import";
 import type {
+  ActivityRow,
   ClozeSentence,
-  DailyStats,
   Lesson,
   VocabEntry,
   WordLink,
 } from "@/lector/types";
+import Dexie, { Table } from "dexie";
+import dexieCloud from "dexie-cloud-addon";
+import "dexie-export-import";
 import { Card } from "./card/card";
 import { Deck } from "./deck/deck";
 import { NoteType } from "./note/note";
@@ -21,15 +22,17 @@ export class Database extends Dexie {
   statistics!: Table<DeckStatistics>;
   settings!: Table<Settings<keyof SettingsValues>>;
   // Ported from Lector: reading vocabulary, lessons, activity and cloze practice.
-  vocab!: Table<VocabEntry>;
+  /** Word states, keyed by the folded headword so devices never clash. */
+  words!: Table<VocabEntry>;
   lessons!: Table<Lesson>;
-  dailyStats!: Table<DailyStats>;
+  /** Daily activity, one row per device and day (summed for statistics). */
+  activity!: Table<ActivityRow>;
   cloze!: Table<ClozeSentence>;
   /** The user's choices to group a word form with its root, or not. */
   wordLinks!: Table<WordLink>;
 
   constructor() {
-    super("skola_db", { cache: "immutable" });
+    super("skola_db", { addons: [dexieCloud], cache: "immutable" });
     this.version(22).stores({
       cards: "id, note, deck",
       decks: "id, *cards, *notes, *subDecks, *superDecks",
@@ -46,8 +49,63 @@ export class Database extends Dexie {
     this.version(24).stores({
       wordLinks: "form",
     });
-    this.open();
+    // For sync: a word's entry is keyed by the word itself (two devices
+    // marking "makan" update one entry instead of clashing on a unique
+    // index), and daily activity is kept per device so counts add up.
+    this.version(25)
+      .stores({
+        words: "id, state",
+        activity: "id, date",
+      })
+      .upgrade(async (tx) => {
+        const vocab = await tx.table("vocab").toArray();
+        await tx
+          .table("words")
+          .bulkPut(vocab.map((v: VocabEntry) => ({ ...v, id: v.text })));
+        const device = getDeviceId();
+        const days = await tx.table("dailyStats").toArray();
+        await tx
+          .table("activity")
+          .bulkPut(
+            days.map((d) => ({ ...d, id: `${d.date}|${device}`, device }))
+          );
+      });
+    this.version(26).stores({
+      vocab: null,
+      dailyStats: null,
+    });
+    // Opened below, after sync is configured.
+  }
+}
+
+/** A random id for this browser, so per-device rows don't overwrite each other. */
+export function getDeviceId(): string {
+  const KEY = "kartu-device-id";
+  try {
+    let id = localStorage.getItem(KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch {
+    return "this-device";
   }
 }
 
 export const db = new Database();
+
+// Sync is optional: the app works offline and signed out exactly as before;
+// signing in (Settings → Sync) syncs with this Dexie Cloud database.
+db.cloud.configure({
+  databaseUrl: "https://z5ias1d2u.dexie.cloud",
+  // Keep using the existing "skola_db" database. By default the addon renames
+  // it to "skola_db-<database id>", which would start everyone on an empty
+  // database and leave their existing cards behind.
+  nameSuffix: false,
+  requireAuth: false,
+  customLoginGui: true,
+  // The sign-in dialog handles the email + one-time-code flow only.
+  socialAuth: false,
+});
+db.open();

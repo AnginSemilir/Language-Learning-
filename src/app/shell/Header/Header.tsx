@@ -24,10 +24,15 @@ export const AppHeaderOutlet = () => (
 );
 
 export const AppHeaderContent = ({ children }: PropsWithChildren) => {
-  const element = document.getElementById(
-    APP_HEADER_OUTLET_NAME
-  ) as HTMLElement;
-  return element && createPortal(children, element);
+  // On a first load straight onto a page, the header's outlet is rendered in
+  // the same pass as the page, so it may not exist yet: look again once mounted.
+  const [element, setElement] = useState(() =>
+    document.getElementById(APP_HEADER_OUTLET_NAME)
+  );
+  useEffect(() => {
+    if (!element) setElement(document.getElementById(APP_HEADER_OUTLET_NAME));
+  }, [element]);
+  return element ? createPortal(children, element) : null;
 };
 
 export default function Header({ menuOpened, menuHandlers }: HeaderProps) {

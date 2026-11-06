@@ -74,7 +74,7 @@ export default function LibraryView() {
 
   const lessons = useLiveQuery(() => db.lessons.toArray(), []);
   const knownCount = useLiveQuery(
-    () => db.vocab.where("state").equals("known").count(),
+    () => db.words.where("state").equals("known").count(),
     []
   );
 

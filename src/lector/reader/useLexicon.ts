@@ -37,7 +37,7 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
   const [lex, setLex] = useState<Lemmatizer | null>(null);
   const [error, setError] = useState(false);
   const [cards, setCards] = useState<Map<string, CardMatch>>(new Map());
-  const vocab = useLiveQuery(() => db.vocab.toArray(), []);
+  const vocab = useLiveQuery(() => db.words.toArray(), []);
   const linkRows = useLiveQuery(() => db.wordLinks.toArray(), []);
   const links = useMemo(
     () => new Map((linkRows ?? []).map((l) => [l.form, l.mode])),

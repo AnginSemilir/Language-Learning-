@@ -24,6 +24,7 @@
     "@tiptap/starter-kit": "2.27.1",
     "clsx": "^2.1.1",
     "dexie": "^4.3.0",
+    "dexie-cloud-addon": "^4.4.16",
     "dexie-export-import": "4.1.1",
     "dexie-react-hooks": "1.1.7",
     "fsrs.js": "1.2.2",
