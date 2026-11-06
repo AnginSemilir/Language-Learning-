@@ -1,4 +1,82 @@
 .growth-icon {
   flex-shrink: 0;
   display: block;
+  overflow: visible;
+  transform-origin: 50% 95%;
+  animation: growth-pop 650ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+/* The plant bends from its base: a seedling quickly, a grand oak slowly. */
+.growth-icon__plant {
+  --sway: 2.5deg;
+  transform-box: view-box;
+  transform-origin: 16px 29.5px;
+  animation: growth-sway 4.5s ease-in-out infinite;
+}
+
+.growth-icon--stage-0 .growth-icon__plant {
+  --sway: 7deg;
+  transform-origin: 16px 24.5px;
+  animation-duration: 2.4s;
+}
+
+.growth-icon--stage-1 .growth-icon__plant {
+  --sway: 5deg;
+  animation-duration: 3s;
+}
+
+.growth-icon--stage-2 .growth-icon__plant {
+  --sway: 3.5deg;
+  animation-duration: 3.8s;
+}
+
+.growth-icon--stage-4 .growth-icon__plant {
+  --sway: 1.8deg;
+  animation-duration: 6s;
+}
+
+/* The leaves rustle a little, out of step with the sway. */
+.growth-icon__crown {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+  animation: growth-rustle 2.6s ease-in-out infinite;
+}
+
+@keyframes growth-sway {
+  0%,
+  100% {
+    transform: rotate(calc(-1 * var(--sway)));
+  }
+  50% {
+    transform: rotate(var(--sway));
+  }
+}
+
+@keyframes growth-rustle {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.04, 0.98);
+  }
+}
+
+@keyframes growth-pop {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .growth-icon,
+  .growth-icon__plant,
+  .growth-icon__crown {
+    animation: none;
+  }
 }

@@ -32,7 +32,7 @@ function Indicator({
 }) {
   return (
     <div className={BASE} style={{ color: COLOURS[color] }}>
-      <GrowthIcon stage={stage} size={30} />
+      <GrowthIcon stage={stage} size={96} />
       <span className={`${BASE}__text`}>
         {text} · {GROWTH_STAGE_NAME[stage]}
       </span>
