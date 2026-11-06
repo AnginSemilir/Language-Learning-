@@ -1,5 +1,10 @@
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { useEffect } from "react";
 import { useSetting } from "../logic/settings/hooks/useSetting";
+import { setSetting } from "../logic/settings/setSetting";
+
+type ColorScheme = "light" | "dark" | "auto";
+const STORAGE_KEY = "mantine-color-scheme-value";
 
 function applyThemeFromPreference(preference: "light" | "dark" | "auto") {
   const root = document.documentElement;
@@ -14,8 +19,29 @@ function applyThemeFromPreference(preference: "light" | "dark" | "auto") {
   }
 }
 
+/**
+ * Saves the light/dark preference and applies it at once. It is also kept in
+ * localStorage, which is read on start-up so the page doesn't flash light.
+ */
+export function setColorScheme(preference: ColorScheme) {
+  applyThemeFromPreference(preference);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(preference));
+  } catch {
+    // Only used to avoid a flash on start-up.
+  }
+  return setSetting("#colorSchemePreference", preference);
+}
+
+/** Whether the dark theme is showing, whatever the preference. */
+export function useIsDark() {
+  const [preference] = useSetting("#colorSchemePreference");
+  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
+  return preference === "dark" || (preference === "auto" && systemDark);
+}
+
 // Apply theme immediately on module load to prevent flash
-const storedPreference = localStorage.getItem("mantine-color-scheme-value");
+const storedPreference = localStorage.getItem(STORAGE_KEY);
 if (storedPreference) {
   try {
     const parsed = JSON.parse(storedPreference);
