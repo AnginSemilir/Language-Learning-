@@ -4,6 +4,7 @@ import {
   BulletListControl,
   ClearFormattingControl,
   CodeControl,
+  ColorControl,
   HighlightControl,
   ItalicControl,
   LinkControl,
@@ -38,6 +39,7 @@ export const NoteEditorControls = memo(function NoteEditorControls({
         <BoldControl editor={editor} />
         <ItalicControl editor={editor} />
         <UnderlineControl editor={editor} />
+        <ColorControl editor={editor} />
         {settings["#showStrikethroughOptionInEditor"] && (
           <StrikethroughControl editor={editor} />
         )}

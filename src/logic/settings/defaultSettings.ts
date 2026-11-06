@@ -11,7 +11,8 @@ export const defaultSettings: SettingsValues = {
   "#showCognitivePrompts": true,
 
   "#useBubbleMenu": true,
-  "#useToolbar": false,
+  // The formatting bar (bold, italic, underline, colour...) is always shown.
+  "#useToolbar": true,
   "#showSubAndSuperScriptOptionInEditor": true,
   "#showStrikethroughOptionInEditor": true,
   "#showHighlightOptionInEditor": true,
