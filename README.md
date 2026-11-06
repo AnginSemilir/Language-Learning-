@@ -27,6 +27,13 @@ talked to its server were rewritten to use the browser database
   deck menu (Import Cards → From CSV). Extra columns are ignored, the hint is
   shown under the front, and re-importing skips cards already in the deck.
   Cards can be double-sided (both directions) or one-way.
+- **Daily limits, like Anki.** Settings → Learning: new cards per day (20)
+  and maximum reviews per day (200), the hour the next day starts (4am), new
+  card order (order added, or random), whether new cards come mixed with
+  reviews, after them or before them, and burying a card's other side until
+  tomorrow (off). Defaults are Anki's. The deck shows today's numbers ("20
+  new"), front → back cards come before their reverse cards, and "Study
+  anyway" on a finished deck ignores the limits.
 - **Reviewing on a computer.** Space or Enter shows the answer; the number
   keys rate the card in the order of the buttons (1 Again, 2 Hard, 3 Good,
   4 Easy; with Hard and Easy turned off, 1 Again and 2 Good). The keys are

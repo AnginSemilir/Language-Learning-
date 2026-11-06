@@ -1,6 +1,6 @@
 import { Table } from "dexie";
 import { Rating, SchedulingInfo, State } from "fsrs.js";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   updateGlobalScheduler,
   useGlobalScheduler,
@@ -8,6 +8,11 @@ import {
 import { Card } from "./card/card";
 import { useCardsWith } from "./card/hooks/useCardsWith";
 import { updateCardModel } from "./card/updateCardModel";
+import {
+  type DailyLimits,
+  type NewReviewOrder,
+  buildDailyQueue,
+} from "./dailyQueue";
 import { db } from "./db";
 import { invalidateDeckStatsCacheForCard } from "./deck/deckStatsCacheManager";
 import { NoteType } from "./note/note";
@@ -17,6 +22,13 @@ export type LearnOptions = {
   learnAll: boolean;
   newToReviewRatio: number;
   sort?: (a: Card<NoteType>, b: Card<NoteType>) => number;
+  /**
+   * Anki-style daily limits. A normal session waits for them and offers only
+   * today's queue; "learn all" ignores them.
+   */
+  limits?: DailyLimits;
+  /** Whether new cards come mixed with reviews, after them or before them. */
+  newReviewOrder?: NewReviewOrder;
 };
 
 export type CardQuerier = {
@@ -103,12 +115,15 @@ export function useLearning(
     newStatistics()
   );
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  //The queue is built once per session; an empty one then finishes the session
+  const queueBuilt = useRef(false);
 
   useEffect(() => {
-    //Check if there are already cards provided
-    if (providedCards) {
+    //Check if there are already cards provided (and, for a normal session, the daily limits)
+    if (providedCards && (options.learnAll || options.limits)) {
       //Check if there are no cards are in the respective lists and currentCard is not set.
       if (
+        !queueBuilt.current &&
         timeCriticalCards.length +
           newCards.length +
           toReviewCards.length +
@@ -117,7 +132,21 @@ export function useLearning(
         currentCard === null
       ) {
         //If yes, sort the cards into the respective lists
+        queueBuilt.current = true;
         const now = new Date(Date.now());
+        if (!options.learnAll && options.limits) {
+          //Today's queue: learning cards, then reviews and new cards up to the daily limits
+          const queue = buildDailyQueue(providedCards, options.limits, now);
+          setTimeCriticalCards(
+            [...queue.learning].sort(
+              (a, b) => a.model.due.getTime() - b.model.due.getTime()
+            )
+          );
+          setNewCards(queue.newCards);
+          setToReviewCards(queue.reviews);
+          setLearnedCards([]);
+          return;
+        }
         setTimeCriticalCards(
           providedCards.filter(
             (card) =>
@@ -182,7 +211,11 @@ export function useLearning(
         setCurrentCard(newCards[0]);
         setNewCards((nCards) => nCards.filter((_, i) => i !== 0));
       } else {
-        if (Math.random() < options.newToReviewRatio) {
+        const order = options.newReviewOrder ?? "mixed";
+        if (
+          order === "before" ||
+          (order === "mixed" && Math.random() < options.newToReviewRatio)
+        ) {
           setCurrentCard(newCards[0]);
           setNewCards((nCards) => nCards.filter((_, i) => i !== 0));
         } else {

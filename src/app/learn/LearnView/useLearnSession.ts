@@ -4,6 +4,9 @@ import { getCardsOf } from "@/logic/card/getCardsOf";
 import { CognitivePrompt } from "@/logic/cognitivePrompts";
 import { Deck } from "@/logic/deck/deck";
 import { useLearning } from "@/logic/learn";
+import { getDailyLimits } from "@/logic/settings/dailyLimits";
+import { useSetting } from "@/logic/settings/hooks/useSetting";
+import { useLiveQuery } from "dexie-react-hooks";
 import { Rating } from "fsrs.js";
 import { useCallback, useState } from "react";
 
@@ -18,6 +21,8 @@ export function useLearnSession({
   learnAll,
   newToReviewRatio,
 }: UseLearnSessionOptions) {
+  const limits = useLiveQuery(() => getDailyLimits(), []);
+  const [newReviewOrder] = useSetting("#learn_newReviewOrder");
   const controller = useLearning(
     {
       querier: () => getCardsOf(deck),
@@ -27,6 +32,8 @@ export function useLearnSession({
       learnAll,
       newToReviewRatio,
       sort: CardSorts.byCreationDate(1),
+      limits,
+      newReviewOrder,
     }
   );
 

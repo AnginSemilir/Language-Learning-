@@ -31,6 +31,12 @@ export interface SettingsValues {
   "#showLinkOptionInEditor": boolean;
 
   "#learn_newToReviewRatio": number;
+  "#learn_newCardsPerDay": number;
+  "#learn_maxReviewsPerDay": number;
+  "#learn_newCardOrder": "added" | "random";
+  "#learn_newReviewOrder": "mixed" | "after" | "before";
+  "#learn_buryNewSiblings": boolean;
+  "#learn_buryReviewSiblings": boolean;
   "#learn_sort": "creationDate" | "dueDate";
   "#learn_enableHardAndEasy": boolean;
   "#newDayStartHour": number;
