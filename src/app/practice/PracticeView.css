@@ -75,3 +75,185 @@
   margin-top: var(--spacing-xs);
   font-size: 0.9em;
 }
+
+/* Setup: intro and counts, then the options with Start. */
+.practice-setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.practice-setup__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.practice-view__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.practice-setup__stat {
+  flex: 1;
+  min-width: 6rem;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: var(--radius-md);
+  background: var(--theme-neutral-50);
+  color: var(--theme-neutral-600);
+  font-size: var(--font-size-sm);
+}
+
+.practice-setup__stat-value {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--theme-neutral-900);
+}
+
+.practice-setup__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+}
+
+.practice-view__big-button {
+  width: 100%;
+  height: 3rem;
+}
+
+/* Keyboard hints on the buttons: quiet, and readable on the green button. */
+.practice-view .kbd {
+  color: inherit;
+  opacity: 0.6;
+  font-size: 0.75rem;
+}
+
+/* Desktop: use the width, centre the exercise and make it big enough to read
+   from a normal distance. Fixed sizes, because the compact density scales the
+   font-size variables down on wide screens. */
+@media (min-width: 900px) {
+  .practice-view {
+    width: 64rem;
+    padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-3xl);
+  }
+
+  .practice-view__heading {
+    font-size: 2.75rem;
+  }
+
+  .practice-setup {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 3rem;
+    align-items: start;
+    padding-top: var(--spacing-xl);
+  }
+
+  .practice-setup__intro .text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  .practice-setup__stat {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 0.95rem;
+  }
+
+  .practice-setup__stat-value {
+    font-size: 2.5rem;
+  }
+
+  .practice-setup__options {
+    padding: var(--spacing-xl);
+  }
+
+  .practice-setup__options .segmented-control {
+    display: flex;
+  }
+
+  .practice-setup__options .segmented-control__option {
+    flex: 1;
+    font-size: 0.95rem;
+    padding: 0.6rem var(--spacing-md);
+  }
+
+  .practice-setup__options .text {
+    font-size: 0.95rem;
+  }
+
+  .practice-view__progress {
+    font-size: 0.9rem;
+  }
+
+  .practice-view__big-button {
+    height: 3.5rem;
+    font-size: 1.1rem;
+  }
+
+  .practice-session {
+    width: 50rem;
+    max-width: 100%;
+    margin: 0 auto;
+    min-height: calc(100dvh - var(--app-header-height) - 12rem);
+    justify-content: center;
+  }
+
+  .practice-view__card {
+    padding: var(--spacing-xl) 2.5rem;
+  }
+
+  .practice-view__sentence {
+    font-size: 2.5rem;
+  }
+
+  .practice-view__translation {
+    font-size: 1.25rem;
+  }
+
+  .practice-view__source {
+    font-size: 0.8rem;
+  }
+
+  .practice-view__input input {
+    height: 3.75rem;
+    font-size: 1.6rem;
+  }
+
+  .practice-session .button {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+
+  .practice-view__choices {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .practice-view__choices .button {
+    min-height: 3.75rem;
+    font-size: 1.25rem;
+  }
+
+  .practice-view__result {
+    font-size: 1.15rem;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .practice-view__credit {
+    max-width: 50rem;
+    margin: 0 auto;
+  }
+}
+
+/* No keyboard on a touch screen: hide the key hints from the first render. */
+@media (hover: none), (pointer: coarse) {
+  .practice-view .kbd {
+    display: none;
+  }
+}

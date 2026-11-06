@@ -1,4 +1,5 @@
-// Gap-fill practice on the user's own flashcards.
+// Gap-fill practice on the user's own flashcards. It reads the cards but
+// never changes them: card reviews and known words are left as they are.
 //
 // Each card word has one schedule (Lector's mastery steps: back after 1, 3, 7,
 // then 14 days; a miss starts again) and gets a different sentence each time.
@@ -9,7 +10,7 @@
 
 import { db } from "@/logic/db";
 import { State } from "fsrs.js";
-import { incrementDailyStat, updateWordState } from "./data-layer";
+import { incrementDailyStat } from "./data-layer";
 import { loadGrammar } from "./dictionary";
 import { noteText } from "./flashcards";
 import { getKnownWords } from "./knownWords";
@@ -476,18 +477,12 @@ export async function hideCardSentence(sentence: ClozeSentence) {
   });
 }
 
-/** Activity stats, and a single word mastered in gap-fill counts as known. */
-export async function recordCardPractice(
-  sentence: ClozeSentence,
-  masteryLevel: ClozeMasteryLevel,
-  points: number
-): Promise<boolean> {
-  let ok = true;
-  const key = sentence.vocabEntryId;
-  if (masteryLevel === 100 && key && !key.includes(" ")) {
-    ok = await updateWordState(key, "known");
-  }
-  ok = (await incrementDailyStat("clozePracticed")) && ok;
+/**
+ * Activity stats only. Gap-fill doesn't change your flashcards or which
+ * words count as known; its progress stays in clozeWords.
+ */
+export async function recordCardPractice(points: number): Promise<boolean> {
+  let ok = await incrementDailyStat("clozePracticed");
   if (points > 0) ok = (await incrementDailyStat("points", points)) && ok;
   return ok;
 }

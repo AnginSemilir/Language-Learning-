@@ -8,6 +8,7 @@ import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import {
   Button,
   Group,
+  Kbd,
   Paper,
   Progress,
   SegmentedControl,
@@ -43,6 +44,8 @@ import type {
   ClozeSource,
 } from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import { useHotkeys } from "@/lib/hooks/useHotkeys";
+import { useShowShortcutHints } from "@/logic/settings/hooks/useShowShortcutHints";
 import { IconBulb, IconVolume } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeaderContent } from "../shell/Header/Header";
@@ -222,6 +225,42 @@ export default function PracticeView() {
     ? getFuzzyStatus(answer, current.sentence.clozeWord, pack)
     : "empty";
 
+  const hideSentence = async () => {
+    if (!current) return;
+    await hideCardSentence(current.sentence);
+    round.blacklistCurrent();
+    setAnswer("");
+    setHintLetters(0);
+    setFeedback(null);
+  };
+
+  // Keyboard: Enter checks, moves on and starts; in the answer box ? is a
+  // hint and Esc is "I don't know"; 1–4 pick a multiple-choice option; on the
+  // result, L listens and H hides the sentence.
+  const showKeys = useShowShortcutHints();
+  const phase = round.phase;
+  useHotkeys(
+    phase === "setup" && counts
+      ? [["Enter", start]]
+      : phase === "complete"
+        ? [["Enter", start]]
+        : phase === "empty"
+          ? [["Enter", () => round.setPhase("setup")]]
+          : phase === "feedback" && feedback
+            ? [
+                ["Enter", next],
+                ["l", () => speak(feedback.sentence)],
+                ["h", hideSentence],
+              ]
+            : phase === "practicing" && mode === "mc" && mc
+              ? mc.options.map((option, i): [string, () => void] => [
+                  String(i + 1),
+                  () => recordAnswer(i === mc.correctIndex, option),
+                ])
+              : []
+  );
+  const key = (k: string) => (showKeys ? <Kbd>{k}</Kbd> : undefined);
+
   return (
     <>
       <AppHeaderContent>
@@ -241,82 +280,100 @@ export default function PracticeView() {
         )}
 
         {round.phase === "setup" && !loadError && (
-          <Stack gap="lg">
-            <div>
+          <div className="practice-setup">
+            <div className="practice-setup__intro">
               <h1 className="practice-view__heading">Fill in the gap</h1>
               <Text>
                 The words on your flashcards, each in a real sentence with the
                 word missing, and a different sentence every time. Get a word
                 right and it comes back after 1, 3, 7, then 14 days; miss it and
-                it starts again.
+                it starts again. Your flashcards themselves aren't changed.
               </Text>
+              {counts && (
+                <div className="practice-view__counts">
+                  <div className="practice-setup__stat">
+                    <span className="practice-setup__stat-value">
+                      {counts.due}
+                    </span>
+                    due
+                  </div>
+                  <div className="practice-setup__stat">
+                    <span className="practice-setup__stat-value">
+                      {counts.fresh}
+                    </span>
+                    not yet practised
+                  </div>
+                  <div className="practice-setup__stat">
+                    <span className="practice-setup__stat-value">
+                      {counts.mastered}
+                    </span>
+                    mastered
+                  </div>
+                </div>
+              )}
+              {counts?.words === 0 && (
+                <Text size="sm">
+                  Add or import flashcards first: practice uses the words on
+                  them.
+                </Text>
+              )}
             </div>
-            {counts && (
-              <Group gap="lg" wrap="wrap" className="practice-view__counts">
-                <Text size="sm">
-                  <strong>{counts.due}</strong> due
+            <Paper withBorder className="practice-setup__options">
+              <Stack gap="sm">
+                <Text size="sm" weight="medium">
+                  Words
                 </Text>
-                <Text size="sm">
-                  <strong>{counts.fresh}</strong> not yet practised
+                <SegmentedControl
+                  value={which}
+                  onChange={(v) => setWhich(v as CardClozeMode)}
+                  data={[
+                    { value: "due", label: "Due" },
+                    { value: "new", label: "New" },
+                    { value: "review", label: "Review" },
+                  ]}
+                />
+                <SegmentedControl
+                  value={filter}
+                  onChange={(v) => setFilter(v as CardFilter)}
+                  data={[
+                    { value: "studied", label: "Cards I’ve studied" },
+                    { value: "all", label: "All cards" },
+                  ]}
+                />
+                <Text size="sm" weight="medium">
+                  Answer by
                 </Text>
-                <Text size="sm">
-                  <strong>{counts.mastered}</strong> mastered
+                <SegmentedControl
+                  value={mode}
+                  onChange={(v) => setMode(v as PracticeMode)}
+                  data={[
+                    { value: "type", label: "Typing" },
+                    { value: "mc", label: "Multiple choice" },
+                  ]}
+                />
+                <Text size="sm" weight="medium">
+                  Round size
                 </Text>
-              </Group>
-            )}
-            {counts?.words === 0 && (
-              <Text size="sm">
-                Add or import flashcards first: practice uses the words on them.
-              </Text>
-            )}
-            <Stack gap="sm">
-              <Text size="sm" weight="medium">
-                Words
-              </Text>
-              <SegmentedControl
-                value={which}
-                onChange={(v) => setWhich(v as CardClozeMode)}
-                data={[
-                  { value: "due", label: "Due" },
-                  { value: "new", label: "New" },
-                  { value: "review", label: "Review" },
-                ]}
-              />
-              <SegmentedControl
-                value={filter}
-                onChange={(v) => setFilter(v as CardFilter)}
-                data={[
-                  { value: "studied", label: "Cards I’ve studied" },
-                  { value: "all", label: "All cards" },
-                ]}
-              />
-              <Text size="sm" weight="medium">
-                Answer by
-              </Text>
-              <SegmentedControl
-                value={mode}
-                onChange={(v) => setMode(v as PracticeMode)}
-                data={[
-                  { value: "type", label: "Typing" },
-                  { value: "mc", label: "Multiple choice" },
-                ]}
-              />
-              <Text size="sm" weight="medium">
-                Round size
-              </Text>
-              <SegmentedControl
-                value={String(round.roundSize)}
-                onChange={(v) => round.setRoundSize(Number(v))}
-                data={ROUND_SIZES.map((n) => ({
-                  value: String(n),
-                  label: String(n),
-                }))}
-              />
-            </Stack>
-            <Button variant="primary" onClick={start} disabled={!counts}>
-              Start
-            </Button>
-          </Stack>
+                <SegmentedControl
+                  value={String(round.roundSize)}
+                  onChange={(v) => round.setRoundSize(Number(v))}
+                  data={ROUND_SIZES.map((n) => ({
+                    value: String(n),
+                    label: String(n),
+                  }))}
+                />
+              </Stack>
+              <Button
+                variant="primary"
+                onClick={start}
+                disabled={!counts}
+                className="practice-view__big-button"
+                rightSection={key("↵")}
+              >
+                Start
+              </Button>
+            </Paper>
+          </div>
         )}
 
         {round.phase === "loading" && <Text>Loading…</Text>}
@@ -340,7 +397,7 @@ export default function PracticeView() {
 
         {(round.phase === "practicing" || round.phase === "feedback") &&
           current && (
-            <Stack gap="lg">
+            <Stack gap="lg" className="practice-session">
               <Progress
                 value={
                   round.roundSize
@@ -348,7 +405,7 @@ export default function PracticeView() {
                     : 0
                 }
               />
-              <Text size="xs">
+              <Text size="xs" className="practice-view__progress">
                 {round.isRetryPhase
                   ? "Second try on the ones you missed"
                   : `${round.roundProgress + (round.phase === "practicing" ? 1 : 0)} of ${round.roundSize}`}
@@ -404,12 +461,23 @@ export default function PracticeView() {
                       spellCheck={false}
                       lang="id"
                       className={`practice-view__input practice-view__input--${fuzzy}`}
+                      onKeyDown={(e) => {
+                        // "?" is never part of a word, so it can ask for a hint.
+                        if (e.key === "?") {
+                          e.preventDefault();
+                          hint();
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          recordAnswer(false, "");
+                        }
+                      }}
                     />
                     <Group gap="sm" justify="space-between">
                       <Button
                         type="button"
                         variant="ghost"
                         leftSection={<IconBulb size={16} />}
+                        rightSection={key("?")}
                         onClick={hint}
                       >
                         Hint{hintLetters ? ` (${hintLetters})` : ""}
@@ -418,6 +486,7 @@ export default function PracticeView() {
                         <Button
                           type="button"
                           variant="default"
+                          rightSection={key("Esc")}
                           onClick={() => recordAnswer(false, "")}
                         >
                           I don’t know
@@ -426,6 +495,7 @@ export default function PracticeView() {
                           type="submit"
                           variant="primary"
                           disabled={!answer.trim() || submitting}
+                          rightSection={key("↵")}
                         >
                           Check
                         </Button>
@@ -442,11 +512,12 @@ export default function PracticeView() {
                       key={option}
                       variant="default"
                       disabled={submitting}
+                      leftSection={key(String(i + 1))}
                       onClick={() =>
                         recordAnswer(i === mc.correctIndex, option)
                       }
                     >
-                      {option}
+                      <span lang="id">{option}</span>
                     </Button>
                   ))}
                 </div>
@@ -482,24 +553,25 @@ export default function PracticeView() {
                       <Button
                         variant="ghost"
                         leftSection={<IconVolume size={16} />}
+                        rightSection={key("L")}
                         onClick={() => speak(feedback.sentence)}
                       >
                         Listen
                       </Button>
                       <Button
                         variant="ghost"
-                        onClick={async () => {
-                          await hideCardSentence(current.sentence);
-                          round.blacklistCurrent();
-                          setAnswer("");
-                          setHintLetters(0);
-                          setFeedback(null);
-                        }}
+                        rightSection={key("H")}
+                        onClick={hideSentence}
                       >
                         Hide this sentence
                       </Button>
                     </Group>
-                    <Button variant="primary" onClick={next} autoFocus>
+                    <Button
+                      variant="primary"
+                      onClick={next}
+                      autoFocus
+                      rightSection={key("↵")}
+                    >
                       Next
                     </Button>
                   </Group>
@@ -509,15 +581,25 @@ export default function PracticeView() {
           )}
 
         {round.phase === "complete" && (
-          <Stack gap="md" align="start">
+          <Stack gap="md" align="start" className="practice-session">
             <h1 className="practice-view__heading">Round complete</h1>
-            <Text>
-              {round.roundCorrect} of {round.roundProgress} right first time ·{" "}
-              {round.points} points this session
-            </Text>
+            <div className="practice-view__counts">
+              <div className="practice-setup__stat">
+                <span className="practice-setup__stat-value">
+                  {round.roundCorrect}/{round.roundProgress}
+                </span>
+                right first time
+              </div>
+              <div className="practice-setup__stat">
+                <span className="practice-setup__stat-value">
+                  {round.points}
+                </span>
+                points this session
+              </div>
+            </div>
             {roundNote && <Text size="sm">{roundNote}</Text>}
             <Group gap="sm">
-              <Button variant="primary" onClick={start}>
+              <Button variant="primary" onClick={start} rightSection={key("↵")}>
                 Another round
               </Button>
               <Button onClick={() => round.setPhase("setup")}>Settings</Button>

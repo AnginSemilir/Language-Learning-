@@ -1,8 +1,8 @@
 import { InputDescription } from "@/components/ui/InputDescription";
 import { InputLabel } from "@/components/ui/InputLabel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { setColorScheme } from "@/hooks/useTheme";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
-import { setSetting } from "@/logic/settings/setSetting";
 import { IconMoon, IconSun, IconSunMoon } from "@tabler/icons-react";
 import { t } from "i18next";
 import { SettingsValues } from "../../logic/settings/Settings";
@@ -14,20 +14,9 @@ export default function ColorSchemeToggle() {
   const [colorSchemePreference] = useSetting("#colorSchemePreference");
 
   const handleColorSchemeChange = (value: string) => {
-    setSetting(
-      "#colorSchemePreference",
+    setColorScheme(
       (value as SettingsValues["#colorSchemePreference"]) || "light"
     );
-
-    const html = document.documentElement;
-    if (value === "auto") {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      html.setAttribute("data-theme", prefersDark ? "dark" : "light");
-    } else {
-      html.setAttribute("data-theme", value);
-    }
   };
 
   return (

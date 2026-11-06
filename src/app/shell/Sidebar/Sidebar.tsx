@@ -1,6 +1,7 @@
 import { CloudSyncState } from "@/components/CloudSyncState";
 import { IconButton } from "@/components/ui/IconButton";
 import { NavItem } from "@/components/ui/NavItem";
+import { setColorScheme, useIsDark } from "@/hooks/useTheme";
 import { breakpoints } from "@/lib/breakpoints";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
@@ -8,8 +9,10 @@ import {
   IconCards,
   IconChartBar,
   IconHome,
+  IconMoon,
   IconPencil,
   IconSettings,
+  IconSun,
   IconX,
 } from "@tabler/icons-react";
 import { t } from "i18next";
@@ -20,6 +23,7 @@ import { SpotlightCard } from "../Spotlight";
 
 const BASE = "sidebar";
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || "0.0.0";
+const APP_BUILD = import.meta.env.VITE_APP_BUILD || "";
 
 interface SidebarProps {
   menuOpened: boolean;
@@ -32,6 +36,7 @@ interface SidebarProps {
 
 function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
   const routeIsLearn = useLocation().pathname.startsWith("/learn");
+  const isDark = useIsDark();
 
   const isXsOrSmaller = useMediaQuery(`(max-width: ${breakpoints.xs}px)`);
   const isLgOrSmaller = useMediaQuery(`(max-width: ${breakpoints.lg}px)`);
@@ -64,7 +69,10 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               {!minimalMode && (
                 <div className={`${BASE}__brand-text`}>
                   <h1 className={`${BASE}__title`}>Kartu</h1>
-                  <div className={`${BASE}__version`}>v{APP_VERSION}</div>
+                  <div className={`${BASE}__version`}>
+                    v{APP_VERSION}
+                    {APP_BUILD && ` · ${APP_BUILD}`}
+                  </div>
                 </div>
               )}
             </div>
@@ -122,6 +130,16 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               icon={<IconSettings />}
               collapsed={minimalMode}
               onClick={fullscreenMode ? menuHandlers.close : undefined}
+            />
+            <NavItem
+              label={isDark ? "Light view" : "Dark view"}
+              icon={isDark ? <IconSun /> : <IconMoon />}
+              collapsed={minimalMode}
+              active={false}
+              aria-label={
+                isDark ? "Switch to light view" : "Switch to dark view"
+              }
+              onClick={() => setColorScheme(isDark ? "light" : "dark")}
             />
           </nav>
 

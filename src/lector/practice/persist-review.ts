@@ -9,8 +9,8 @@ import type { ClozeMasteryLevel, ClozeSentence } from "../types";
  * Persist one graded practice answer (#232).
  *
  * The word's schedule is the source of truth: if that write fails, nothing
- * may advance, so this returns false and surfaces the error. The word-state
- * and daily-stat writes are best-effort.
+ * may advance, so this returns false and surfaces the error. The daily-stat
+ * writes are best-effort.
  */
 export async function persistReview(
   sentence: ClozeSentence,
@@ -29,7 +29,7 @@ export async function persistReview(
     notify("Not saved", "Could not save your answer. Try again.", "error");
     return false;
   }
-  if (!(await recordCardPractice(sentence, newMastery, earnedPoints))) {
+  if (!(await recordCardPractice(earnedPoints))) {
     notify(
       "Stats not updated",
       "Your answer was saved, but updating your stats failed.",

@@ -17,6 +17,10 @@ export default defineConfig({
     ENABLE_FIREBASE: process.env.ENABLE_FIREBASE || true,
     PUBLIC_URL: JSON.stringify(process.env.PUBLIC_URL || "./"),
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
+    // Shown next to the version, so you can tell whether the app has updated.
+    "import.meta.env.VITE_APP_BUILD": JSON.stringify(
+      new Date().toISOString().slice(0, 10)
+    ),
   },
   resolve: {
     alias: {
