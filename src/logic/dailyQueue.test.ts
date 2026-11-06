@@ -87,6 +87,7 @@ describe("buildDailyQueue", () => {
     const q = buildDailyQueue(cards, ANKI, NOW);
     expect(q.newDoneToday).toBe(5);
     expect(q.reviewsDoneToday).toBe(50);
+    expect(q.answersToday).toBe(55);
     expect(q.newCards).toHaveLength(15);
     expect(q.reviews).toHaveLength(150);
   });

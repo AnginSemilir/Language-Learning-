@@ -1,0 +1,51 @@
+.learn-view-daily-progress {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-md) 0;
+}
+
+.learn-view-daily-progress__item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: 999px;
+  background: var(--theme-neutral-50);
+  font-family: var(--font-sans);
+}
+
+.learn-view-daily-progress__label {
+  font-size: 0.85rem;
+  color: var(--theme-neutral-600);
+}
+
+.learn-view-daily-progress__value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--theme-neutral-900);
+}
+
+.learn-view-daily-progress__of {
+  font-weight: 500;
+  color: var(--theme-neutral-500);
+}
+
+/* New cards against the limit: a thin meter, same ramp for the track. */
+.learn-view-daily-progress__meter {
+  align-self: center;
+  width: 3rem;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--theme-primary-100);
+  overflow: hidden;
+}
+
+.learn-view-daily-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary-500);
+}

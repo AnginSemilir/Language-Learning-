@@ -33,7 +33,9 @@ talked to its server were rewritten to use the browser database
   reviews, after them or before them, and burying a card's other side until
   tomorrow (off). Defaults are Anki's. The deck shows today's numbers ("20
   new"), front → back cards come before their reverse cards, and "Study
-  anyway" on a finished deck ignores the limits.
+  anyway" on a finished deck ignores the limits. The review screen shows new
+  cards started today against the limit (New today 11/20) and how many
+  answers you've given today.
 - **Reviewing on a computer.** Space or Enter shows the answer; the number
   keys rate the card in the order of the buttons (1 Again, 2 Hard, 3 Good,
   4 Easy; with Hard and Easy turned off, 1 Again and 2 Good). The keys are
@@ -152,8 +154,9 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   `scripts/extract-sentences.py` (download commands in its header) and
   `pnpm build:sentences <tsv>`. Translated sentences come first, in this
   order: learner sentences (Tatoeba, TALPCo, Wiktionary, MASSIVE), then
-  news and health texts (ALT, Global Voices, TICO-19), then OpenSubtitles;
-  sentences without a translation come last. As a
+  news and health texts (ALT, Global Voices, TICO-19); sentences without a
+  translation come last. OpenSubtitles was tried and dropped: its
+  translations often don't match the line. As a
   compilation the files are CC BY-SA 4.0; each sentence keeps its source's
   licence:
   - [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR)
@@ -167,10 +170,6 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   - [Global Voices](https://globalvoices.org) via [OPUS](https://opus.nlpl.eu)
     (CC BY)
   - [TICO-19](https://tico-19.github.io) (CC0)
-  - [OpenSubtitles](https://www.opensubtitles.org) v2018 via
-    [OPUS](https://opus.nlpl.eu/OpenSubtitles/en&id/v2018/OpenSubtitles)
-    (P. Lison and J. Tiedemann, 2016; no licence stated). Film subtitles with
-    loose translations, so they come last among translated sentences.
   - [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de), news 2023
     and Wikipedia 2021 (CC BY), Indonesian only
 
