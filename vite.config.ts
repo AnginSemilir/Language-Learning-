@@ -69,7 +69,19 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         runtimeCaching: [
           {
-            // Dictionary and sentence bank: large, rarely change, needed offline.
+            // Example sentences, one small file per group of words, fetched as
+            // practice needs them. The folder name changes with each rebuild of
+            // the pool, so a cached file never goes stale.
+            urlPattern: /\/data\/sentences\/.*\.json$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "kartu-sentences",
+              expiration: { maxEntries: 600 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Dictionary and word lists: large, rarely change, needed offline.
             urlPattern: /\/data\/.*\.json$/i,
             handler: "StaleWhileRevalidate",
             options: {

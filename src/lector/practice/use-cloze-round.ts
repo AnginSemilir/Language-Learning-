@@ -143,11 +143,15 @@ export function clozeRoundReducer(
       return { ...state, phase: "feedback" };
     case "advance":
       return advanceRound(state);
-    case "blacklist-current":
+    case "blacklist-current": {
+      // A hidden sentence must not come back in the second-try pass either.
+      const hiddenId = state.current?.sentence.id;
       return advanceRound({
         ...state,
         roundSize: Math.max(0, state.roundSize - 1),
+        retryQueue: state.retryQueue.filter((s) => s.id !== hiddenId),
       });
+    }
   }
 }
 
@@ -159,8 +163,7 @@ export async function commitRoundReview(
   if (!state.current) return null;
 
   const saved = await saveReview(
-    state.current.sentence.id,
-    state.current.sentence.clozeWord,
+    state.current.sentence,
     result.isCorrect,
     result.earnedPoints,
     result.newMastery,

@@ -1,8 +1,9 @@
-// Cloze practice. Round logic (useClozeRound), answer checking, hints, points
-// and mastery are Lector's (heuwels/lector@eb393ce, AGPL-3.0-only:
-// src/app/practice/page.tsx recordAnswer/handleHint, use-cloze-round.ts,
-// utils.ts). The screen is rebuilt with Skola's components; Lector's
-// dictation mode, onboarding and AI "Explain" are not ported.
+// Cloze practice on the words of your flashcards (see lector/cardCloze.ts).
+// Round logic (useClozeRound), answer checking, hints, points and mastery are
+// Lector's (heuwels/lector@eb393ce, AGPL-3.0-only: src/app/practice/page.tsx
+// recordAnswer/handleHint, use-cloze-round.ts, utils.ts). The screen is
+// rebuilt with Skola's components; Lector's dictation mode, onboarding and AI
+// "Explain" are not ported.
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import {
   Button,
@@ -15,16 +16,17 @@ import {
   TextInput,
 } from "@/components/ui";
 import {
-  type ClozeMode,
-  blacklistCloze,
-  countCloze,
-  ensureClozeSeeded,
-  getDueCloze,
-} from "@/lector/data-layer";
+  type CardClozeCounts,
+  type CardClozeMode,
+  type CardFilter,
+  buildCardRound,
+  countCardCloze,
+  hideCardSentence,
+} from "@/lector/cardCloze";
 import { graphemeSplit } from "@/lector/languages/graphemes";
 import { graphemeLength } from "@/lector/languages/graphemes";
 import { id as pack } from "@/lector/languages/id/manifest";
-import { COLLECTION_LABELS, ROUND_SIZES } from "@/lector/practice/constants";
+import { ROUND_SIZES } from "@/lector/practice/constants";
 import type { PracticeMode } from "@/lector/practice/types";
 import { useClozeRound } from "@/lector/practice/use-cloze-round";
 import {
@@ -35,7 +37,11 @@ import {
   normalize,
 } from "@/lector/practice/utils";
 import { speak } from "@/lector/tts";
-import type { ClozeCollection, ClozeMasteryLevel } from "@/lector/types";
+import type {
+  ClozeMasteryLevel,
+  ClozeSentence,
+  ClozeSource,
+} from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { IconBulb, IconVolume } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -50,6 +56,22 @@ interface Feedback {
   sentence: string;
   points: number;
   newMastery: ClozeMasteryLevel;
+  /** You typed the card's word; the sentence uses another form of it. */
+  otherForm: boolean;
+}
+
+const SOURCE_LABEL: Partial<Record<ClozeSource, string>> = {
+  tatoeba: "Tatoeba",
+  wiktionary: "Wiktionary",
+  leipzig: "Leipzig Corpora",
+  card: "your card",
+  reading: "your reading",
+};
+
+/** Right if it matches the word in the sentence, or the word as on your card. */
+function isRight(answer: string, sentence: ClozeSentence) {
+  if (checkAnswer(answer, sentence.clozeWord, pack)) return true;
+  return !!sentence.cardWord && checkAnswer(answer, sentence.cardWord, pack);
 }
 
 const MASTERY_LABEL: Record<ClozeMasteryLevel, string> = {
@@ -63,27 +85,28 @@ const MASTERY_LABEL: Record<ClozeMasteryLevel, string> = {
 export default function PracticeView() {
   useDocumentTitle("Practice");
   const round = useClozeRound();
-  const [counts, setCounts] = useState<Awaited<
-    ReturnType<typeof countCloze>
-  > | null>(null);
+  const [counts, setCounts] = useState<CardClozeCounts | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<PracticeMode>("type");
-  const [which, setWhich] = useState<ClozeMode>("due");
-  const [collection, setCollection] = useState<ClozeCollection | "all">(
-    "top500"
-  );
+  const [which, setWhich] = useState<CardClozeMode>("due");
+  const [filter, setFilter] = useState<CardFilter>("studied");
+  const [roundNote, setRoundNote] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
   const [hintLetters, setHintLetters] = useState(0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const refreshCounts = useCallback(() => countCloze().then(setCounts), []);
+  const refreshCounts = useCallback(
+    () =>
+      countCardCloze(filter)
+        .then(setCounts)
+        .catch((e) => setLoadError(String(e.message ?? e))),
+    [filter]
+  );
 
   useEffect(() => {
-    ensureClozeSeeded()
-      .then(refreshCounts)
-      .catch((e) => setLoadError(String(e.message ?? e)));
+    refreshCounts();
   }, [refreshCounts]);
 
   const current = round.current;
@@ -103,11 +126,29 @@ export default function PracticeView() {
 
   const start = async () => {
     round.beginRound(round.roundSize);
-    const sentences = await getDueCloze(which, collection, round.roundSize);
-    round.startRound(sentences);
     setAnswer("");
     setHintLetters(0);
     setFeedback(null);
+    setRoundNote(null);
+    try {
+      const built = await buildCardRound(which, filter, round.roundSize);
+      round.startRound(built.sentences);
+      const notes: string[] = [];
+      if (built.skipped.length > 0) {
+        notes.push(
+          `No example sentences yet for ${built.skipped.length === 1 ? "1 word" : `${built.skipped.length} words`}: ${built.skipped.slice(0, 5).join(", ")}${built.skipped.length > 5 ? "…" : ""}.`
+        );
+      }
+      if (built.offline) {
+        notes.push(
+          "Some sentences couldn't be downloaded. Check your connection."
+        );
+      }
+      setRoundNote(notes.join(" ") || null);
+    } catch (e) {
+      round.setPhase("setup");
+      setLoadError(String((e as Error).message ?? e));
+    }
   };
 
   const recordAnswer = async (isCorrect: boolean, submitted: string) => {
@@ -141,6 +182,10 @@ export default function PracticeView() {
       sentence: current.sentence.sentence,
       points: earnedPoints,
       newMastery,
+      otherForm:
+        isCorrect &&
+        mode === "type" &&
+        !checkAnswer(submitted, current.sentence.clozeWord, pack),
     });
     round.showFeedback();
   };
@@ -200,31 +245,37 @@ export default function PracticeView() {
             <div>
               <h1 className="practice-view__heading">Fill in the gap</h1>
               <Text>
-                Real Indonesian sentences from Tatoeba with one common word
-                missing. Get it right and it comes back after 1, 3, 7, then 14
-                days; miss it and it starts again.
+                The words on your flashcards, each in a real sentence with the
+                word missing, and a different sentence every time. Get a word
+                right and it comes back after 1, 3, 7, then 14 days; miss it and
+                it starts again.
               </Text>
             </div>
             {counts && (
-              <Group gap="lg" wrap="wrap">
+              <Group gap="lg" wrap="wrap" className="practice-view__counts">
                 <Text size="sm">
                   <strong>{counts.due}</strong> due
                 </Text>
                 <Text size="sm">
-                  <strong>{counts.fresh}</strong> not yet seen
+                  <strong>{counts.fresh}</strong> not yet practised
                 </Text>
                 <Text size="sm">
                   <strong>{counts.mastered}</strong> mastered
                 </Text>
               </Group>
             )}
+            {counts?.words === 0 && (
+              <Text size="sm">
+                Add or import flashcards first: practice uses the words on them.
+              </Text>
+            )}
             <Stack gap="sm">
               <Text size="sm" weight="medium">
-                Sentences
+                Words
               </Text>
               <SegmentedControl
                 value={which}
-                onChange={(v) => setWhich(v as ClozeMode)}
+                onChange={(v) => setWhich(v as CardClozeMode)}
                 data={[
                   { value: "due", label: "Due" },
                   { value: "new", label: "New" },
@@ -232,16 +283,11 @@ export default function PracticeView() {
                 ]}
               />
               <SegmentedControl
-                value={collection}
-                onChange={(v) => setCollection(v as ClozeCollection | "all")}
+                value={filter}
+                onChange={(v) => setFilter(v as CardFilter)}
                 data={[
-                  ...Object.entries(COLLECTION_LABELS).map(
-                    ([value, label]) => ({
-                      value,
-                      label,
-                    })
-                  ),
-                  { value: "all", label: "All" },
+                  { value: "studied", label: "Cards I’ve studied" },
+                  { value: "all", label: "All cards" },
                 ]}
               />
               <Text size="sm" weight="medium">
@@ -278,9 +324,16 @@ export default function PracticeView() {
         {round.phase === "empty" && (
           <Stack gap="md">
             <Text>
-              Nothing to practise with these settings. Try “New” or another word
-              range.
+              Nothing to practise with these settings.{" "}
+              {counts && counts.due === 0 && counts.fresh === 0
+                ? filter === "studied"
+                  ? "Words come back 1, 3, 7 and 14 days after you get them right; study more flashcards or choose “All cards” for new ones."
+                  : "Words come back 1, 3, 7 and 14 days after you get them right."
+                : filter === "studied"
+                  ? "Try “New” or “All cards”."
+                  : "Try “New”."}
             </Text>
+            {roundNote && <Text size="sm">{roundNote}</Text>}
             <Button onClick={() => round.setPhase("setup")}>Back</Button>
           </Stack>
         )}
@@ -309,9 +362,25 @@ export default function PracticeView() {
                     ? feedback.sentence
                     : current.blankedSentence}
                 </p>
-                <p className="practice-view__translation">
-                  {current.sentence.translation}
-                </p>
+                {current.sentence.translation ? (
+                  <p className="practice-view__translation">
+                    {current.sentence.translation}
+                  </p>
+                ) : (
+                  current.sentence.clue && (
+                    <p className="practice-view__translation">
+                      Missing word: “{current.sentence.clue}”
+                    </p>
+                  )
+                )}
+                {(current.sentence.sourceName ||
+                  SOURCE_LABEL[current.sentence.source]) && (
+                  <p className="practice-view__source">
+                    From{" "}
+                    {current.sentence.sourceName ||
+                      SOURCE_LABEL[current.sentence.source]}
+                  </p>
+                )}
               </Paper>
 
               {round.phase === "practicing" && mode === "type" && (
@@ -319,10 +388,7 @@ export default function PracticeView() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!answer.trim()) return;
-                    recordAnswer(
-                      checkAnswer(answer, current.sentence.clozeWord, pack),
-                      answer
-                    );
+                    recordAnswer(isRight(answer, current.sentence), answer);
                   }}
                 >
                   <Stack gap="sm">
@@ -401,7 +467,15 @@ export default function PracticeView() {
                     {!feedback.isCorrect && feedback.userAnswer && (
                       <> (you wrote “{feedback.userAnswer}”)</>
                     )}
+                    {feedback.otherForm && " in this sentence"}
                     {feedback.points > 0 && <> · +{feedback.points} pts</>}
+                    {current.sentence.cardWord && (
+                      <div className="practice-view__card-word">
+                        Your card:{" "}
+                        <span lang="id">{current.sentence.cardWord}</span> —{" "}
+                        {current.sentence.clue}
+                      </div>
+                    )}
                   </div>
                   <Group gap="sm" justify="space-between">
                     <Group gap="sm">
@@ -415,7 +489,7 @@ export default function PracticeView() {
                       <Button
                         variant="ghost"
                         onClick={async () => {
-                          await blacklistCloze(current.sentence.id);
+                          await hideCardSentence(current.sentence);
                           round.blacklistCurrent();
                           setAnswer("");
                           setHintLetters(0);
@@ -441,6 +515,7 @@ export default function PracticeView() {
               {round.roundCorrect} of {round.roundProgress} right first time ·{" "}
               {round.points} points this session
             </Text>
+            {roundNote && <Text size="sm">{roundNote}</Text>}
             <Group gap="sm">
               <Button variant="primary" onClick={start}>
                 Another round
@@ -451,7 +526,11 @@ export default function PracticeView() {
         )}
 
         <Text size="xs" className="practice-view__credit">
-          Sentences from Tatoeba (tatoeba.org), CC BY 2.0 FR, via Lector.
+          Sentences from Tatoeba (CC BY 2.0 FR), Wiktionary (CC BY-SA), TALPCo,
+          Amazon MASSIVE, the Asian Language Treebank (CC BY 4.0), Global Voices
+          (CC BY), TICO-19 (CC0), OpenSubtitles and the Leipzig Corpora
+          Collection (CC BY), plus your own cards and reading. Details under
+          Settings → About.
         </Text>
       </div>
     </>

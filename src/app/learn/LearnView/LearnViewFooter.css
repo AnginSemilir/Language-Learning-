@@ -34,3 +34,35 @@
     font-size: var(--font-size-lg);
   }
 }
+
+.learn-view-footer__key {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .learn-view-footer__key {
+    display: inline-block;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    padding: 0 0.4em;
+    margin-left: var(--spacing-xs);
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    opacity: 0.7;
+  }
+}
+
+/* Desktop: Show answer as wide and tall as the rating buttons. */
+@media (min-width: 769px) {
+  .learn-view-footer {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .learn-view-footer .learn-view-footer__show-answer {
+    width: 100%;
+    max-width: var(--content-width);
+    height: 3.75rem;
+    font-size: 1.15rem;
+  }
+}

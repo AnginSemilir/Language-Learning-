@@ -45,77 +45,62 @@ function timeStringForRating(rating: Rating, controller: LearnController) {
   }
 }
 
+const RATING_BUTTONS = [
+  { rating: Rating.Again, label: "learning.rate-again", color: "red" },
+  { rating: Rating.Hard, label: "learning.rate-hard", color: "yellow" },
+  { rating: Rating.Good, label: "learning.rate-good", color: "green" },
+  { rating: Rating.Easy, label: "learning.rate-easy", color: "blue" },
+] as const;
+
 function LearnViewFooter({ controller, answer }: LearnViewFooterProps) {
   const [enableHardAndEasy] = useSetting("#learn_enableHardAndEasy");
 
-  const baseHotkeys: [string, () => void][] = [
-    ["1", () => controller.showingAnswer && answer(Rating.Again)],
-    ["3", () => controller.showingAnswer && answer(Rating.Good)],
-    [
-      "Space",
-      () =>
-        !controller.showingAnswer
-          ? controller.showAnswer()
-          : answer(Rating.Good),
-    ],
-    [
-      "Enter",
-      () =>
-        !controller.showingAnswer
-          ? controller.showAnswer()
-          : answer(Rating.Good),
-    ],
+  // Number keys follow the buttons on screen: 1–4 with Hard and Easy, 1–2
+  // without (3 still means Good, as in Anki).
+  const buttons = RATING_BUTTONS.filter(
+    (b) =>
+      enableHardAndEasy ||
+      (b.rating !== Rating.Hard && b.rating !== Rating.Easy)
+  ).map((b, i) => ({ ...b, key: String(i + 1) }));
+
+  const rate = (rating: Rating) => () => {
+    if (controller.showingAnswer) answer(rating);
+  };
+  const showOrGood = () =>
+    !controller.showingAnswer ? controller.showAnswer() : answer(Rating.Good);
+
+  const hotkeys: [string, () => void][] = [
+    ...buttons.map((b): [string, () => void] => [b.key, rate(b.rating)]),
+    ...(enableHardAndEasy
+      ? []
+      : [["3", rate(Rating.Good)] as [string, () => void]]),
+    ["Space", showOrGood],
+    ["Enter", showOrGood],
   ];
 
-  const hardAndEasyHotkeys: [string, () => void][] = enableHardAndEasy
-    ? [
-        ["2", () => controller.showingAnswer && answer(Rating.Hard)],
-        ["4", () => controller.showingAnswer && answer(Rating.Easy)],
-      ]
-    : [];
-
-  useHotkeys(
-    !controller.isFinished ? [...baseHotkeys, ...hardAndEasyHotkeys] : []
-  );
+  useHotkeys(!controller.isFinished ? hotkeys : []);
 
   return (
     <Group className={BASE} justify="center">
       {controller.showingAnswer ? (
         <div className={BASE + "__buttons"}>
-          <AnswerCardButton
-            label={t("learning.rate-again")}
-            timeInfo={timeStringForRating(Rating.Again, controller)}
-            color="red"
-            action={() => answer(Rating.Again)}
-          />
-          {enableHardAndEasy && (
+          {buttons.map((b) => (
             <AnswerCardButton
-              label={t("learning.rate-hard")}
-              timeInfo={timeStringForRating(Rating.Hard, controller)}
-              color="yellow"
-              action={() => answer(Rating.Hard)}
+              key={b.rating}
+              label={t(b.label)}
+              timeInfo={timeStringForRating(b.rating, controller)}
+              color={b.color}
+              shortcut={b.key}
+              action={() => answer(b.rating)}
             />
-          )}
-          <AnswerCardButton
-            label={t("learning.rate-good")}
-            timeInfo={timeStringForRating(Rating.Good, controller)}
-            color="green"
-            action={() => answer(Rating.Good)}
-          />
-          {enableHardAndEasy && (
-            <AnswerCardButton
-              label={t("learning.rate-easy")}
-              timeInfo={timeStringForRating(Rating.Easy, controller)}
-              color="blue"
-              action={() => answer(Rating.Easy)}
-            />
-          )}
+          ))}
         </div>
       ) : (
         <Button
           onClick={controller.showAnswer}
           className={`${BASE}__show-answer`}
           variant="primary"
+          rightSection={<kbd className={`${BASE}__key`}>Space</kbd>}
         >
           {t("learning.show-answer")}
         </Button>

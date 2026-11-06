@@ -12,13 +12,21 @@ export type WordState =
   | "ignored";
 export type VocabType = "word" | "phrase";
 export type ClozeMasteryLevel = 0 | 25 | 50 | 75 | 100;
-export type ClozeSource = "tatoeba" | "mined";
+export type ClozeSource =
+  | "tatoeba"
+  | "mined"
+  | "wiktionary"
+  | "leipzig"
+  | "corpus"
+  | "card"
+  | "reading";
 export type ClozeCollection =
   | "top500"
   | "top1000"
   | "top2000"
   | "mined"
-  | "random";
+  | "random"
+  | "cards";
 
 export interface VocabEntry {
   /** Same as `text`: the folded word is the key, so devices never clash. */
@@ -58,6 +66,29 @@ export interface ClozeSentence {
   timesCorrect: number;
   timesIncorrect: number;
   blacklisted?: boolean;
+  /** Flashcard practice: the card's word as written, and its meaning (the card's back). */
+  cardWord?: string;
+  clue?: string;
+  /** Where the sentence comes from, for the credit under it. */
+  sourceName?: string;
+}
+
+/**
+ * Gap-fill progress for one flashcard word, keyed by the word's headword (or
+ * phrase). The sentence changes every time, so progress belongs to the word.
+ */
+export interface ClozeWord {
+  id: string;
+  masteryLevel: ClozeMasteryLevel;
+  nextReview: Date;
+  reviewCount: number;
+  lastReviewed?: Date;
+  timesCorrect: number;
+  timesIncorrect: number;
+  /** Keys of the sentences shown most recently, oldest first. */
+  recent: string[];
+  /** Keys of the sentences you chose to hide. */
+  hidden: string[];
 }
 
 export interface DailyStats {

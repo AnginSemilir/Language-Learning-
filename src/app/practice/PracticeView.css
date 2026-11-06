@@ -64,3 +64,14 @@
 .practice-view__credit {
   color: var(--theme-neutral-500);
 }
+
+.practice-view__source {
+  color: var(--theme-neutral-500);
+  font-size: var(--font-size-xs);
+  margin: var(--spacing-sm) 0 0;
+}
+
+.practice-view__card-word {
+  margin-top: var(--spacing-xs);
+  font-size: 0.9em;
+}
