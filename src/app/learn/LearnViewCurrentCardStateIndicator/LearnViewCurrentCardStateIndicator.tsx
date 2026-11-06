@@ -1,13 +1,11 @@
 import {
-  IconBook,
-  IconCircleArrowUpRight,
-  IconInfoCircle,
-  IconProps,
-  IconSparkles,
-} from "@tabler/icons-react";
+  GROWTH_STAGE_NAME,
+  GrowthIcon,
+  type GrowthStage,
+  growthStage,
+} from "@/components/GrowthIcon/GrowthIcon";
 import { Card as Model } from "fsrs.js";
 import { State } from "fsrs.js";
-import React, { useCallback } from "react";
 import "./LearnViewCurrentCardStateIndicator.css";
 
 const BASE = "learn-view-current-card-state-indicator";
@@ -16,71 +14,52 @@ interface LearnViewCurrentCardStateIndicatorProps {
   currentCardModel: Model | undefined;
 }
 
+const COLOURS: Record<string, string> = {
+  fuchsia: "var(--theme-fuchsia-700)",
+  orange: "var(--theme-orange-700)",
+  sky: "var(--theme-sky-700)",
+  neutral: "var(--theme-neutral-600)",
+};
+
 function Indicator({
   color,
-  icon: Icon,
+  stage,
   text,
 }: {
-  color: string;
-  icon: React.FC<IconProps>;
+  color: keyof typeof COLOURS;
+  stage: GrowthStage;
   text: string;
 }) {
-  const colorMap: Record<string, string> = {
-    fuchsia: "var(--theme-fuchsia-700)",
-    orange: "var(--theme-orange-700)",
-    sky: "var(--theme-sky-700)",
-    gray: "var(--theme-neutral-600)",
-  };
-
-  const iconColor = colorMap[color] || "var(--theme-neutral-600)";
-
   return (
-    <div className={BASE} style={{ color: iconColor }}>
-      <Icon />
-      <span className={`${BASE}__text`}>{text}</span>
+    <div className={BASE} style={{ color: COLOURS[color] }}>
+      <GrowthIcon stage={stage} size={30} />
+      <span className={`${BASE}__text`}>
+        {text} · {GROWTH_STAGE_NAME[stage]}
+      </span>
     </div>
   );
 }
 
+/**
+ * What kind of card this is (new, learning, review), with a tree showing how
+ * well it's learned: a seed for a new card up to a grand oak.
+ */
 export default function LearnViewCurrentCardStateIndicator({
   currentCardModel,
 }: LearnViewCurrentCardStateIndicatorProps) {
-  const indicator = useCallback(() => {
-    if (currentCardModel === undefined) {
-      return;
-    }
-    if (currentCardModel.state === State.New) {
-      return <Indicator color="fuchsia" icon={IconSparkles} text="New card" />;
-    } else if (
-      currentCardModel.state === State.Learning ||
-      currentCardModel.state === State.Relearning
-    ) {
-      return (
-        <Indicator
-          color="orange"
-          icon={IconCircleArrowUpRight}
-          text="Learn card"
-        />
-      );
-    } else if (
-      currentCardModel.state === State.Review &&
-      currentCardModel.due <= new Date(Date.now())
-    ) {
-      return <Indicator color="sky" icon={IconBook} text="Review card" />;
-    } else {
-      return (
-        <Indicator
-          color="neutral"
-          icon={IconInfoCircle}
-          text="Already learned"
-        />
-      );
-    }
-  }, [currentCardModel]);
-
-  if (currentCardModel === undefined) {
-    return null;
+  if (currentCardModel === undefined) return null;
+  const stage = growthStage(currentCardModel);
+  if (currentCardModel.state === State.New) {
+    return <Indicator color="fuchsia" stage={stage} text="New card" />;
   }
-
-  return indicator();
+  if (
+    currentCardModel.state === State.Learning ||
+    currentCardModel.state === State.Relearning
+  ) {
+    return <Indicator color="orange" stage={stage} text="Learning" />;
+  }
+  if (currentCardModel.due <= new Date(Date.now())) {
+    return <Indicator color="sky" stage={stage} text="Review" />;
+  }
+  return <Indicator color="neutral" stage={stage} text="Already learned" />;
 }

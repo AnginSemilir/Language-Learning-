@@ -4,6 +4,7 @@ import {
   IconCode,
   IconHighlight,
   IconItalic,
+  IconLetterA,
   IconLink,
   IconLinkOff,
   IconList,
@@ -16,7 +17,7 @@ import {
 import { Editor } from "@tiptap/react";
 import { RichTextEditorControl } from "./RichTextEditor";
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 
 interface ControlProps {
   editor: Editor | null;
@@ -223,5 +224,86 @@ export const UnlinkControl = memo(function UnlinkControl({
     >
       <IconLinkOff />
     </RichTextEditorControl>
+  );
+});
+
+/** Text colours that read well on both the light and the dark theme. */
+export const TEXT_COLOURS = [
+  { name: "Red", value: "#e03131" },
+  { name: "Orange", value: "#e8590c" },
+  { name: "Green", value: "#2f9e44" },
+  { name: "Blue", value: "#1c7ed6" },
+  { name: "Purple", value: "#9c36b5" },
+] as const;
+
+export const ColorControl = memo(function ColorControl({
+  editor,
+}: ControlProps) {
+  const [open, setOpen] = useState(false);
+  // Clicking the toolbar moves the cursor to the end of the text, so the
+  // selection is remembered when the palette opens and restored to colour it.
+  const selection = useRef<{ from: number; to: number } | null>(null);
+  const current: string | undefined = editor?.getAttributes("textStyle").color;
+  const apply = (colour: string | null) => {
+    let chain = editor?.chain().focus();
+    if (selection.current) chain = chain?.setTextSelection(selection.current);
+    if (colour) chain?.setColor(colour).run();
+    else chain?.unsetColor().run();
+    setOpen(false);
+  };
+  const remember = () => {
+    if (!open && editor) {
+      const { from, to } = editor.state.selection;
+      selection.current = { from, to };
+    }
+  };
+  return (
+    <span className="rte-colour">
+      <span
+        className="rte-colour__keep-selection"
+        // Read the selection before the press moves it (mouse, touch or pen).
+        onPointerDownCapture={remember}
+      >
+        <RichTextEditorControl
+          onClick={() => setOpen(!open)}
+          active={!!current}
+          title="Text colour"
+        >
+          <IconLetterA
+            className="rte-colour__icon"
+            style={{ borderBottomColor: current ?? "currentColor" }}
+          />
+        </RichTextEditorControl>
+      </span>
+      {open && (
+        <span
+          className="rte-colour__palette"
+          role="group"
+          aria-label="Text colour"
+        >
+          {TEXT_COLOURS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              className="rte-colour__swatch"
+              style={{ background: c.value }}
+              title={c.name}
+              aria-label={c.name}
+              // Keep the text selected while choosing.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => apply(c.value)}
+            />
+          ))}
+          <button
+            type="button"
+            className="rte-colour__swatch rte-colour__swatch--none"
+            title="No colour"
+            aria-label="No colour"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => apply(null)}
+          />
+        </span>
+      )}
+    </span>
   );
 });

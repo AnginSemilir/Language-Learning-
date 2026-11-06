@@ -33,7 +33,12 @@ talked to its server were rewritten to use the browser database
   shown on the buttons when you use a mouse. **Back** (the arrow at the bottom left on a
   phone, next to ✕ on a computer, or Z / Ctrl+Z) takes back your last answer: the card's
   schedule is restored and it is shown again to rate. It works for every
-  answer in the session, until the session ends.
+  answer in the session, until the session ends. Above each card a small
+  tree shows how well it's learned: a seed (new), a sapling (learning), a
+  young oak (next review under 21 days), an oak (21 days or more, when the
+  word counts as known) and a grand oak (90 days or more). **Edit** in the
+  card's ⋯ menu (or E) opens the card right there; the editor has bold,
+  italic, underline, text colours, highlight and more.
 - **Read.** 20 graded starter stories, or add your own: paste text, or import a
   `.txt`/`.md` file, subtitles (`.srt`/`.vtt`) or an EPUB book (one lesson per
   chapter). Lessons are split into pages you swipe through. Tap a word to hear

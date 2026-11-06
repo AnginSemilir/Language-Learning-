@@ -31,6 +31,8 @@ function timeStringForRating(rating: Rating, controller: LearnController) {
 
   const timeDifference =
     controller.currentCardRepeatInfo[rating]?.card.due.getTime() - Date.now();
+  // A card with damaged scheduling data must not take the screen down.
+  if (!Number.isFinite(timeDifference)) return "";
   if (timeDifference >= DAY_IN_MILLISECONDS * 30) {
     return rtf.format(
       Math.round(timeDifference / (DAY_IN_MILLISECONDS * 30)),

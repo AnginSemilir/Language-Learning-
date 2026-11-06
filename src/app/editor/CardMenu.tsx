@@ -24,8 +24,8 @@ import {
 } from "@tabler/icons-react";
 import { t } from "i18next";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import DebugCardModal from "../DebugCardModal/DebugCardModal";
+import EditNoteModal from "./EditNoteModal";
 
 interface CardMenuProps {
   card: Card<NoteType> | undefined;
@@ -33,20 +33,20 @@ interface CardMenuProps {
 }
 
 function CardMenu({ card, onDelete }: CardMenuProps) {
-  const navigate = useNavigate();
-
   const [developerMode] = useSetting("#developerMode");
 
   const [debugModalOpened, setDebugModalOpened] = useState<boolean>(false);
   const [statisticsModalOpened, setStatisticsModalOpened] =
     useState<boolean>(false);
+  // Edit opens the card right here, instead of the card list.
+  const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
 
   const showShortcutHints = useShowShortcutHints();
   useHotkeys([
     ["s", () => setStatisticsModalOpened(true)],
     ["o", () => {}],
     ["shift+d", () => setDebugModalOpened(true)],
-    ["e", () => navigate(`/notes?deck=${note?.deck}&note=${note?.id}`)],
+    ["e", () => note && setEditModalOpened(true)],
     ["Backspace", () => setDeleteModalOpened(true)],
   ]);
 
@@ -88,7 +88,7 @@ function CardMenu({ card, onDelete }: CardMenuProps) {
           <MenuItem
             leftSection={<IconEdit size={16} />}
             rightSection={showShortcutHints && <Kbd>e</Kbd>}
-            onClick={() => navigate(`/notes?deck=${note.deck}&note=${note.id}`)}
+            onClick={() => setEditModalOpened(true)}
           >
             {t("note.menu.edit")}
           </MenuItem>
@@ -131,6 +131,16 @@ function CardMenu({ card, onDelete }: CardMenuProps) {
           {t("note.menu.delete")}
         </MenuItem>
       </Menu>
+      {note && editModalOpened && (
+        <EditNoteModal
+          note={note}
+          opened={editModalOpened}
+          setClose={() => {
+            setEditModalOpened(false);
+            fetchNote();
+          }}
+        />
+      )}
       <CardStatisticsModal
         opened={statisticsModalOpened}
         setOpened={setStatisticsModalOpened}

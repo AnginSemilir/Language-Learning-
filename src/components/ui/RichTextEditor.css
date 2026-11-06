@@ -182,3 +182,46 @@
 .tippy-arrow {
   color: var(--theme-neutral-50);
 }
+
+/* Text colour: a button with the current colour underlined, and a palette. */
+.rte-colour {
+  display: inline-flex;
+  align-items: center;
+}
+
+.rte-colour__icon {
+  border-bottom: 3px solid currentColor;
+  padding-bottom: 1px;
+}
+
+.rte-colour__palette {
+  /* Inline, so a toolbar that scrolls sideways doesn't clip it. */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 4px;
+  padding: 2px 4px;
+  background: var(--theme-neutral-100);
+  border-radius: var(--radius-md);
+}
+
+.rte-colour__swatch {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--theme-neutral-50);
+  outline: 1px solid var(--theme-neutral-300);
+  cursor: pointer;
+  padding: 0;
+}
+
+.rte-colour__swatch--none {
+  background: linear-gradient(
+    135deg,
+    transparent 45%,
+    var(--theme-red-600) 45%,
+    var(--theme-red-600) 55%,
+    transparent 55%
+  );
+}
