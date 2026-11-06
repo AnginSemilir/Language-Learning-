@@ -5,6 +5,7 @@ import { Deck } from "@/logic/deck/deck";
 import { invalidateDeckStatsCache } from "@/logic/deck/deckStatsCacheManager";
 import { createNoteSkeleton } from "@/logic/note/createNoteSkeleton";
 import { NoteType } from "@/logic/note/note";
+import { sameText } from "@/logic/note/repeatedHint";
 import { FlashcardRow } from "./parseCsv";
 
 export type ImportDirection = "both" | "frontToBack";
@@ -22,10 +23,15 @@ function escapeHtml(text: string) {
     .replace(/"/g, "&quot;");
 }
 
-/** The target-language side: the word, plus the example sentence (hint) in italics. */
+/**
+ * The target-language side: the word, plus the example sentence (hint) in
+ * italics, unless the hint only repeats the word or sentence.
+ */
 export function frontHtml(row: FlashcardRow) {
   const word = `<p>${escapeHtml(row.front)}</p>`;
-  return row.hint ? `${word}<p><em>${escapeHtml(row.hint)}</em></p>` : word;
+  return row.hint && !sameText(row.hint, row.front)
+    ? `${word}<p><em>${escapeHtml(row.hint)}</em></p>`
+    : word;
 }
 
 export function backHtml(row: FlashcardRow) {

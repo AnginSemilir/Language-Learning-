@@ -1,16 +1,23 @@
 import { Divider } from "@/components/ui";
+import { dropRepeatedParagraph } from "@/logic/note/repeatedHint";
 import { ReactNode } from "react";
 import "./QuestionAnswerDisplay.css";
 
 export function QuestionContent({ html }: { html: string }) {
   return (
-    <h3 className="qa-question" dangerouslySetInnerHTML={{ __html: html }} />
+    <h3
+      className="qa-question"
+      dangerouslySetInnerHTML={{ __html: dropRepeatedParagraph(html) }}
+    />
   );
 }
 
 export function AnswerContent({ html }: { html: string }) {
   return (
-    <div className="qa-answer" dangerouslySetInnerHTML={{ __html: html }} />
+    <div
+      className="qa-answer"
+      dangerouslySetInnerHTML={{ __html: dropRepeatedParagraph(html) }}
+    />
   );
 }
 

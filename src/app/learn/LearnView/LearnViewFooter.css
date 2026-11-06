@@ -66,3 +66,49 @@
     font-size: 1.15rem;
   }
 }
+
+/* Back (undo the last answer): in the footer on phones, in the header on
+   wider screens. */
+.learn-view-footer__back {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .learn-view-footer {
+    flex-wrap: nowrap;
+  }
+
+  .learn-view-footer__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 3rem;
+    align-self: stretch;
+    min-height: 3.5rem;
+    padding: 0;
+    border: 1px solid var(--theme-neutral-300);
+    border-radius: var(--radius-md);
+    background: var(--theme-neutral-100);
+    color: var(--theme-neutral-700);
+    cursor: pointer;
+  }
+
+  .learn-view-footer__back:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .learn-view-footer__back:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  .learn-view-footer__buttons,
+  .learn-view-footer__show-answer {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .learn-view-header__undo {
+    display: none;
+  }
+}
