@@ -1,17 +1,20 @@
-// The words you've marked as known while reading, by headword: one entry for
-// beli covers membeli and dibeli. Search, unmark, or copy the list.
+// Known words: marked known while reading, or learned through flashcards
+// (mature cards). Coverage of the most frequent words at the top; search,
+// unmark, or copy the list below.
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { notify } from "@/components/Notification";
 import { Button, Group, Text, TextInput } from "@/components/ui";
 import { deleteVocab } from "@/lector/data-layer";
 import { loadGrammar } from "@/lector/dictionary";
+import { getKnownWords } from "@/lector/knownWords";
 import type { GrammarData } from "@/lector/lemma";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
-import { db } from "@/logic/db";
 import { IconCopy, IconX } from "@tabler/icons-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeaderContent } from "../shell/Header/Header";
+import KnownCoverage from "./KnownCoverage";
+import { useFrequency } from "./useFrequency";
 import "./reading.css";
 
 const AUTO_MARK_KEY = "kartu-mark-known";
@@ -32,10 +35,8 @@ export default function KnownWordsView() {
       return false;
     }
   });
-  const known = useLiveQuery(
-    () => db.words.where("state").equals("known").toArray(),
-    []
-  );
+  const known = useLiveQuery(() => getKnownWords(), []);
+  const { coverage, error } = useFrequency();
 
   useEffect(() => {
     loadGrammar()
@@ -45,19 +46,13 @@ export default function KnownWordsView() {
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (known ?? [])
-      .filter(
-        (v) =>
-          !q || v.text.includes(q) || (v.forms ?? []).some((f) => f.includes(q))
-      )
-      .sort((a, b) => a.text.localeCompare(b.text, "id"));
+    return (known ?? []).filter(
+      (v) => !q || v.text.includes(q) || v.forms.some((f) => f.includes(q))
+    );
   }, [known, query]);
 
   const copy = async () => {
-    const text = (known ?? [])
-      .map((v) => v.text)
-      .sort((a, b) => a.localeCompare(b, "id"))
-      .join("\n");
+    const text = (known ?? []).map((v) => v.text).join("\n");
     try {
       await navigator.clipboard.writeText(text);
       notify("Copied", `${known?.length ?? 0} words copied.`, "success", 1500);
@@ -82,12 +77,12 @@ export default function KnownWordsView() {
             {known?.length ?? 0} known words
           </h1>
           <Text size="sm">
-            Passive forms count with their base word (<em>dibeli</em> with{" "}
-            <em>beli</em>); other forms such as <em>membeli</em> count as words
-            of their own. Words in your flashcards are listed under Manage Cards
-            instead.
+            Words you marked known while reading, plus flashcard words you've
+            learned (reviewed with a gap of 21 days or more). Passive forms
+            count with their base word (<em>dibeli</em> with <em>beli</em>).
           </Text>
         </div>
+        <KnownCoverage coverage={coverage} error={error} />
         <Group gap="sm" justify="space-between" wrap="wrap">
           <TextInput
             id="known-search"
@@ -129,10 +124,10 @@ export default function KnownWordsView() {
         ) : (
           <ul className="known-words__list">
             {rows.map((v) => {
-              const forms = (v.forms ?? []).filter((f) => f !== v.text);
+              const forms = v.forms;
               const gloss = v.translation || firstGloss(data, v.text);
               return (
-                <li key={v.id} className="known-words__row">
+                <li key={v.text} className="known-words__row">
                   <div className="known-words__text">
                     <span lang="id" className="known-words__word">
                       {v.text}
@@ -143,16 +138,21 @@ export default function KnownWordsView() {
                         {forms.join(", ")}
                       </span>
                     )}
+                    {v.viaFlashcard && (
+                      <span className="known-words__tag">flashcard</span>
+                    )}
                     {gloss && <div className="known-words__gloss">{gloss}</div>}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Unmark ${v.text}`}
-                    onClick={() => deleteVocab(v.id)}
-                  >
-                    <IconX size={16} />
-                  </Button>
+                  {v.entryId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Unmark ${v.text}`}
+                      onClick={() => v.entryId && deleteVocab(v.entryId)}
+                    >
+                      <IconX size={16} />
+                    </Button>
+                  )}
                 </li>
               );
             })}

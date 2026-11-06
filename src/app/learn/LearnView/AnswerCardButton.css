@@ -67,3 +67,14 @@
 .answer-card-button--blue:hover {
   background-color: var(--theme-sky-200);
 }
+
+@media (max-width: 768px) {
+  .answer-card-button {
+    height: 4rem;
+    gap: 2px;
+  }
+
+  .answer-card-button__label {
+    font-size: var(--font-size-lg);
+  }
+}

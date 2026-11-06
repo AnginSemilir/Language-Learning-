@@ -9,6 +9,7 @@ import {
   frontHtml,
 } from "@/logic/import/importFlashcards";
 import createDoubleSidedNote from "@/logic/type-implementations/double-sided/createDoubleSidedNote";
+import { State } from "fsrs.js";
 import { vocabKey } from "./data-layer";
 
 export const DEFAULT_DECK_NAME = "Indonesian";
@@ -35,11 +36,39 @@ export interface CardMatch {
   deckId: string;
   front: string;
   back: string;
+  /**
+   * The Indonesian → English card is mature: in review with an interval of
+   * 21 days or more (Anki's definition). Such a word counts as known.
+   */
+  mature: boolean;
+}
+
+/** Days between reviews from which a flashcard counts the word as known. */
+export const MATURE_DAYS = 21;
+
+/** Notes whose Indonesian → English card is mature. */
+async function matureNoteIds(): Promise<Set<string>> {
+  const cards = await db.cards.toArray();
+  const ids = new Set<string>();
+  for (const card of cards) {
+    const content = card.content as { frontIsField1?: boolean };
+    if (content.frontIsField1 === false) continue; // English → Indonesian side
+    if (
+      card.model.state === State.Review &&
+      card.model.scheduled_days >= MATURE_DAYS
+    ) {
+      ids.add(card.note);
+    }
+  }
+  return ids;
 }
 
 /** The user's own cards keyed by the folded word on the Indonesian side. */
 export async function getUserCardIndex(): Promise<Map<string, CardMatch>> {
-  const notes = await db.notes.toArray();
+  const [notes, mature] = await Promise.all([
+    db.notes.toArray(),
+    matureNoteIds(),
+  ]);
   const index = new Map<string, CardMatch>();
   for (const n of notes) {
     const c = n.content as {
@@ -58,6 +87,7 @@ export async function getUserCardIndex(): Promise<Map<string, CardMatch>> {
         deckId: n.deck,
         front: firstParagraph(frontSide),
         back: stripHtml(backSide),
+        mature: mature.has(n.id),
       });
     }
   }

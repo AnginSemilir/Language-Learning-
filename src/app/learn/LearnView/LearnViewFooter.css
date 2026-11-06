@@ -18,8 +18,19 @@
   gap: var(--spacing-md);
 }
 
+.learn-view-footer__show-answer {
+  height: 2.5rem;
+}
+
+/* Bigger targets on phones: rating buttons ~64px, Show answer full width. */
 @media (max-width: 768px) {
   .learn-view-footer__buttons {
     gap: var(--spacing-sm);
+  }
+
+  .learn-view-footer__show-answer {
+    width: 100%;
+    height: 3.5rem;
+    font-size: var(--font-size-lg);
   }
 }

@@ -49,6 +49,7 @@ export default function AboutSettingsView() {
           Dictionary: English Wiktionary via kaikki.org (CC BY-SA), as packaged
           by Lector.
         </li>
+        <li>Word frequencies: wordfreq (data CC BY-SA 4.0).</li>
         <li>
           Practice sentences: Tatoeba (tatoeba.org), CC BY 2.0 FR, as packaged
           by Lector.

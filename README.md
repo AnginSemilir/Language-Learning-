@@ -49,6 +49,13 @@ talked to its server were rewritten to use the browser database
 - **Practice.** Fill-in-the-gap on 7,220 Tatoeba sentences built around the
   2,000 most common words. Typing or multiple choice, letter hints, points.
   Correct answers come back after 1, 3, 7 and 14 days; misses reset.
+- **Known words.** Words marked known while reading, plus flashcard words
+  you've learned (the Indonesian → English card reviewed with a gap of 21
+  days or more, Anki's "mature"). Shows how many of the top 1,000 / 2,000 /
+  5,000 Indonesian words you know; tap a band to see those words by
+  frequency and mark them known or not. Frequency data:
+  [wordfreq](https://github.com/rspeer/wordfreq) (data CC BY-SA 4.0), built
+  with `scripts/build-frequency-json.py`.
 - **Sync between devices (optional).** Settings → Sync: sign in with your
   email and a one-time code to sync cards, word progress, lessons and
   statistics between phone and laptop through
@@ -98,6 +105,9 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   `dict-id-2026-08-21` release, converted with
   `scripts/build-dictionary-json.py`, which also extracts verb forms, derived
   nouns and names from the entries' etymologies.
+- `public/data/frequency-id.json`: the 9,000 most frequent Indonesian word
+  forms in the dictionary, from [wordfreq](https://github.com/rspeer/wordfreq)
+  3.1.1 (data CC BY-SA 4.0).
 - `public/data/sentences-id.json`: sentences from
   [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR), from Lector's sentence bank.
 

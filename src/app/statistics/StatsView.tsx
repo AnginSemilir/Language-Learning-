@@ -7,22 +7,26 @@ import { Paper, Text } from "@/components/ui";
 import { getAllDailyStats, todayKey } from "@/lector/data-layer";
 import ActivityHeatmap from "@/lector/heatmap/ActivityHeatmap";
 import type { ActivityDay } from "@/lector/heatmap/types";
+import { getKnownWords } from "@/lector/knownWords";
 import { activeDateSet, computeStreaks } from "@/lector/lib/streak";
 import type { DailyStats } from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
+import KnownCoverage from "../reading/KnownCoverage";
+import { useFrequency } from "../reading/useFrequency";
 import { AppHeaderContent } from "../shell/Header/Header";
 import "./StatsView.css";
 
 function useActivity() {
   return useLiveQuery(async () => {
-    const [daily, cards, vocab, cloze] = await Promise.all([
+    const [daily, cards, vocab, cloze, knownWords] = await Promise.all([
       getAllDailyStats(),
       db.cards.toArray(),
       db.words.toArray(),
       db.cloze.toArray(),
+      getKnownWords(),
     ]);
     const reviewsByDay = new Map<string, number>();
     for (const card of cards) {
@@ -31,7 +35,14 @@ function useActivity() {
         reviewsByDay.set(key, (reviewsByDay.get(key) ?? 0) + 1);
       }
     }
-    return { daily, reviewsByDay, vocab, cloze, cardCount: cards.length };
+    return {
+      daily,
+      reviewsByDay,
+      vocab,
+      cloze,
+      knownCount: knownWords.length,
+      cardCount: cards.length,
+    };
   }, []);
 }
 
@@ -47,6 +58,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 function StatsView() {
   useDocumentTitle("Statistics");
   const data = useActivity();
+  const { coverage, error: coverageError } = useFrequency();
 
   const derived = useMemo(() => {
     if (!data) return null;
@@ -90,7 +102,7 @@ function StatsView() {
       };
     });
     const todayRow = byDate.get(today);
-    const known = data.vocab.filter((v) => v.state === "known").length;
+    const known = data.knownCount;
     const learning = data.vocab.filter((v) =>
       v.state.startsWith("level")
     ).length;
@@ -156,6 +168,11 @@ function StatsView() {
                 value={`${derived.clozeMastered} / ${derived.clozeSeen} seen`}
               />
             </div>
+
+            <section className="stats-view__section">
+              <h2 className="stats-view__heading">Vocabulary coverage</h2>
+              <KnownCoverage coverage={coverage} error={coverageError} />
+            </section>
 
             <ActivityHeatmap
               data={derived.heatmap}
