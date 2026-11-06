@@ -1,30 +1,16 @@
 import { Divider } from "@/components/ui";
 import { ReactNode } from "react";
+import "./QuestionAnswerDisplay.css";
 
 export function QuestionContent({ html }: { html: string }) {
   return (
-    <h3
-      style={{
-        fontFamily: "var(--font-serif)",
-        fontSize: "var(--font-size-xl)",
-        fontWeight: 600,
-        margin: 0,
-        padding: "var(--spacing-md)",
-      }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <h3 className="qa-question" dangerouslySetInnerHTML={{ __html: html }} />
   );
 }
 
 export function AnswerContent({ html }: { html: string }) {
   return (
-    <div
-      style={{
-        fontSize: "var(--font-size-md)",
-        padding: "var(--spacing-md)",
-      }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="qa-answer" dangerouslySetInnerHTML={{ __html: html }} />
   );
 }
 

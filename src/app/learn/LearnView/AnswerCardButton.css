@@ -78,3 +78,45 @@
     font-size: var(--font-size-lg);
   }
 }
+
+.answer-card-button {
+  position: relative;
+}
+
+/* The number key for this button; only where there's a keyboard and mouse. */
+.answer-card-button__key {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .answer-card-button__key {
+    display: block;
+    position: absolute;
+    top: var(--spacing-xs);
+    left: var(--spacing-sm);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    padding: 0 0.35em;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    opacity: 0.6;
+  }
+}
+
+/* Desktop: taller buttons with bigger labels. Fixed sizes, because the
+   compact density scales the font-size variables down on wide screens. */
+@media (min-width: 769px) {
+  .answer-card-button {
+    height: 3.75rem;
+    gap: 3px;
+  }
+
+  .answer-card-button__time-info {
+    font-size: 0.85rem;
+  }
+
+  .answer-card-button__label {
+    font-size: 1.2rem;
+  }
+}
