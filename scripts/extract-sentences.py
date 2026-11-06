@@ -22,8 +22,11 @@ Download into one directory (sources that are missing are skipped):
   curl -o GlobalVoices-en-id.txt.zip https://object.pouta.csc.fi/OPUS-GlobalVoices/v2018q4/moses/en-id.txt.zip
   # TICO-19 (CC0)
   curl -O https://tico-19.github.io/data/tico19-testset.zip
-  # OpenSubtitles v2018 via OPUS (no stated licence; lowest priority)
-  curl -o OpenSubtitles-en-id.txt.zip https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-id.txt.zip
+  # Not used: OpenSubtitles v2018 via OPUS. Its translations are often
+  # unrelated to the Indonesian line ("Pemikat wanita apanya." / "Man, sit
+  # your candy-ass down."), and it has no stated licence. To try it anyway,
+  # download it and run with WITH_OPENSUBTITLES=1:
+  # curl -o OpenSubtitles-en-id.txt.zip https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-id.txt.zip
 
 Usage: python3 scripts/extract-sentences.py <download dir> <out.tsv>
 Output columns: source code (see src/lector/sentencePool.ts), Indonesian,
@@ -185,10 +188,9 @@ with open(out_path, "w", encoding="utf-8") as out:
                     if len(cols) >= 4:
                         write(out, "c", cols[3], cols[2])
 
-    # OpenSubtitles (OPUS): film subtitles, loosely translated; the pool
-    # uses them last among translated sentences. Subtitle lines often have a
-    # space before punctuation ("Kami menyelesaikan ini .").
-    if have("OpenSubtitles-en-id.txt.zip"):
+    # OpenSubtitles (OPUS): off unless asked for (see the header). Subtitle
+    # lines often have a space before punctuation ("Kami menyelesaikan ini .").
+    if os.environ.get("WITH_OPENSUBTITLES") and have("OpenSubtitles-en-id.txt.zip"):
         space_before = re.compile(r"\s+([.,!?;:])")
         with zipfile.ZipFile(path("OpenSubtitles-en-id.txt.zip")) as z:
             with z.open("OpenSubtitles.en-id.id") as fi, z.open("OpenSubtitles.en-id.en") as fe:
