@@ -97,7 +97,13 @@ talked to its server were rewritten to use the browser database
   backup first.
 - **Statistics.** Daily streak, points, words known and learning, and a
   year-long activity heatmap. Flashcard reviews, practice and word lookups all
-  count.
+  count. A **Flashcards** section, like Anki's statistics: today's answers,
+  recall and what's left; your forest (cards at each stage from seed to grand
+  oak); cards due on each of the next 30 days; answers on each of the last 30
+  days; recall for young and mature cards and how often you press each answer
+  button; the hour of the day you do best; and your hardest cards, with
+  leeches (forgotten 8 times or more) marked. Tap a hard card to edit it.
+  Every chart has a table view.
 
 Not ported from Lector (they need its server): YouTube import, AI translation
 and tutor, managed text-to-speech (the browser's own Indonesian voice is used),

@@ -1,0 +1,111 @@
+.bar-chart {
+  position: relative;
+  width: 100%;
+  /* One hue for magnitude, checked against both themes' surfaces. */
+  --bar: var(--color-primary-500);
+  --bar-muted: var(--theme-neutral-300);
+}
+
+.bar-chart__svg {
+  display: block;
+  overflow: visible;
+}
+
+.bar-chart__grid,
+.bar-chart__baseline {
+  stroke: var(--theme-neutral-200);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.bar-chart__baseline {
+  stroke: var(--theme-neutral-300);
+}
+
+.bar-chart__axis-label {
+  fill: var(--theme-neutral-500);
+  font-size: 11px;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-chart__value {
+  fill: var(--theme-neutral-700);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.bar-chart__bar {
+  outline: none;
+  cursor: default;
+}
+
+.bar-chart__bar path {
+  fill: var(--bar);
+  transition: opacity 120ms ease;
+}
+
+.bar-chart__bar--muted path {
+  fill: var(--bar-muted);
+}
+
+.bar-chart__hit {
+  fill: transparent;
+}
+
+.bar-chart__bar--active path {
+  opacity: 0.75;
+}
+
+.bar-chart__bar:focus-visible .bar-chart__hit {
+  stroke: var(--theme-primary-500);
+  stroke-width: 1.5;
+}
+
+.bar-chart__tooltip {
+  position: absolute;
+  top: 0;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  background: var(--theme-neutral-900);
+  color: var(--theme-neutral-50);
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+}
+
+.bar-chart__tooltip strong {
+  font-size: 14px;
+}
+
+.bar-chart__table {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--theme-neutral-600);
+}
+
+.bar-chart__table summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.bar-chart__table table {
+  margin-top: var(--spacing-xs);
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-chart__table th,
+.bar-chart__table td {
+  text-align: left;
+  padding: 2px 16px 2px 0;
+  border-bottom: 1px solid var(--theme-neutral-200);
+}

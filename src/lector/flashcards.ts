@@ -3,6 +3,7 @@
 
 import { db } from "@/logic/db";
 import { newDeck } from "@/logic/deck/newDeck";
+import { MATURE_DAYS } from "@/logic/growth";
 import {
   backHtml,
   duplicateKey,
@@ -77,7 +78,7 @@ export interface CardMatch {
 }
 
 /** Days between reviews from which a flashcard counts the word as known. */
-export const MATURE_DAYS = 21;
+export { MATURE_DAYS };
 
 /** Notes whose Indonesian → English card is mature. */
 async function matureNoteIds(): Promise<Set<string>> {

@@ -17,6 +17,7 @@ import { useMemo } from "react";
 import KnownCoverage from "../reading/KnownCoverage";
 import { useFrequency } from "../reading/useFrequency";
 import { AppHeaderContent } from "../shell/Header/Header";
+import FlashcardStats from "./FlashcardStats";
 import "./StatsView.css";
 
 function useActivity() {
@@ -168,6 +169,8 @@ function StatsView() {
                 value={`${derived.clozeMastered} / ${derived.clozeSeen} seen`}
               />
             </div>
+
+            <FlashcardStats />
 
             <section className="stats-view__section">
               <h2 className="stats-view__heading">Vocabulary coverage</h2>
