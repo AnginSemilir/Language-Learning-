@@ -42,7 +42,8 @@ function LearnViewHeader({
 }: LearnViewHeaderProps) {
   const navigate = useNavigate();
 
-  // Back: take back the last answer (Ctrl/Cmd+Z, or Backspace).
+  // Back: take back the last answer (Z or Ctrl/Cmd+Z; Backspace is the card
+  // menu's Delete).
   const undo = () => {
     if (controller.canUndo) controller.undo();
   };
@@ -50,7 +51,7 @@ function LearnViewHeader({
     ["d", () => navigate("/deck/" + deck?.id)],
     ["ctrl+z", undo],
     ["meta+z", undo],
-    ["Backspace", undo],
+    ["z", undo],
   ]);
 
   const progress = useMemo(
@@ -100,7 +101,7 @@ function LearnViewHeader({
             position="right"
             label={
               <>
-                Back: undo your last answer <Kbd>Ctrl Z</Kbd>
+                Back: undo your last answer <Kbd>z</Kbd>
               </>
             }
           >

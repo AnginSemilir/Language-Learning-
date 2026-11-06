@@ -4,6 +4,7 @@ import i18n from "@/i18n";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
 import { LearnController } from "@/logic/learn";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
+import { IconArrowBackUp } from "@tabler/icons-react";
 import { Rating } from "fsrs.js";
 import { t } from "i18next";
 import AnswerCardButton from "./AnswerCardButton";
@@ -80,8 +81,22 @@ function LearnViewFooter({ controller, answer }: LearnViewFooterProps) {
 
   useHotkeys(!controller.isFinished ? hotkeys : []);
 
+  // On phones Back sits here, next to the thumb, instead of in the header.
+  const back = (
+    <button
+      type="button"
+      className={`${BASE}__back`}
+      onClick={() => controller.undo()}
+      disabled={!controller.canUndo}
+      aria-label="Back: undo your last answer"
+    >
+      <IconArrowBackUp size={22} />
+    </button>
+  );
+
   return (
     <Group className={BASE} justify="center">
+      {back}
       {controller.showingAnswer ? (
         <div className={BASE + "__buttons"}>
           {buttons.map((b) => (

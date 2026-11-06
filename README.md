@@ -30,8 +30,8 @@ talked to its server were rewritten to use the browser database
 - **Reviewing on a computer.** Space or Enter shows the answer; the number
   keys rate the card in the order of the buttons (1 Again, 2 Hard, 3 Good,
   4 Easy; with Hard and Easy turned off, 1 Again and 2 Good). The keys are
-  shown on the buttons when you use a mouse. **Back** (the arrow next to ✕,
-  or Ctrl/Cmd+Z or Backspace) takes back your last answer: the card's
+  shown on the buttons when you use a mouse. **Back** (the arrow at the bottom left on a
+  phone, next to ✕ on a computer, or Z / Ctrl+Z) takes back your last answer: the card's
   schedule is restored and it is shown again to rate. It works for every
   answer in the session, until the session ends.
 - **Read.** 20 graded starter stories, or add your own: paste text, or import a
