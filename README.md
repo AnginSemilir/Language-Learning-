@@ -54,7 +54,8 @@ talked to its server were rewritten to use the browser database
   in a real sentence, a different one every time, with the English
   translation when there is one and the card's meaning otherwise. Typing
   (the card's word or the form in the sentence both count) or multiple
-  choice, letter hints, points. Each word comes back after 1, 3, 7 and 14
+  choice, letter hints, points. Gap-fill only reads your cards: it doesn't
+  change their reviews or which words count as known. Each word comes back after 1, 3, 7 and 14
   days; a miss resets it. Choose cards you've studied or all cards; hide a
   bad sentence and it won't come back. A new card gets sentences straight
   away: the app downloads the small sentence file holding that word (and

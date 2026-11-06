@@ -1,3 +1,4 @@
+import { registerSW } from "virtual:pwa-register";
 import App from "@/App";
 import DeckView from "@/app/deck/DeckView";
 import NewNotesView from "@/app/editor/NewNotesView";
@@ -14,6 +15,24 @@ import StatsView from "@/app/statistics/StatsView";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Navigate, RouterProvider, createHashRouter } from "react-router-dom";
+
+// Pick up a new version soon after it's deployed: check when the app opens,
+// when it comes back to the foreground, and every hour. With registerType
+// "autoUpdate" the page reloads once the new version has taken over, so an
+// installed app on a phone doesn't keep showing the old one.
+registerSW({
+  immediate: true,
+  onRegisteredSW(_url, registration) {
+    if (!registration) return;
+    const check = () => {
+      if (navigator.onLine) registration.update().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") check();
+    });
+    setInterval(check, 60 * 60 * 1000);
+  },
+});
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

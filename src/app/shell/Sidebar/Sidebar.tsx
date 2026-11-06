@@ -20,6 +20,7 @@ import { SpotlightCard } from "../Spotlight";
 
 const BASE = "sidebar";
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || "0.0.0";
+const APP_BUILD = import.meta.env.VITE_APP_BUILD || "";
 
 interface SidebarProps {
   menuOpened: boolean;
@@ -64,7 +65,10 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               {!minimalMode && (
                 <div className={`${BASE}__brand-text`}>
                   <h1 className={`${BASE}__title`}>Kartu</h1>
-                  <div className={`${BASE}__version`}>v{APP_VERSION}</div>
+                  <div className={`${BASE}__version`}>
+                    v{APP_VERSION}
+                    {APP_BUILD && ` · ${APP_BUILD}`}
+                  </div>
                 </div>
               )}
             </div>
