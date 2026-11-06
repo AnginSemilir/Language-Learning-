@@ -8,6 +8,7 @@ import {
   duplicateKey,
   frontHtml,
 } from "@/logic/import/importFlashcards";
+import { sameText } from "@/logic/note/repeatedHint";
 import createDoubleSidedNote from "@/logic/type-implementations/double-sided/createDoubleSidedNote";
 import { State } from "fsrs.js";
 import { vocabKey } from "./data-layer";
@@ -53,10 +54,13 @@ export function noteText(
   const paragraphs = [...frontSide.matchAll(/<p>(.*?)<\/p>/gs)].map((m) =>
     stripHtml(m[1])
   );
+  const front = paragraphs[0] ?? stripHtml(frontSide);
+  const example = paragraphs[1] ?? "";
   return {
-    front: paragraphs[0] ?? stripHtml(frontSide),
+    front,
     back: stripHtml(backSide),
-    example: paragraphs[1] ?? "",
+    // A hint that only repeats the card isn't an example sentence.
+    example: sameText(example, front) ? "" : example,
   };
 }
 
