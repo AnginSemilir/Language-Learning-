@@ -71,6 +71,8 @@ export interface ClozeSentence {
   clue?: string;
   /** Where the sentence comes from, for the credit under it. */
   sourceName?: string;
+  /** The translation is a machine translation (Opus-MT). */
+  machineTranslation?: boolean;
 }
 
 /**

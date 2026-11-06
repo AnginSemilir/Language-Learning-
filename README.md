@@ -152,11 +152,15 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   29,000 Indonesian words and phrases (20 for the 5,000 most frequent
   words), split into 512 files by word. Built with
   `scripts/extract-sentences.py` (download commands in its header) and
-  `pnpm build:sentences <tsv>`. Translated sentences come first, in this
-  order: learner sentences (Tatoeba, TALPCo, Wiktionary, MASSIVE), then
-  news and health texts (ALT, Global Voices, TICO-19); sentences without a
-  translation come last. OpenSubtitles was tried and dropped: its
-  translations often don't match the line. As a
+  `pnpm build:sentences <tsv>`. Sentences translated by people come first:
+  learner sentences (Tatoeba, TALPCo, Wiktionary, MASSIVE), then news and
+  health texts (ALT, Global Voices, TICO-19). Then come sentences with a
+  machine translation: Leipzig and OpenSubtitles sentences (and the few
+  untranslated Tatoeba ones), translated with
+  [Opus-MT](https://huggingface.co/Helsinki-NLP/opus-mt-id-en)
+  (`scripts/translate/`). A machine translation is kept only if it contains
+  the word's dictionary meaning; gap-fill marks these "English by machine
+  translation". Sentences without a translation come last. As a
   compilation the files are CC BY-SA 4.0; each sentence keeps its source's
   licence:
   - [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR)
@@ -172,6 +176,13 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   - [TICO-19](https://tico-19.github.io) (CC0)
   - [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de), news 2023
     and Wikipedia 2021 (CC BY), Indonesian only
+  - [OpenSubtitles](https://www.opensubtitles.org) v2018 via
+    [OPUS](https://opus.nlpl.eu) (P. Lison and J. Tiedemann, 2016),
+    Indonesian lines only: their English lines often don't match, so they are
+    machine-translated instead. No licence is stated.
+  - Machine translations: Opus-MT by Helsinki-NLP (model Apache-2.0, its
+    ONNX conversion [Xenova/opus-mt-id-en](https://huggingface.co/Xenova/opus-mt-id-en)),
+    run with [transformers.js](https://github.com/huggingface/transformers.js)
 
 ## License
 

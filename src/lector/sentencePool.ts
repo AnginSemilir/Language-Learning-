@@ -3,19 +3,21 @@
 //
 // Built by scripts/build-sentence-pool.ts (sources and licences there and in
 // scripts/extract-sentences.py): up to 20 sentences per word, easiest first,
-// translated ones first.
+// those with a human translation first, then those with a machine translation
+// (Opus-MT) that passed a meaning check, then untranslated ones.
 // Words are grouped the way the reader groups them (dibeli and rumahnya count
 // for beli and rumah), and the pool is split into small files so the app only
 // downloads the ones holding your card words. The service worker keeps
 // downloaded files for offline use (see vite.config.ts).
 
 /** Bump when the pool is rebuilt, so cached files from the old build are not reused. */
-export const POOL_VERSION = 2;
+export const POOL_VERSION = 3;
 export const SHARD_COUNT = 512;
 
 /**
- * Translated: t Tatoeba, w Wiktionary, k TALPCo, m MASSIVE, a ALT, g Global
- * Voices, c TICO-19, o OpenSubtitles. Indonesian only: n Leipzig news,
+ * With human translations: t Tatoeba, w Wiktionary, k TALPCo, m MASSIVE,
+ * a ALT, g Global Voices, c TICO-19 (some Tatoeba, Wiktionary and TALPCo
+ * sentences have none). Indonesian only: o OpenSubtitles, n Leipzig news,
  * p Leipzig Wikipedia.
  */
 export type PoolSource =
@@ -29,8 +31,13 @@ export type PoolSource =
   | "o"
   | "n"
   | "p";
-/** [Indonesian sentence, English translation or "", source]. */
-export type PoolSentence = [string, string, PoolSource];
+/**
+ * [Indonesian sentence, English translation or "", source, 1 when the
+ * translation is a machine translation].
+ */
+export type PoolSentence =
+  | [string, string, PoolSource]
+  | [string, string, PoolSource, 1];
 export type PoolShard = Record<string, PoolSentence[]>;
 
 export const POOL_SOURCE_LABEL: Record<PoolSource, string> = {

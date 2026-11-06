@@ -55,7 +55,13 @@ export default function AboutSettingsView() {
           examples (CC BY-SA); TALPCo, the TUFS Asian Language Parallel Corpus
           (CC BY 4.0); Amazon MASSIVE (CC BY 4.0); the Asian Language Treebank
           by NICT (CC BY 4.0); Global Voices via OPUS (CC BY); TICO-19 (CC0);
-          and the Leipzig Corpora Collection (wortschatz.uni-leipzig.de, CC BY).
+          the Leipzig Corpora Collection (wortschatz.uni-leipzig.de, CC BY); and
+          OpenSubtitles (opensubtitles.org) via OPUS, Indonesian lines only.
+        </li>
+        <li>
+          Machine translations of the sentences that have no human translation:
+          Opus-MT by Helsinki-NLP (Apache-2.0), kept only when they contain the
+          word's dictionary meaning.
         </li>
       </ul>
       <p>

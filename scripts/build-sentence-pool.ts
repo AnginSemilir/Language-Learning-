@@ -2,14 +2,26 @@
 // every Indonesian dictionary word and phrase, for gap-fill practice on the
 // user's own flashcards (see src/lector/sentencePool.ts).
 //
-// Input: the TSV written by scripts/extract-sentences.py. Run with
-// `pnpm build:sentences <pool-input.tsv> [output dir]`.
+// Input: the TSV written by scripts/extract-sentences.py. Sentences without a
+// human translation can get a machine translation, in three steps:
+//
+//   pnpm build:sentences pool-input.tsv --mt-todo mt-todo.txt [--mt mt.tsv]
+//   node scripts/translate/translate-sentences.mjs mt-todo.txt mt.tsv
+//   pnpm build:sentences pool-input.tsv --mt mt.tsv [output dir]
+//
+// The first lists the sentences the pool would show with a machine
+// translation, assuming each will pass the meaning check; the second
+// translates them (adding to mt.tsv); the third builds the pool. Some
+// translations fail the check, so running the first two again with --mt
+// lists and translates the next sentences in line for those slots. Without
+// --mt, sentences without a human translation are shown untranslated.
 //
 // Words are grouped with the app's own lemmatizer, so a sentence with dibeli
 // or rumahnya counts for beli or rumah. For each word, sentences are ranked:
-// translated ones first (learner sentences from Tatoeba, TALPCo and
-// Wiktionary ahead of the parallel corpora), then the Leipzig corpora; within
-// each, fewer rare words and shorter is better.
+// human translations first (learner sentences from Tatoeba, TALPCo and
+// Wiktionary ahead of the parallel corpora), then machine translations that
+// pass the meaning check for that word (src/lector/meaningCheck.ts), then
+// untranslated ones; within each, fewer rare words and shorter is better.
 
 import {
   createReadStream,
@@ -22,6 +34,7 @@ import { createInterface } from "node:readline";
 import { id as pack } from "../src/lector/languages/id/manifest";
 import { tokenizeWords } from "../src/lector/languages/tokenizer";
 import { createLemmatizer, fold } from "../src/lector/lemma";
+import { hasMeaning } from "../src/lector/meaningCheck";
 import {
   POOL_VERSION,
   type PoolSentence,
@@ -42,11 +55,42 @@ const PER_EXTRA_WORD = 6;
 const EXTRA_MIN_USES = 10;
 /** Words past this frequency rank make a sentence harder. */
 const COMMON_RANK = 3000;
+/**
+ * Shorter sentences aren't machine-translated: they are often fragments, and
+ * the model guesses at them.
+ */
+const MT_MIN_WORDS = 5;
 
-const [input, outRoot = "public/data/sentences"] = process.argv.slice(2);
+const args = process.argv.slice(2);
+function option(name: string) {
+  const at = args.indexOf(name);
+  if (at < 0) return undefined;
+  return args.splice(at, 2)[1];
+}
+const mtPath = option("--mt");
+const todoPath = option("--mt-todo");
+const [input, outRoot = "public/data/sentences"] = args;
 if (!input) {
-  console.error("Usage: pnpm build:sentences <pool-input.tsv>");
+  console.error(
+    "Usage: pnpm build:sentences <pool-input.tsv> [--mt-todo <out.txt> | --mt <mt.tsv>] [output dir]"
+  );
   process.exit(1);
+}
+
+function lines(path: string) {
+  return createInterface({
+    input: createReadStream(path),
+    crlfDelay: Number.POSITIVE_INFINITY,
+  });
+}
+
+/** Machine translations: Indonesian sentence → English. */
+const machine = new Map<string, string>();
+if (mtPath) {
+  for await (const line of lines(mtPath)) {
+    const [text, english] = line.split("\t");
+    if (english) machine.set(text, english);
+  }
 }
 
 const data = JSON.parse(readFileSync("public/data/dictionary-id.json", "utf8"));
@@ -121,11 +165,7 @@ interface Parsed {
 
 async function* sentences(): AsyncGenerator<Parsed> {
   const seen = new Set<number>();
-  const lines = createInterface({
-    input: createReadStream(input),
-    crlfDelay: Number.POSITIVE_INFINITY,
-  });
-  for await (const line of lines) {
+  for await (const line of lines(input)) {
     const [source, text, translation = ""] = line.split("\t") as [
       PoolSource,
       string,
@@ -166,7 +206,7 @@ upper.clear();
 // Pass 2: keep the best sentences per word.
 type Candidate = [score: number, sentence: PoolSentence];
 const best = new Map<string, Candidate[]>();
-function offer(key: string, score: number, s: Parsed) {
+function offer(key: string, score: number, sentence: PoolSentence) {
   const cap = common.has(key)
     ? PER_COMMON_WORD
     : dictWords.has(key) || key.includes(" ")
@@ -175,19 +215,24 @@ function offer(key: string, score: number, s: Parsed) {
   let list = best.get(key);
   if (!list) best.set(key, (list = []));
   if (list.length >= cap && score >= list[list.length - 1][0]) return;
-  list.push([score, [s.text, s.translation, s.source]]);
+  list.push([score, sentence]);
   list.sort((a, b) => a[0] - b[0]);
   if (list.length > cap) list.pop();
 }
 
+/** A word's dictionary senses, for the meaning check. */
+function glosses(key: string): string[] {
+  return ((data.e[key] ?? []) as [string, string][]).map(([, g]) => g);
+}
+
 /**
  * Priority tiers, best first; within a tier, shorter sentences with fewer
- * rare words win. 0: learner sentences with a translation (Tatoeba, TALPCo,
- * Wiktionary, MASSIVE). 1: translated news and health texts (ALT, Global
- * Voices, TICO-19). 2: OpenSubtitles, whose translations are loose. 3: no
- * translation (Leipzig, untranslated Tatoeba).
+ * rare words win. 0: learner sentences with a human translation (Tatoeba,
+ * TALPCo, Wiktionary, MASSIVE). 1: translated news and health texts (ALT,
+ * Global Voices, TICO-19). 2: a machine translation that passed the meaning
+ * check. 3: no translation.
  */
-const TIER: Record<PoolSource, number> = {
+const HUMAN_TIER: Partial<Record<PoolSource, number>> = {
   t: 0,
   k: 0,
   w: 0,
@@ -195,11 +240,11 @@ const TIER: Record<PoolSource, number> = {
   a: 1,
   g: 1,
   c: 1,
-  o: 2,
-  n: 3,
-  p: 3,
 };
+const MACHINE = 2;
 const UNTRANSLATED = 3;
+/** Corpora not written for learners come after the others in their tier. */
+const CORPUS = new Set<PoolSource>(["o", "n", "p"]);
 let total = 0;
 for await (const s of sentences()) {
   total++;
@@ -211,12 +256,32 @@ for await (const s of sentences()) {
       (rank.get(f) ?? Number.POSITIVE_INFINITY) > COMMON_RANK
   );
   const rareCount = rare.filter(Boolean).length;
-  const tier = s.translation ? TIER[s.source] : UNTRANSLATED;
-  const base =
-    tier * 1000 +
-    (s.source === "n" || s.source === "p" ? 20 : 0) +
-    s.folded.length;
-  const scoreFor = (targetRare: number) => base + (rareCount - targetRare) * 8;
+  const base = (CORPUS.has(s.source) ? 20 : 0) + s.folded.length;
+  const translatable = !s.translation && s.folded.length >= MT_MIN_WORDS;
+  // A translation far longer or shorter than the sentence has usually gone
+  // wrong (repeating itself, or leaving half out).
+  const english = machine.get(s.text);
+  const ratio = (english?.length ?? 0) / s.text.length;
+  const plausible = ratio >= 0.5 && ratio <= 2;
+
+  function offerFor(key: string, targetRare: number) {
+    const score = base + (rareCount - targetRare) * 8;
+    if (s.translation) {
+      const tier = HUMAN_TIER[s.source] ?? 1;
+      offer(key, tier * 1000 + score, [s.text, s.translation, s.source]);
+    } else if (
+      translatable &&
+      // Listing what to translate: assume a new translation will pass.
+      (english === undefined
+        ? todoPath
+        : plausible && hasMeaning(english, glosses(key)))
+    ) {
+      offer(key, MACHINE * 1000 + score, [s.text, english ?? "", s.source, 1]);
+    } else if (s.source !== "o") {
+      // Subtitle lines are only shown with a translation that passed.
+      offer(key, UNTRANSLATED * 1000 + score, [s.text, "", s.source]);
+    }
+  }
 
   const occurrences = new Map<string, number[]>();
   lemmas.forEach((l, i) => {
@@ -229,7 +294,7 @@ for await (const s of sentences()) {
   for (const [l, at] of occurrences) {
     // One clear gap per sentence, and not a name that happens to be a word.
     if (at.length !== 1 || s.capital[at[0]]) continue;
-    offer(l, scoreFor(rare[at[0]] ? 1 : 0), s);
+    offerFor(l, rare[at[0]] ? 1 : 0);
   }
 
   const phraseHits = new Map<string, number>();
@@ -241,7 +306,28 @@ for await (const s of sentences()) {
       }
     }
   });
-  for (const [key, n] of phraseHits) if (n === 1) offer(key, scoreFor(0), s);
+  for (const [key, n] of phraseHits) if (n === 1) offerFor(key, 0);
+}
+
+if (todoPath) {
+  // The sentences still to translate, the ones near the top of a word's list
+  // first, so a translation run that is cut short still covers the most.
+  const order = new Map<string, number>();
+  const bySource = new Map<string, number>();
+  for (const list of best.values()) {
+    list.forEach(([, s], i) => {
+      if (!s[3] || s[1]) return;
+      bySource.set(s[2], (bySource.get(s[2]) ?? 0) + 1);
+      if (i < (order.get(s[0]) ?? Number.POSITIVE_INFINITY)) order.set(s[0], i);
+    });
+  }
+  const todo = [...order].sort((a, b) => a[1] - b[1]).map(([text]) => text);
+  writeFileSync(todoPath, todo.length ? `${todo.join("\n")}\n` : "");
+  console.log(`${total} usable sentences`);
+  console.log(
+    `${todo.length} sentences to translate (uses by source: ${[...bySource].map(([s, n]) => `${s} ${n}`).join(", ")})`
+  );
+  process.exit(0);
 }
 
 // Write the shards.
@@ -269,8 +355,12 @@ const translated = (keys: Iterable<string>, min: number) =>
     (k) => (best.get(k) ?? []).filter(([, s]) => s[1]).length >= min
   ).length;
 const bySource = new Map<string, number>();
+let machineKept = 0;
 for (const list of best.values()) {
-  for (const [, s] of list) bySource.set(s[2], (bySource.get(s[2]) ?? 0) + 1);
+  for (const [, s] of list) {
+    bySource.set(s[2], (bySource.get(s[2]) ?? 0) + 1);
+    if (s[3]) machineKept++;
+  }
 }
 const phraseKeys = [...phrases.values()].flat().map((p) => p.join(" "));
 console.log(`${total} usable sentences`);
@@ -291,6 +381,9 @@ console.log(
 );
 console.log(
   `sentences kept by source: ${[...bySource].map(([s, n]) => `${s} ${n}`).join(", ")}`
+);
+console.log(
+  `machine translations: ${machine.size} available, ${machineKept} kept`
 );
 console.log(`other words (not in the dictionary): ${extraWords.size}`);
 console.log(
