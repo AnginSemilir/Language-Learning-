@@ -2,7 +2,7 @@
 // AGPL-3.0-only). Lector's functions call its Hono API; these keep the same
 // names and shapes but read and write the browser's IndexedDB through Dexie.
 
-import { db } from "@/logic/db";
+import { db, getDeviceId } from "@/logic/db";
 import { v4 as uuidv4 } from "uuid";
 import { id as pack } from "./languages/id/manifest";
 import { dateStringInTimeZone } from "./lib/dates";
@@ -47,16 +47,26 @@ function emptyDay(date: string): DailyStats {
   };
 }
 
+/**
+ * Adds to today's count for this device. Each device keeps its own row per
+ * day (`date|device`) so syncing never overwrites another device's counts.
+ */
 export async function incrementDailyStat(
   field: CountField,
   by = 1
 ): Promise<boolean> {
   try {
     const date = todayKey();
-    await db.transaction("rw", db.dailyStats, async () => {
-      const row = (await db.dailyStats.get(date)) ?? emptyDay(date);
+    const device = getDeviceId();
+    const id = `${date}|${device}`;
+    await db.transaction("rw", db.activity, async () => {
+      const row = (await db.activity.get(id)) ?? {
+        ...emptyDay(date),
+        id,
+        device,
+      };
       row[field] += by;
-      await db.dailyStats.put(row);
+      await db.activity.put(row);
     });
     return true;
   } catch (e) {
@@ -65,8 +75,21 @@ export async function incrementDailyStat(
   }
 }
 
-export function getAllDailyStats(): Promise<DailyStats[]> {
-  return db.dailyStats.toArray();
+/** One row per day, all devices added together. */
+export async function getAllDailyStats(): Promise<DailyStats[]> {
+  return sumByDate(await db.activity.toArray());
+}
+
+export function sumByDate(rows: DailyStats[]): DailyStats[] {
+  const byDate = new Map<string, DailyStats>();
+  for (const row of rows) {
+    const day = byDate.get(row.date) ?? emptyDay(row.date);
+    for (const field of Object.keys(day) as (keyof DailyStats)[]) {
+      if (field !== "date") day[field] += row[field] ?? 0;
+    }
+    byDate.set(row.date, day);
+  }
+  return [...byDate.values()];
 }
 
 // ── Vocabulary ─────────────────────────────────────────────────────────────
@@ -76,12 +99,12 @@ export function vocabKey(word: string) {
 }
 
 export async function getKnownWordsMap(): Promise<Map<string, WordState>> {
-  const rows = await db.vocab.toArray();
+  const rows = await db.words.toArray();
   return new Map(rows.map((r) => [r.text, r.state]));
 }
 
 export function getVocabByText(text: string) {
-  return db.vocab.where("text").equals(vocabKey(text)).first();
+  return db.words.get(vocabKey(text));
 }
 
 export async function saveVocab(
@@ -90,22 +113,22 @@ export async function saveVocab(
   }
 ): Promise<VocabEntry> {
   const text = vocabKey(entry.text);
-  const existing = await db.vocab.where("text").equals(text).first();
+  const existing = await db.words.get(text);
   const now = new Date();
   const row: VocabEntry = {
     ...existing,
     ...entry,
-    id: existing?.id ?? uuidv4(),
+    id: text,
     text,
     createdAt: existing?.createdAt ?? now,
     stateUpdatedAt: now,
   };
-  await db.vocab.put(row);
+  await db.words.put(row);
   return row;
 }
 
 export async function updateVocabState(id: string, state: WordState) {
-  await db.vocab.update(id, { state, stateUpdatedAt: new Date() });
+  await db.words.update(id, { state, stateUpdatedAt: new Date() });
 }
 
 /** Set a word's state by its text, creating a bare entry if needed. */
@@ -153,14 +176,12 @@ export async function setHeadwordState(
   headword: string,
   patch: HeadwordPatch
 ): Promise<VocabEntry> {
-  return db.transaction("rw", db.vocab, async () => {
+  return db.transaction("rw", db.words, async () => {
     const key = vocabKey(headword);
-    const existing = await db.vocab.where("text").equals(key).first();
+    const existing = await db.words.get(key);
     const formKey = patch.form ? vocabKey(patch.form) : undefined;
     const legacy =
-      formKey && formKey !== key
-        ? await db.vocab.where("text").equals(formKey).first()
-        : undefined;
+      formKey && formKey !== key ? await db.words.get(formKey) : undefined;
     const now = new Date();
     const forms = new Set([
       ...(existing?.forms ?? []),
@@ -174,7 +195,7 @@ export async function setHeadwordState(
       reviewCount: 0,
       ...legacy,
       ...existing,
-      id: existing?.id ?? legacy?.id ?? uuidv4(),
+      id: key,
       text: key,
       state: patch.state,
       stateUpdatedAt: now,
@@ -185,8 +206,8 @@ export async function setHeadwordState(
       ...(patch.lessonId ? { lessonId: patch.lessonId } : {}),
       ...(patch.noteId ? { noteId: patch.noteId } : {}),
     };
-    if (legacy && legacy.id !== row.id) await db.vocab.delete(legacy.id);
-    await db.vocab.put(row);
+    if (legacy && legacy.id !== row.id) await db.words.delete(legacy.id);
+    await db.words.put(row);
     return row;
   });
 }
@@ -198,21 +219,21 @@ export async function markHeadwordsKnown(
 ) {
   if (items.length === 0) return;
   const now = new Date();
-  await db.transaction("rw", db.vocab, async () => {
+  await db.transaction("rw", db.words, async () => {
     for (const item of items) {
       const key = vocabKey(item.headword);
-      const existing = await db.vocab.where("text").equals(key).first();
+      const existing = await db.words.get(key);
       const forms = new Set([
         ...(existing?.forms ?? []),
         ...item.forms.map(vocabKey).filter((f) => f !== key),
       ]);
-      await db.vocab.put({
+      await db.words.put({
         type: "word",
         sentence: "",
         translation: "",
         reviewCount: 0,
         ...existing,
-        id: existing?.id ?? uuidv4(),
+        id: key,
         text: key,
         state: "known",
         stateUpdatedAt: now,
@@ -236,13 +257,13 @@ export async function setWordLink(
   root?: string
 ) {
   const key = vocabKey(form);
-  await db.transaction("rw", db.wordLinks, db.vocab, async () => {
+  await db.transaction("rw", db.wordLinks, db.words, async () => {
     if (mode === null) await db.wordLinks.delete(key);
     else await db.wordLinks.put({ form: key, mode });
     if (mode === "separate" && root) {
-      const entry = await db.vocab.where("text").equals(vocabKey(root)).first();
+      const entry = await db.words.get(vocabKey(root));
       if (entry?.forms?.includes(key)) {
-        await db.vocab.update(entry.id, {
+        await db.words.update(entry.id, {
           forms: entry.forms.filter((f) => f !== key),
         });
       }
@@ -251,7 +272,7 @@ export async function setWordLink(
 }
 
 export function deleteVocab(id: string) {
-  return db.vocab.delete(id);
+  return db.words.delete(id);
 }
 
 // ── Lessons ────────────────────────────────────────────────────────────────

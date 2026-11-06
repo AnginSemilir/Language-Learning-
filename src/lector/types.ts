@@ -21,8 +21,9 @@ export type ClozeCollection =
   | "random";
 
 export interface VocabEntry {
+  /** Same as `text`: the folded word is the key, so devices never clash. */
   id: string;
-  /** Folded (lower-cased, normalised) word or phrase — unique key. */
+  /** Folded (lower-cased, normalised) word or phrase. */
   text: string;
   type: VocabType;
   sentence: string;
@@ -70,6 +71,13 @@ export interface DailyStats {
   dictionaryLookups: number;
   /** Lector's name for flashcard reviews; here, Skola card reviews. */
   ankiReviews: number;
+}
+
+/** One device's activity on one day; statistics add up all devices' rows. */
+export interface ActivityRow extends DailyStats {
+  /** `${date}|${device}` */
+  id: string;
+  device: string;
 }
 
 export interface Lesson {

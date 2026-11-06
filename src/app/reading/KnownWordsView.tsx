@@ -33,7 +33,7 @@ export default function KnownWordsView() {
     }
   });
   const known = useLiveQuery(
-    () => db.vocab.where("state").equals("known").toArray(),
+    () => db.words.where("state").equals("known").toArray(),
     []
   );
 
