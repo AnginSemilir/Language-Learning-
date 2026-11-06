@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/Checkbox";
 import { NumberInput } from "@/components/ui/NumberInput";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Switch } from "@/components/ui/Switch";
 import { TextInput } from "@/components/ui/TextInput";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
@@ -15,7 +16,9 @@ interface SettingsInputProps {
   label: string | React.ReactNode;
   description?: JSX.Element | string;
   settingsKey: keyof SettingsValues;
-  inputType: "text" | "number" | "switch" | "checkbox";
+  inputType: "text" | "number" | "switch" | "checkbox" | "select";
+  /** The choices for inputType "select". */
+  options?: { value: string; label: string }[];
 }
 
 export default function SettingsInput({
@@ -23,6 +26,7 @@ export default function SettingsInput({
   description,
   inputType,
   settingsKey,
+  options = [],
 }: SettingsInputProps) {
   const [setting] = useSetting(settingsKey);
 
@@ -85,6 +89,23 @@ export default function SettingsInput({
               setTouched(true);
               setValue(event.currentTarget.checked);
             }}
+          />
+        </div>
+      );
+    case "select":
+      return (
+        <div className={`${BASE} ${BASE}--select`}>
+          <div className={`${BASE}__label`}>{label}</div>
+          {description && (
+            <div className={`${BASE}__description`}>{description}</div>
+          )}
+          <SegmentedControl
+            value={String(value)}
+            onChange={(v) => {
+              setTouched(true);
+              setValue(v as SettingsValues[typeof settingsKey]);
+            }}
+            data={options}
           />
         </div>
       );

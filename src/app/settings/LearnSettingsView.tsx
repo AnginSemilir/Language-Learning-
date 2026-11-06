@@ -40,6 +40,63 @@ export default function LearnSettingsView() {
         settingsKey="#learn_enableHardAndEasy"
         inputType="checkbox"
       />
+      <Section title="Daily limits">
+        <SettingsInput
+          label="New cards per day"
+          description="How many cards you see for the first time each day (Anki's default is 20). Reviews and learning cards don't count towards it."
+          settingsKey="#learn_newCardsPerDay"
+          inputType="number"
+        />
+        <SettingsInput
+          label="Maximum reviews per day"
+          description="The most review cards shown in a day (Anki's default is 200). Extra ones wait until tomorrow."
+          settingsKey="#learn_maxReviewsPerDay"
+          inputType="number"
+        />
+        <SettingsInput
+          label="Next day starts at (hour)"
+          description="When the daily limits reset, 0–23 (Anki's default is 4, so late study still counts as today)."
+          settingsKey="#newDayStartHour"
+          inputType="number"
+        />
+      </Section>
+      <Section title="Order">
+        <SettingsInput
+          label="New card order"
+          description="Which new cards come first."
+          settingsKey="#learn_newCardOrder"
+          inputType="select"
+          options={[
+            { value: "added", label: "Order added" },
+            { value: "random", label: "Random" },
+          ]}
+        />
+        <SettingsInput
+          label="New cards and reviews"
+          description="Show new cards mixed with reviews (Anki's default), after them or before them."
+          settingsKey="#learn_newReviewOrder"
+          inputType="select"
+          options={[
+            { value: "mixed", label: "Mixed" },
+            { value: "after", label: "After reviews" },
+            { value: "before", label: "Before reviews" },
+          ]}
+        />
+      </Section>
+      <Section title="Burying">
+        <SettingsInput
+          label="Bury new siblings"
+          description="When one side of a double-sided card is new today, keep its other side for tomorrow."
+          settingsKey="#learn_buryNewSiblings"
+          inputType="checkbox"
+        />
+        <SettingsInput
+          label="Bury review siblings"
+          description="When one side is reviewed today, keep the other side's review for tomorrow."
+          settingsKey="#learn_buryReviewSiblings"
+          inputType="checkbox"
+        />
+      </Section>
       <Section title={t("settings.learn.scheduler-options")}>
         <SettingsInput
           label={t("settings.learn.requestRetention")}

@@ -5,6 +5,8 @@ export interface DeckStatCache {
   counts: Record<SimplifiedState, number>;
   lastUpdated: Date;
   includesSubdecks: boolean;
+  /** The daily limits the counts were worked out with. */
+  limitsKey?: string;
 }
 
 export interface Deck {

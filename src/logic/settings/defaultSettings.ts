@@ -21,6 +21,13 @@ export const defaultSettings: SettingsValues = {
   "#showLinkOptionInEditor": true,
 
   "#learn_newToReviewRatio": 0.5,
+  // Anki's defaults.
+  "#learn_newCardsPerDay": 20,
+  "#learn_maxReviewsPerDay": 200,
+  "#learn_newCardOrder": "added",
+  "#learn_newReviewOrder": "mixed",
+  "#learn_buryNewSiblings": false,
+  "#learn_buryReviewSiblings": false,
   "#learn_sort": "creationDate",
   "#learn_enableHardAndEasy": true,
   "#newDayStartHour": 4,

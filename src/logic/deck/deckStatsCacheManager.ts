@@ -1,6 +1,10 @@
 import { State } from "fsrs.js";
+import { Card } from "../card/card";
 import { SimplifiedState } from "../card/getSimplifiedStatesOf";
+import { buildDailyQueue } from "../dailyQueue";
 import { db } from "../db";
+import { NoteType } from "../note/note";
+import { getDailyLimits } from "../settings/dailyLimits";
 import getSetting from "../settings/hooks/getSetting";
 import { Deck, DeckStatCache } from "./deck";
 
@@ -32,7 +36,8 @@ async function isCacheValid(
     return false;
   }
 
-  return true;
+  // Changing the daily limits changes the counts.
+  return cache.limitsKey === JSON.stringify(await getDailyLimits());
 }
 
 async function computeStatCounts(
@@ -66,23 +71,18 @@ async function computeStatCounts(
 
   await collectCardIds(deck);
 
-  await db.cards
+  const cards: Card<NoteType>[] = await db.cards
     .where("id")
     .anyOf(Array.from(cardIds))
-    .each((card) => {
-      if (card.model.state === State.New) {
-        counts.new++;
-      } else if (
-        card.model.state === State.Learning ||
-        card.model.state === State.Relearning
-      ) {
-        counts.learning++;
-      } else if (card.model.state === State.Review && card.model.due <= now) {
-        counts.review++;
-      } else {
-        counts.notDue++;
-      }
-    });
+    .toArray();
+  // New and review counts are what today's session offers (Anki's daily limits).
+  const queue = buildDailyQueue(cards, await getDailyLimits(), now);
+  counts.new = queue.newCards.length;
+  counts.learning = queue.learning.length;
+  counts.review = queue.reviews.length;
+  counts.notDue = cards.filter(
+    (card) => card.model.state === State.Review && card.model.due > now
+  ).length;
 
   return counts;
 }
@@ -105,6 +105,7 @@ export async function getOrComputeDeckStats(
       counts,
       lastUpdated: new Date(),
       includesSubdecks: includeSubdecks,
+      limitsKey: JSON.stringify(await getDailyLimits()),
     },
   });
 
@@ -147,6 +148,7 @@ export async function recomputeAllDeckStats(): Promise<void> {
           counts,
           lastUpdated: new Date(),
           includesSubdecks: true,
+          limitsKey: JSON.stringify(await getDailyLimits()),
         },
       });
     })

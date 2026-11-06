@@ -1,7 +1,9 @@
 import { Alert, Badge, Paper } from "@/components/ui";
 import { COLORS } from "@/lib/ColorIdentifier";
 import { useCardsOf } from "@/logic/card/hooks/useCardsOf";
-import { useSimplifiedStatesOf } from "@/logic/card/hooks/useSimplifiedStatesOf";
+import { buildDailyQueue } from "@/logic/dailyQueue";
+import { useDailyLimits } from "@/logic/settings/dailyLimits";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Deck } from "../../logic/deck/deck";
@@ -18,7 +20,18 @@ export default function DeckPreview({ deck }: DeckPreviewProps) {
   const navigate = useNavigate();
   const [t] = useTranslation();
   const [cards] = useCardsOf(deck);
-  const states = useSimplifiedStatesOf(cards);
+  // Today's counts, within the daily limits.
+  const limits = useDailyLimits();
+  const limitsKey = JSON.stringify(limits);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: limitsKey stands for limits.
+  const states = useMemo(() => {
+    const queue = buildDailyQueue(cards ?? [], limits);
+    return {
+      new: queue.newCards.length,
+      learning: queue.learning.length,
+      review: queue.reviews.length,
+    };
+  }, [cards, limitsKey]);
 
   const color = deck.color ?? COLORS[0];
   return deck ? (
