@@ -13,6 +13,7 @@ import FinishedLearningView from "../FinishedLearningView/FinishedLearningView";
 import LearnViewCurrentCardStateIndicator from "../LearnViewCurrentCardStateIndicator/LearnViewCurrentCardStateIndicator";
 import CognitivePromptConnector from "./CognitivePromptConnector";
 import "./LearnView.css";
+import LearnViewDailyProgress from "./LearnViewDailyProgress";
 import LearnViewFooter from "./LearnViewFooter";
 import LearnViewHeader, { stopwatchResult } from "./LearnViewHeader";
 import QuickAddNote from "./QuickAddNote";
@@ -70,6 +71,7 @@ function LearnView() {
 
       <div className={`${BASE}__wrapper`}>
         {useVisualFeedback && <VisualFeedback rating={currentRating} />}
+        <LearnViewDailyProgress deck={deck} />
         <div className={`${BASE}__card-container`}>
           <div className={`${BASE}__card-stack`}>
             <LearnViewCurrentCardStateIndicator

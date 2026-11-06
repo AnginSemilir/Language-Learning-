@@ -37,6 +37,8 @@ export interface DailyQueue {
   newCards: Card<NoteType>[];
   newDoneToday: number;
   reviewsDoneToday: number;
+  /** Every answer given today, as Anki's "studied N cards today" counts them. */
+  answersToday: number;
 }
 
 function time(date: Date | string) {
@@ -62,6 +64,7 @@ export function buildDailyQueue(
 
   let newDoneToday = 0;
   let reviewsDoneToday = 0;
+  let answersToday = 0;
   const studiedToday = new Set<string>();
   for (const card of cards) {
     const history = card.history ?? [];
@@ -71,6 +74,7 @@ export function buildDailyQueue(
     for (const log of history) {
       if (time(log.review) < dayStart) continue;
       studiedToday.add(card.note);
+      answersToday++;
       // As in Anki, a review is an answer to a card that had graduated.
       if (log.state === State.Review) reviewsDoneToday++;
     }
@@ -134,5 +138,12 @@ export function buildDailyQueue(
     newCards.sort((a, b) => reverse(a) - reverse(b));
   }
 
-  return { learning, reviews, newCards, newDoneToday, reviewsDoneToday };
+  return {
+    learning,
+    reviews,
+    newCards,
+    newDoneToday,
+    reviewsDoneToday,
+    answersToday,
+  };
 }
