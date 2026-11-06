@@ -22,6 +22,8 @@ Download into one directory (sources that are missing are skipped):
   curl -o GlobalVoices-en-id.txt.zip https://object.pouta.csc.fi/OPUS-GlobalVoices/v2018q4/moses/en-id.txt.zip
   # TICO-19 (CC0)
   curl -O https://tico-19.github.io/data/tico19-testset.zip
+  # OpenSubtitles v2018 via OPUS (no stated licence; lowest priority)
+  curl -o OpenSubtitles-en-id.txt.zip https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-id.txt.zip
 
 Usage: python3 scripts/extract-sentences.py <download dir> <out.tsv>
 Output columns: source code (see src/lector/sentencePool.ts), Indonesian,
@@ -183,12 +185,16 @@ with open(out_path, "w", encoding="utf-8") as out:
                     if len(cols) >= 4:
                         write(out, "c", cols[3], cols[2])
 
-    # OpenSubtitles (OPUS): not used by default, see README (licence unclear).
-    if os.environ.get("WITH_OPENSUBTITLES") and have("OpenSubtitles-en-id.txt.zip"):
+    # OpenSubtitles (OPUS): film subtitles, loosely translated; the pool
+    # uses them last among translated sentences. Subtitle lines often have a
+    # space before punctuation ("Kami menyelesaikan ini .").
+    if have("OpenSubtitles-en-id.txt.zip"):
+        space_before = re.compile(r"\s+([.,!?;:])")
         with zipfile.ZipFile(path("OpenSubtitles-en-id.txt.zip")) as z:
             with z.open("OpenSubtitles.en-id.id") as fi, z.open("OpenSubtitles.en-id.en") as fe:
                 for i, e in zip(fi, fe):
-                    i, e = i.decode("utf-8").strip(), e.decode("utf-8").strip()
+                    i = space_before.sub(r"\1", i.decode("utf-8").strip())
+                    e = space_before.sub(r"\1", e.decode("utf-8").strip())
                     if i and e and not i.startswith("-") and plausible(i, e):
                         write(out, "o", i, e)
 

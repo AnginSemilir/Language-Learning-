@@ -58,6 +58,8 @@ interface Candidate {
   translation: string;
   source: ClozeSource;
   sourceName: string;
+  /** Picked after the others: OpenSubtitles, whose translations are loose. */
+  lowPriority?: boolean;
 }
 
 function poolSource(source: PoolSource): ClozeSource {
@@ -211,6 +213,7 @@ async function poolCandidates(
         translation,
         source: poolSource(source),
         sourceName: POOL_SOURCE_LABEL[source] ?? "",
+        lowPriority: source === "o",
       });
     }
   } catch {
@@ -286,6 +289,7 @@ export function pickSentence(
     const score =
       (seen >= 0 ? 1000 + seen * 10 : 0) +
       (own ? -100 : unknown * 2 + (candidate.translation ? 0 : 3)) +
+      (candidate.lowPriority ? 6 : 0) +
       index * 0.25;
     if (!best || score < best.score) best = { score, candidate, span };
   }

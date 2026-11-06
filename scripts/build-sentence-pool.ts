@@ -180,18 +180,26 @@ function offer(key: string, score: number, s: Parsed) {
   if (list.length > cap) list.pop();
 }
 
-const BASE: Record<PoolSource, number> = {
+/**
+ * Priority tiers, best first; within a tier, shorter sentences with fewer
+ * rare words win. 0: learner sentences with a translation (Tatoeba, TALPCo,
+ * Wiktionary, MASSIVE). 1: translated news and health texts (ALT, Global
+ * Voices, TICO-19). 2: OpenSubtitles, whose translations are loose. 3: no
+ * translation (Leipzig, untranslated Tatoeba).
+ */
+const TIER: Record<PoolSource, number> = {
   t: 0,
   k: 0,
-  w: 2,
-  m: 5,
-  o: 6,
-  g: 8,
-  a: 8,
-  c: 8,
-  n: 60,
-  p: 60,
+  w: 0,
+  m: 0,
+  a: 1,
+  g: 1,
+  c: 1,
+  o: 2,
+  n: 3,
+  p: 3,
 };
+const UNTRANSLATED = 3;
 let total = 0;
 for await (const s of sentences()) {
   total++;
@@ -203,8 +211,10 @@ for await (const s of sentences()) {
       (rank.get(f) ?? Number.POSITIVE_INFINITY) > COMMON_RANK
   );
   const rareCount = rare.filter(Boolean).length;
+  const tier = s.translation ? TIER[s.source] : UNTRANSLATED;
   const base =
-    (s.translation ? BASE[s.source] : Math.max(BASE[s.source], 40)) +
+    tier * 1000 +
+    (s.source === "n" || s.source === "p" ? 20 : 0) +
     s.folded.length;
   const scoreFor = (targetRare: number) => base + (rareCount - targetRare) * 8;
 

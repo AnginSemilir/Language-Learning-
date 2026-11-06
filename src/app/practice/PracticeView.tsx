@@ -528,8 +528,9 @@ export default function PracticeView() {
         <Text size="xs" className="practice-view__credit">
           Sentences from Tatoeba (CC BY 2.0 FR), Wiktionary (CC BY-SA), TALPCo,
           Amazon MASSIVE, the Asian Language Treebank (CC BY 4.0), Global Voices
-          (CC BY), TICO-19 (CC0) and the Leipzig Corpora Collection (CC BY),
-          plus your own cards and reading. Details under Settings → About.
+          (CC BY), TICO-19 (CC0), OpenSubtitles and the Leipzig Corpora
+          Collection (CC BY), plus your own cards and reading. Details under
+          Settings → About.
         </Text>
       </div>
     </>

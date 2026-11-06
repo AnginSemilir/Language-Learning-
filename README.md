@@ -27,6 +27,10 @@ talked to its server were rewritten to use the browser database
   deck menu (Import Cards → From CSV). Extra columns are ignored, the hint is
   shown under the front, and re-importing skips cards already in the deck.
   Cards can be double-sided (both directions) or one-way.
+- **Reviewing on a computer.** Space or Enter shows the answer; the number
+  keys rate the card in the order of the buttons (1 Again, 2 Hard, 3 Good,
+  4 Easy; with Hard and Easy turned off, 1 Again and 2 Good). The keys are
+  shown on the buttons when you use a mouse.
 - **Read.** 20 graded starter stories, or add your own: paste text, or import a
   `.txt`/`.md` file, subtitles (`.srt`/`.vtt`) or an EPUB book (one lesson per
   chapter). Lessons are split into pages you swipe through. Tap a word to hear
@@ -119,7 +123,10 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   29,000 Indonesian words and phrases (20 for the 5,000 most frequent
   words), split into 512 files by word. Built with
   `scripts/extract-sentences.py` (download commands in its header) and
-  `pnpm build:sentences <tsv>`. Translated sentences come first. As a
+  `pnpm build:sentences <tsv>`. Translated sentences come first, in this
+  order: learner sentences (Tatoeba, TALPCo, Wiktionary, MASSIVE), then
+  news and health texts (ALT, Global Voices, TICO-19), then OpenSubtitles;
+  sentences without a translation come last. As a
   compilation the files are CC BY-SA 4.0; each sentence keeps its source's
   licence:
   - [Tatoeba](https://tatoeba.org) (CC BY 2.0 FR)
@@ -133,6 +140,10 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   - [Global Voices](https://globalvoices.org) via [OPUS](https://opus.nlpl.eu)
     (CC BY)
   - [TICO-19](https://tico-19.github.io) (CC0)
+  - [OpenSubtitles](https://www.opensubtitles.org) v2018 via
+    [OPUS](https://opus.nlpl.eu/OpenSubtitles/en&id/v2018/OpenSubtitles)
+    (P. Lison and J. Tiedemann, 2016; no licence stated). Film subtitles with
+    loose translations, so they come last among translated sentences.
   - [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de), news 2023
     and Wikipedia 2021 (CC BY), Indonesian only
 
