@@ -4,33 +4,16 @@
 // The plant sways from its base and its leaves rustle (GrowthIcon.css); a
 // new stage pops in. Still for people who ask for reduced motion.
 
-import { MATURE_DAYS } from "@/lector/flashcards";
-import { Card as Model, State } from "fsrs.js";
+import {
+  GRAND_OAK_DAYS,
+  GROWTH_STAGE_NAME,
+  type GrowthStage,
+  growthStage,
+} from "@/logic/growth";
 import type { ReactElement } from "react";
 import "./GrowthIcon.css";
 
-export type GrowthStage = 0 | 1 | 2 | 3 | 4;
-
-export const GROWTH_STAGE_NAME: Record<GrowthStage, string> = {
-  0: "Seed",
-  1: "Sapling",
-  2: "Young oak",
-  3: "Oak",
-  4: "Grand oak",
-};
-
-/** From this many days between reviews a tree is a grand oak. */
-export const GRAND_OAK_DAYS = 90;
-
-export function growthStage(
-  model: Pick<Model, "state" | "scheduled_days">
-): GrowthStage {
-  if (model.state === State.New) return 0;
-  if (model.state !== State.Review) return 1;
-  if (model.scheduled_days < MATURE_DAYS) return 2;
-  if (model.scheduled_days < GRAND_OAK_DAYS) return 3;
-  return 4;
-}
+export { GROWTH_STAGE_NAME, GRAND_OAK_DAYS, growthStage, type GrowthStage };
 
 const TRUNK = "#8a5a2b";
 const LEAF_LIGHT = "#7cc35a";
