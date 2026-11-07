@@ -6,7 +6,7 @@
   background: transparent;
   cursor: pointer;
   padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-md);
   font-weight: 500;
   font-family: var(--font-sans);
@@ -65,13 +65,20 @@
 
 .button--primary {
   background-color: var(--color-primary-600);
+  background-image: linear-gradient(
+    180deg,
+    var(--color-primary-500),
+    var(--color-primary-600)
+  );
   border-color: var(--color-primary-600);
   color: white;
+  box-shadow:
+    0 1px 2px rgba(21, 124, 98, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .button--primary:hover {
-  background-color: var(--theme-primary-500);
-  border-color: var(--theme-primary-500);
+  filter: brightness(1.06);
 }
 
 .button--subtle {

@@ -30,25 +30,35 @@ function applyDensityFromPreference(
   }
 }
 
-const storedPreference = localStorage.getItem("settings-densityPreference");
-if (storedPreference && typeof window !== "undefined") {
+const STORAGE_KEY = "settings-densityPreference";
+
+/** The preference saved on this device, read safely (storage may be blocked). */
+function storedPreference(): "relaxed" | "compact" | "auto" {
   try {
-    const parsed = JSON.parse(storedPreference);
-    if (parsed && typeof parsed === "string") {
-      applyDensityFromPreference(parsed as "relaxed" | "compact" | "auto");
-    }
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+    return parsed === "relaxed" || parsed === "compact" ? parsed : "auto";
   } catch {
-    applyDensityFromPreference("auto");
+    return "auto";
   }
-} else if (typeof window !== "undefined") {
-  applyDensityFromPreference("auto");
+}
+
+// Applied at once on start-up, so the layout doesn't jump once settings load.
+if (typeof window !== "undefined") {
+  applyDensityFromPreference(storedPreference());
 }
 
 export function useDensity() {
-  const [densityPreference] = useSetting("#densityPreference");
+  const [densityPreference, isReady] = useSetting("#densityPreference");
 
   useEffect(() => {
     applyDensityFromPreference(densityPreference);
+    if (isReady) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(densityPreference));
+      } catch {
+        // Only used to avoid a jump on start-up.
+      }
+    }
 
     if (densityPreference === "auto") {
       const handleResize = () => applyDensityFromPreference(densityPreference);
@@ -56,5 +66,5 @@ export function useDensity() {
 
       return () => window.removeEventListener("resize", handleResize);
     }
-  }, [densityPreference]);
+  }, [densityPreference, isReady]);
 }

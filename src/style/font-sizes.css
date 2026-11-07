@@ -7,6 +7,8 @@
   --font-size-base-2xl: 1.75rem;
   --font-size-base-3xl: 2.5rem;
   --font-size-base-4xl: 4rem;
+  /* --font-size-5xl below used this, which wasn't defined. */
+  --font-size-base-5xl: 5rem;
 
   --font-size-xs: var(--font-size-base-xs);
   --font-size-sm: var(--font-size-base-sm);

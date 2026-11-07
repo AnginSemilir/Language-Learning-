@@ -1,4 +1,5 @@
 import ModalProps from "@/components/ModalProps";
+import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { Deck } from "@/logic/deck/deck";
@@ -33,6 +34,13 @@ export interface ImportFromSourceProps {
 }
 
 export type ImportStatus = "passive" | "importing" | "success" | "error";
+
+const STATUS_TEXT: Record<ImportStatus, string> = {
+  passive: "",
+  importing: "Importing…",
+  success: "Imported.",
+  error: "The import didn't work. Check the file and try again.",
+};
 
 export default function ImportModal({
   opened,
@@ -120,6 +128,7 @@ export default function ImportModal({
               deck={deck}
               importStatus={importStatus}
               setImportStatus={setImportStatus}
+              onResult={setResult}
             />
           </Tabs.Panel>
         </Tabs>
@@ -128,7 +137,15 @@ export default function ImportModal({
         <div className={`${BASE_URL}__status`}>
           {importStatus === "success" && result
             ? `Added ${result.added} notes${result.skipped ? `, skipped ${result.skipped} already in this deck` : ""}.`
-            : importStatus}
+            : STATUS_TEXT[importStatus]}
+          {importStatus === "error" && (
+            <Button
+              variant="default"
+              onClick={() => setImportStatus("passive")}
+            >
+              Try again
+            </Button>
+          )}
         </div>
       )}
     </Modal>

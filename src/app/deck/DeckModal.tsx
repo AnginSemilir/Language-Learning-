@@ -90,7 +90,8 @@ function DeckModal({
     }
   }
 
-  useHotkeys([["mod+Enter", () => handleSubmit()]]);
+  // Only while the dialog is open: it stays mounted on the page when closed.
+  useHotkeys(opened ? [["mod+Enter", () => handleSubmit()]] : []);
 
   const title =
     mode === "create"

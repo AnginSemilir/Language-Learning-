@@ -55,4 +55,11 @@ export interface SettingsValues {
   "#dict_linkGoogle": boolean;
   "#dict_linkWiktionary": boolean;
   "#dict_linkGlosbe": boolean;
+
+  // Word games (Games): best scores (synced with the rest) and sound.
+  "#games_bestMatch": number;
+  "#games_bestRain": number;
+  "#games_sound": boolean;
+  /** Which words the games use: the ones being learned now, or all. */
+  "#games_words": "learning" | "all";
 }

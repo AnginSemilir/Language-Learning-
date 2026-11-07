@@ -1,0 +1,343 @@
+.island {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.island path:not([fill]) {
+  fill: none;
+}
+
+/* The land takes the light of the hour; lamps and windows keep theirs. */
+.island--dusk .island__land {
+  filter: brightness(0.9) saturate(0.95);
+}
+
+.island--night .island__land {
+  filter: brightness(0.66) saturate(0.8);
+}
+
+.island__lights {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.island__lights .island__window,
+.island__lights .island__lamp,
+.island__lights .island__beam {
+  visibility: visible;
+}
+
+/* Windows: glass by day, lamplight at dusk and at night. */
+.island__window {
+  fill: #a9dcf2;
+}
+
+.island--dusk .island__window,
+.island--night .island__window {
+  fill: #ffd35a;
+}
+
+.island__lamp {
+  fill: #fff2a8;
+}
+
+.island--day .island__lamp,
+.island--dawn .island__lamp {
+  fill: #ffe6a0;
+  opacity: 0.6;
+}
+
+/* Tappable buildings. */
+.island__spot {
+  cursor: pointer;
+  outline: none;
+  transition: filter var(--transition-duration-normal) ease;
+}
+
+.island__spot:hover,
+.island__spot:focus-visible,
+.island__spot--picked {
+  filter: drop-shadow(0 0 2.5px #ffffff) drop-shadow(0 0 1px #ffffff);
+}
+
+.island__next {
+  opacity: 0.9;
+}
+
+.island__next-mark {
+  font-family: var(--font-display);
+  font-size: 7.5px;
+  font-weight: 700;
+  fill: #b7792f;
+  text-anchor: middle;
+}
+
+/* Things that move. */
+.island__cloud {
+  animation: island-drift 100s linear infinite;
+}
+
+.island__waves {
+  animation: island-waves 7s linear infinite;
+}
+
+.island__foam {
+  stroke-dasharray: 10 6;
+  animation: island-foam 5s linear infinite;
+}
+
+.island__bob {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-bob 3.2s ease-in-out infinite;
+}
+
+.island__float {
+  animation: island-float 9s ease-in-out infinite;
+}
+
+.island__flag {
+  transform-box: fill-box;
+  transform-origin: 0 50%;
+  animation: island-flag 1.4s ease-in-out infinite alternate;
+}
+
+.island__smoke,
+.island__steam,
+.island__wisp {
+  animation: island-rise 4s ease-in infinite;
+}
+
+.island__steam {
+  animation-duration: 2.4s;
+}
+
+.island__flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-flicker 0.9s ease-in-out infinite alternate;
+}
+
+.island__fronds {
+  transform-box: fill-box;
+  transform-origin: 50% 78%;
+  animation: island-sway 5s ease-in-out infinite alternate;
+}
+
+.island__wheel {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: island-spin 48s linear infinite;
+}
+
+.island__falls {
+  animation: island-falls 1.2s linear infinite;
+}
+
+.island__beam {
+  animation: island-beam 3s ease-in-out infinite;
+}
+
+.island__walker {
+  animation: island-walk 16s ease-in-out infinite alternate;
+}
+
+.island__step {
+  animation: island-step 0.45s ease-in-out infinite alternate;
+}
+
+.island__star {
+  animation: island-twinkle 2.6s ease-in-out infinite alternate;
+}
+
+.island__birds {
+  animation: island-fly 26s linear infinite;
+}
+
+.island__fireflies circle {
+  animation: island-twinkle 1.8s ease-in-out infinite alternate;
+}
+
+.island__fireflies circle:nth-child(2n) {
+  animation-delay: 0.9s;
+}
+
+.island__burst {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: island-burst 2.4s ease-out infinite;
+}
+
+/* Sways like the tree icons (GrowthIcon.css), a little less. */
+.island__tree .growth-icon__plant {
+  --sway: 2deg;
+}
+
+@keyframes island-drift {
+  from {
+    transform: translateX(-120px);
+  }
+  to {
+    transform: translateX(460px);
+  }
+}
+
+@keyframes island-waves {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-40px);
+  }
+}
+
+@keyframes island-foam {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes island-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-1.5px) rotate(2deg);
+  }
+}
+
+@keyframes island-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes island-flag {
+  from {
+    transform: skewY(-8deg) scaleX(0.92);
+  }
+  to {
+    transform: skewY(6deg) scaleX(1);
+  }
+}
+
+@keyframes island-rise {
+  0% {
+    transform: translateY(2px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
+@keyframes island-flicker {
+  from {
+    transform: scale(1, 1);
+  }
+  to {
+    transform: scale(0.9, 1.12);
+  }
+}
+
+@keyframes island-sway {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes island-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes island-falls {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@keyframes island-beam {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes island-walk {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(150px);
+  }
+}
+
+@keyframes island-step {
+  to {
+    transform: translateY(-0.8px);
+  }
+}
+
+@keyframes island-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes island-fly {
+  from {
+    transform: translateX(-200px) translateY(10px);
+  }
+  to {
+    transform: translateX(300px) translateY(-10px);
+  }
+}
+
+@keyframes island-burst {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.15);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .island * {
+    animation: none !important;
+  }
+}

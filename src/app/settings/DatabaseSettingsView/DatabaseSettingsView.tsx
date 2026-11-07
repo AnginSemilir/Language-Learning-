@@ -1,4 +1,5 @@
 import DangerousConfirmModal from "@/components/DangerousConfirmModal";
+import { notify } from "@/components/Notification";
 import { Button } from "@/components/ui/Button";
 import {
   IconDatabaseExport,
@@ -7,7 +8,6 @@ import {
 } from "@tabler/icons-react";
 import { exportDB, importInto } from "dexie-export-import";
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { db } from "../../../logic/db";
 import "./DatabaseSettingsView.css";
 import Section from "../Section";
@@ -15,8 +15,15 @@ import StorageSection from "./StorageSection";
 
 const BASE = "database-settings-view";
 
+/** kartu-backup-2026-11-07-1520.json: sortable, and safe on every system. */
+function backupFileName(now: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const day = [now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate())];
+  const time = pad(now.getHours()) + pad(now.getMinutes());
+  return `kartu-backup-${day.join("-")}-${time}.json`;
+}
+
 export default function DatabaseSettingsView() {
-  const navigate = useNavigate();
   const [deleteAllDataModalOpened, setDeleteAllDataModalOpened] =
     useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,12 +35,13 @@ export default function DatabaseSettingsView() {
         <Button
           leftSection={<IconDatabaseExport />}
           onClick={async () => {
-            const now = new Date(Date.now());
             const blob = await exportDB(db);
+            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `skola-export-${now.toLocaleDateString()}-${now.toLocaleTimeString()}.json`;
+            a.href = url;
+            a.download = backupFileName(new Date());
             a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
           }}
         >
           Export All
@@ -48,23 +56,23 @@ export default function DatabaseSettingsView() {
             type="file"
             accept=".json"
             className={`${BASE}__file-input`}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                  if (event.target) {
-                    const blob = new Blob([event.target.result as string], {
-                      type: "application/json",
-                    });
-                    try {
-                      await importInto(db, blob, { overwriteValues: true });
-                    } catch (error) {
-                      console.error(error);
-                    }
-                  }
-                };
-                reader.readAsText(file);
+            onChange={async (e) => {
+              const input = e.currentTarget;
+              const file = input.files?.[0];
+              // Choosing the same file again should import it again.
+              input.value = "";
+              if (!file) return;
+              try {
+                await importInto(db, file, { overwriteValues: true });
+                notify("Imported", `${file.name} was imported.`, "success");
+              } catch (error) {
+                console.error(error);
+                notify(
+                  "Not imported",
+                  `${file.name} couldn't be imported: ${(error as Error).message ?? error}`,
+                  "error",
+                  false
+                );
               }
             }}
           />
@@ -85,9 +93,10 @@ export default function DatabaseSettingsView() {
         </Section>
       </div>
       <DangerousConfirmModal
-        dangerousAction={() => {
-          db.delete();
-          navigate("/home");
+        dangerousAction={async () => {
+          // Wait for the database to be gone before starting afresh.
+          await db.delete();
+          window.location.hash = "#/home";
           window.location.reload();
         }}
         dangerousDependencies={[]}

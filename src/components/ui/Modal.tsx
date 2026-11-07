@@ -39,11 +39,24 @@ function DesktopModal({
   title,
   children,
   showCloseButton = true,
-  exitOnEscape,
+  // Escape closes a dialog unless it says otherwise (the sign-in dialog).
+  exitOnEscape = true,
   fullscreen,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
+
+  // A dialog that goes away while open (leaving the page it was on) must not
+  // leave the page unscrollable.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    return () => {
+      if (dialog?.open) {
+        document.body.style.overflow = "";
+        document.body.style.touchAction = "";
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;

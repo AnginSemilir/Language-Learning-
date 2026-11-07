@@ -112,16 +112,14 @@ export default function PracticeView() {
     refreshCounts();
   }, [refreshCounts]);
 
+  // Every sentence of the round, for wrong answers: the words still to come
+  // run out near the end, and the last question would have one choice.
+  const [roundPool, setRoundPool] = useState<ClozeSentence[]>([]);
   const current = round.current;
   const mc = useMemo(() => {
     if (!current || mode !== "mc") return null;
-    return buildMultipleChoiceOptions(
-      current.sentence.clozeWord,
-      round.queue.length > 3
-        ? round.queue
-        : [...round.queue, ...round.retryQueue]
-    );
-  }, [current, mode, round.queue, round.retryQueue]);
+    return buildMultipleChoiceOptions(current.sentence.clozeWord, roundPool);
+  }, [current, mode, roundPool]);
 
   useEffect(() => {
     if (round.phase === "practicing") inputRef.current?.focus();
@@ -135,6 +133,7 @@ export default function PracticeView() {
     setRoundNote(null);
     try {
       const built = await buildCardRound(which, filter, round.roundSize);
+      setRoundPool(built.sentences);
       round.startRound(built.sentences);
       const notes: string[] = [];
       if (built.skipped.length > 0) {

@@ -8,8 +8,8 @@ import { getAllDailyStats, todayKey } from "@/lector/data-layer";
 import ActivityHeatmap from "@/lector/heatmap/ActivityHeatmap";
 import type { ActivityDay } from "@/lector/heatmap/types";
 import { getKnownWords } from "@/lector/knownWords";
+import { mergeActivity, reviewsByDay } from "@/lector/lib/dailyStats";
 import { activeDateSet, computeStreaks } from "@/lector/lib/streak";
-import type { DailyStats } from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -26,19 +26,12 @@ function useActivity() {
       getAllDailyStats(),
       db.cards.toArray(),
       db.words.toArray(),
-      db.cloze.toArray(),
+      // Gap-fill progress per word; db.cloze is Lector's retired sentence bank.
+      db.clozeWords.toArray(),
       getKnownWords(),
     ]);
-    const reviewsByDay = new Map<string, number>();
-    for (const card of cards) {
-      for (const log of card.history ?? []) {
-        const key = todayKey(new Date(log.review));
-        reviewsByDay.set(key, (reviewsByDay.get(key) ?? 0) + 1);
-      }
-    }
     return {
-      daily,
-      reviewsByDay,
+      days: mergeActivity(daily, reviewsByDay(cards, todayKey)),
       vocab,
       cloze,
       knownCount: knownWords.length,
@@ -63,26 +56,7 @@ function StatsView() {
 
   const derived = useMemo(() => {
     if (!data) return null;
-    const byDate = new Map<string, DailyStats>(
-      data.daily.map((d) => [d.date, { ...d }])
-    );
-    for (const [date, n] of data.reviewsByDay) {
-      const row = byDate.get(date);
-      if (row) row.ankiReviews = n;
-      else
-        byDate.set(date, {
-          date,
-          wordsRead: 0,
-          newWordsSaved: 0,
-          wordsMarkedKnown: 0,
-          minutesRead: 0,
-          clozePracticed: 0,
-          points: 0,
-          dictionaryLookups: 0,
-          ankiReviews: n,
-        });
-    }
-    const rows = [...byDate.values()];
+    const rows = data.days;
     const today = todayKey();
     const streak = computeStreaks(activeDateSet(rows), today);
     const heatmap: ActivityDay[] = rows.map((r) => {
@@ -91,18 +65,23 @@ function StatsView() {
         clozePracticed: r.clozePracticed,
         minutesRead: r.minutesRead,
         ankiReviews: r.ankiReviews,
+        wordsRead: r.wordsRead,
+        gamesPlayed: r.gamesPlayed,
       };
       return {
         date: r.date,
+        // Every 25 words read count as one action.
         count:
           parts.dictionaryLookups +
           parts.clozePracticed +
           parts.minutesRead +
-          parts.ankiReviews,
+          parts.ankiReviews +
+          Math.ceil(parts.wordsRead / 25) +
+          parts.gamesPlayed,
         parts,
       };
     });
-    const todayRow = byDate.get(today);
+    const todayRow = rows.find((r) => r.date === today);
     const known = data.knownCount;
     const learning = data.vocab.filter((v) =>
       v.state.startsWith("level")
@@ -112,7 +91,7 @@ function StatsView() {
       heatmap,
       today,
       todayRow,
-      totalPoints: rows.reduce((s, r) => s + r.points, 0),
+      totalPoints: rows.reduce((s, r) => s + r.points + r.gamePoints, 0),
       known,
       learning,
       clozeMastered: data.cloze.filter((c) => c.masteryLevel === 100).length,
@@ -158,14 +137,17 @@ function StatsView() {
               />
               <Stat
                 label="points today"
-                value={derived.todayRow?.points ?? 0}
+                value={
+                  (derived.todayRow?.points ?? 0) +
+                  (derived.todayRow?.gamePoints ?? 0)
+                }
               />
               <Stat label="points in total" value={derived.totalPoints} />
               <Stat label="words known" value={derived.known} />
               <Stat label="words learning" value={derived.learning} />
               <Stat label="flashcards" value={data?.cardCount ?? 0} />
               <Stat
-                label="sentences mastered"
+                label="gap-fill words mastered"
                 value={`${derived.clozeMastered} / ${derived.clozeSeen} seen`}
               />
             </div>

@@ -132,7 +132,8 @@ export default function FrequencyListView() {
       <div className="library-view">
         <div>
           <h1 className="reading-view__title">
-            Top {band.toLocaleString()} words
+            {/* One string: the React Compiler can drop the space in "Top {band}". */}
+            {`Top ${band.toLocaleString()} words`}
           </h1>
           <Text size="sm">
             {known !== undefined

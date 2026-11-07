@@ -35,7 +35,7 @@ function DangerousConfirmModal({
         <p
           style={{
             fontSize: "var(--font-size-md)",
-            color: "var(--theme-neutral-600",
+            color: "var(--theme-neutral-600)",
           }}
         >
           {dangerousDescription}

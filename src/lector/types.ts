@@ -104,6 +104,10 @@ export interface DailyStats {
   dictionaryLookups: number;
   /** Lector's name for flashcard reviews; here, Skola card reviews. */
   ankiReviews: number;
+  /** Word games finished (Games). */
+  gamesPlayed: number;
+  /** Points scored in word games. */
+  gamePoints: number;
 }
 
 /** One device's activity on one day; statistics add up all devices' rows. */

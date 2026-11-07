@@ -6,6 +6,7 @@ import { Deck } from "@/logic/deck/deck";
 import { useLearning } from "@/logic/learn";
 import { getDailyLimits } from "@/logic/settings/dailyLimits";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
+import { numberSetting } from "@/logic/settings/sanitize";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Rating } from "fsrs.js";
 import { useCallback, useState } from "react";
@@ -30,7 +31,7 @@ export function useLearnSession({
     },
     {
       learnAll,
-      newToReviewRatio,
+      newToReviewRatio: numberSetting(newToReviewRatio, 0.5, 0, 1),
       sort: CardSorts.byCreationDate(1),
       limits,
       newReviewOrder,

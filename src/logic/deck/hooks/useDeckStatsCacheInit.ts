@@ -1,3 +1,4 @@
+import { dayStartHourSetting } from "@/logic/settings/dailyLimits";
 import getSetting from "@/logic/settings/hooks/getSetting";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
 import { useEffect, useState } from "react";
@@ -16,7 +17,9 @@ function getStartOfDay(date: Date, rolloverHour: number): Date {
 }
 
 async function getNextRolloverTime(): Promise<Date> {
-  const newDayStartHour = await getSetting("#newDayStartHour");
+  const newDayStartHour = dayStartHourSetting(
+    await getSetting("#newDayStartHour")
+  );
   const now = new Date();
   const next = new Date(now);
   next.setHours(newDayStartHour, 0, 0, 0);
@@ -45,7 +48,8 @@ async function invalidateAllCaches(): Promise<void> {
 }
 
 export function useDeckStatsCacheInit() {
-  const [newDayStartHour] = useSetting("#newDayStartHour");
+  const [newDayStartHourSetting] = useSetting("#newDayStartHour");
+  const newDayStartHour = dayStartHourSetting(newDayStartHourSetting);
   const [isInitialized, setIsInitialized] = useState(false);
   const [lastCheckDay, setLastCheckDay] = useState<Date>(
     getStartOfDay(new Date(), newDayStartHour)

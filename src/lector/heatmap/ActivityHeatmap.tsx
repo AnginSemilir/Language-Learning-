@@ -19,6 +19,8 @@ const ACTIVITY_TYPES: {
   { key: "clozePracticed", label: "Cloze" },
   { key: "dictionaryLookups", label: "Lookups" },
   { key: "minutesRead", label: "Reading", suffix: " min" },
+  { key: "wordsRead", label: "Reading", suffix: " words" },
+  { key: "gamesPlayed", label: "Games" },
 ];
 
 function formatFullDate(dateStr: string): string {

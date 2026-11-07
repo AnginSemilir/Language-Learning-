@@ -4,6 +4,9 @@ export interface ActivityParts {
   clozePracticed: number;
   minutesRead: number;
   ankiReviews: number;
+  /** Words read in the reader (it doesn't time reading). */
+  wordsRead?: number;
+  gamesPlayed?: number;
 }
 
 export interface ActivityDay {

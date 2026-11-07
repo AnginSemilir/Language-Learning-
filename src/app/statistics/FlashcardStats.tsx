@@ -344,7 +344,7 @@ export default function FlashcardStats() {
                         <span className="card-stats__leech">leech</span>
                       )}
                       <span>
-                        forgotten {h.lapses}×
+                        {`forgotten ${h.lapses}×`}
                         {h.again > h.lapses ? ` · Again ${h.again}×` : ""}
                       </span>
                       <span className="card-stats__detail">

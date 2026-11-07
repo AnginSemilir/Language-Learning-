@@ -1,0 +1,218 @@
+.level-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(160deg, #ffd65c, #f59e0b);
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(245, 158, 11, 0.35);
+  color: #5b3200;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+
+.level-badge__label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.level-badge__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.xp-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  flex: 1;
+}
+
+.xp-bar__track {
+  height: 0.75rem;
+  border-radius: var(--radius-full);
+  background-color: var(--theme-neutral-200);
+  overflow: hidden;
+}
+
+.xp-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary-400), #f5c542);
+  transition: width 0.6s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.xp-bar__text {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--theme-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  background-color: var(--theme-neutral-100);
+  color: var(--theme-neutral-500);
+  font-family: var(--font-display);
+  white-space: nowrap;
+}
+
+.streak-chip svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.streak-chip--active {
+  background-color: var(--theme-orange-100);
+  color: var(--theme-orange-700);
+}
+
+.streak-chip--active svg {
+  fill: var(--theme-orange-400);
+  stroke: var(--theme-orange-600);
+}
+
+.streak-chip__days {
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+}
+
+.streak-chip__label {
+  font-size: var(--font-size-sm);
+}
+
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.quest-list__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.quest-list__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--theme-neutral-900);
+}
+
+.quest-list__bonus {
+  font-size: var(--font-size-sm);
+  color: var(--theme-orange-700);
+  font-weight: 600;
+}
+
+.quest-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quest {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: var(--spacing-sm);
+  row-gap: var(--spacing-xs);
+}
+
+.quest__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--theme-neutral-300);
+  color: #ffffff;
+}
+
+.quest--complete .quest__check {
+  border-color: var(--color-primary-500);
+  background-color: var(--color-primary-500);
+}
+
+.quest__check svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  stroke-width: 3;
+}
+
+.quest__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.quest__title {
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--theme-neutral-800);
+}
+
+.quest--complete .quest__title {
+  color: var(--theme-neutral-500);
+  text-decoration: line-through;
+  text-decoration-color: var(--theme-neutral-400);
+}
+
+.quest__title-id {
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  color: var(--theme-neutral-500);
+}
+
+.quest__count {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--theme-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.quest__bar {
+  grid-column: 2 / 4;
+  height: 0.3rem;
+  border-radius: var(--radius-full);
+  background-color: var(--theme-neutral-200);
+  overflow: hidden;
+}
+
+.quest__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--color-primary-500);
+  transition: width 0.5s ease;
+}
+
+.quest--complete .quest__bar span {
+  background-color: var(--color-primary-400);
+}
+
+.quest-list--compact .quest__title-id {
+  display: none;
+}

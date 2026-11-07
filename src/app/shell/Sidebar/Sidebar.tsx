@@ -8,14 +8,16 @@ import {
   IconBook,
   IconCards,
   IconChartBar,
+  IconDeviceGamepad2,
   IconHome,
   IconMoon,
   IconPencil,
   IconSettings,
   IconSun,
+  IconTrees,
   IconX,
 } from "@tabler/icons-react";
-import { t } from "i18next";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import DeckList from "./DeckList";
 import "./Sidebar.css";
@@ -35,6 +37,8 @@ interface SidebarProps {
 }
 
 function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
+  // The hook (not i18next's t) so the labels change with the language.
+  const [t] = useTranslation();
   const routeIsLearn = useLocation().pathname.startsWith("/learn");
   const isDark = useIsDark();
 
@@ -54,6 +58,8 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
   ]
     .filter(Boolean)
     .join(" ");
+
+  const close = fullscreenMode ? menuHandlers.close : undefined;
 
   return (
     <aside className={sidebarClasses}>
@@ -94,42 +100,56 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               path="/home"
               icon={<IconHome />}
               collapsed={minimalMode}
-              onClick={fullscreenMode ? menuHandlers.close : undefined}
+              onClick={close}
+            />
+            <NavItem
+              label="Pulau Kata"
+              path="/world"
+              icon={<IconTrees />}
+              collapsed={minimalMode}
+              onClick={close}
+            />
+            <NavItem
+              label="Games"
+              path="/games"
+              icon={<IconDeviceGamepad2 />}
+              collapsed={minimalMode}
+              onClick={close}
             />
             <NavItem
               label="Read"
               path="/read"
               icon={<IconBook />}
               collapsed={minimalMode}
-              onClick={fullscreenMode ? menuHandlers.close : undefined}
+              onClick={close}
             />
             <NavItem
               label="Practice"
               path="/practice"
               icon={<IconPencil />}
               collapsed={minimalMode}
-              onClick={fullscreenMode ? menuHandlers.close : undefined}
+              onClick={close}
             />
             <NavItem
               label={t("statistics.title")}
               path="/stats"
               icon={<IconChartBar />}
               collapsed={minimalMode}
-              onClick={fullscreenMode ? menuHandlers.close : undefined}
+              onClick={close}
             />
             <NavItem
               label={t("manage-cards.title")}
               path="/notes"
               icon={<IconCards />}
               collapsed={minimalMode}
-              onClick={fullscreenMode ? menuHandlers.close : undefined}
+              onClick={close}
             />
             <NavItem
               label={t("settings.title")}
               path="/settings"
               icon={<IconSettings />}
               collapsed={minimalMode}
-              onClick={fullscreenMode ? menuHandlers.close : undefined}
+              onClick={close}
             />
             <NavItem
               label={isDark ? "Light view" : "Dark view"}

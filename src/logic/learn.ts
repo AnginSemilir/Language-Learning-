@@ -1,10 +1,7 @@
 import { Table } from "dexie";
 import { Rating, SchedulingInfo, State } from "fsrs.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  updateGlobalScheduler,
-  useGlobalScheduler,
-} from "./card/CardScheduler";
+import { schedulableModel, useGlobalScheduler } from "./card/CardScheduler";
 import { Card } from "./card/card";
 import { useCardsWith } from "./card/hooks/useCardsWith";
 import { updateCardModel } from "./card/updateCardModel";
@@ -234,7 +231,6 @@ export function useLearning(
       //If there are no cards left finish the learning session
     } else {
       setIsFinished(true);
-      updateGlobalScheduler();
     }
   }, [timeCriticalCards, newCards, toReviewCards, learnedCards, options]);
 
@@ -249,11 +245,14 @@ export function useLearning(
   //Shown on buttons
   const currentCardRepeatInfo = useMemo(() => {
     if (currentCard) {
-      return scheduler.repeat(currentCard.model, new Date(Date.now()));
+      return scheduler.repeat(
+        schedulableModel(currentCard.model),
+        new Date(Date.now())
+      );
     } else {
       return null;
     }
-  }, [currentCard]);
+  }, [currentCard, scheduler]);
 
   //Answering the current card with the given rating
   const answer = useCallback(
@@ -280,10 +279,20 @@ export function useLearning(
           { card: currentCard, saved, requeued, statistics },
         ]);
         if (requeued) {
+          // The copy shown again later keeps the answer just saved in its
+          // history; the next answer appends to it rather than replacing it.
+          const log = currentCardRepeatInfo[rating].review_log;
+          const history = saved
+            ? [...currentCard.history, log]
+            : currentCard.history;
           setTimeCriticalCards((tcCards) =>
             [
               ...tcCards,
-              { ...currentCard, model: currentCardRepeatInfo[rating].card },
+              {
+                ...currentCard,
+                model: currentCardRepeatInfo[rating].card,
+                history,
+              },
             ].sort((a, b) => a.model.due.getTime() - b.model.due.getTime())
           );
         }
@@ -377,9 +386,10 @@ export function useLearning(
 export function useRepetitionAccuracy(ratingsList: number[]): number {
   return useMemo(() => {
     if (ratingsList.length !== 0) {
+      // Again 0, Hard ½, Good and Easy 1: Easy counts as right, not as 150%.
       let sum = 0;
       ratingsList.forEach((rating) => {
-        return (sum += (rating - 1) / 2);
+        return (sum += Math.min(1, (rating - 1) / 2));
       });
       return Math.round((sum / ratingsList.length) * 1000) / 10;
     } else {

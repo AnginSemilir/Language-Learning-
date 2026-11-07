@@ -45,4 +45,9 @@ export const defaultSettings: SettingsValues = {
   "#dict_linkGoogle": true,
   "#dict_linkWiktionary": false,
   "#dict_linkGlosbe": false,
+
+  "#games_bestMatch": 0,
+  "#games_bestRain": 0,
+  "#games_sound": true,
+  "#games_words": "learning",
 };

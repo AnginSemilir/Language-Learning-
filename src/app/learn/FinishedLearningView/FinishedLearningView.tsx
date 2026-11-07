@@ -12,6 +12,14 @@ import "./FinishedLearningView.css";
 
 const BASE = "finished-learning-view";
 
+/** 4m 12s, or 1h 5m for a long session (the minutes alone restart at 60). */
+function formatDuration(time: StopwatchResult) {
+  const hours = (time.days ?? 0) * 24 + (time.hours ?? 0);
+  return hours > 0
+    ? `${hours}h ${time.minutes}m`
+    : `${time.minutes}m ${time.seconds}s`;
+}
+
 interface FinishedLearningViewProps {
   time: StopwatchResult;
   deck: Deck | undefined;
@@ -57,7 +65,7 @@ function FinishedLearningView({
         <div className={`${BASE}__stats`}>
           <div className={`${BASE}__stat`}>
             <div className={`${BASE}__stat-value`}>
-              {time ? time.minutes + "m " + time.seconds + "s" : "—"}
+              {time ? formatDuration(time) : "—"}
             </div>
             <div className={`${BASE}__stat-label`}>
               {t("learning.finished-duration")}
@@ -66,7 +74,7 @@ function FinishedLearningView({
 
           <div className={`${BASE}__stat`}>
             <div className={`${BASE}__stat-value`}>
-              {accuracy ? accuracy + "%" : "—"}
+              {Number.isNaN(accuracy) ? "—" : accuracy + "%"}
             </div>
             <div className={`${BASE}__stat-label`}>
               {t("learning.finished-accuracy-ratio")}

@@ -13,7 +13,7 @@
   font-family: var(--font-sans);
   width: 100%;
   text-align: left;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   user-select: none;
   transition: background-color 0.1s ease, color 0.1s ease;
 }
@@ -30,7 +30,9 @@
 
 .nav-item--active {
   background-color: var(--theme-primary-100);
-  color: var(--theme-primary-700);
+  color: var(--theme-primary-800);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--theme-primary-500);
 }
 
 .nav-item--active:hover {

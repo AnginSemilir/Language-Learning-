@@ -1,14 +1,14 @@
-import { successfullyMovedCardTo } from "@/components/Notification/Notification";
+import EmptyNotice from "@/components/EmptyNotice";
+import { notify } from "@/components/Notification";
 import { Button } from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import { Modal } from "@/components/ui/Modal";
 import { Deck } from "@/logic/deck/deck";
 import { useDecks } from "@/logic/deck/hooks/useDecks";
-import { moveDeck } from "@/logic/deck/moveDeck";
+import { isSelfOrDescendant, moveDeck } from "@/logic/deck/moveDeck";
 import { IconArrowsExchange, IconNotes } from "@tabler/icons-react";
 import { useState } from "react";
 import "./MoveDeckModal.css";
-import EmptyNotice from "@/components/EmptyNotice";
 
 const BASE_URL = "move-deck-modal";
 
@@ -27,38 +27,50 @@ export default function MoveDeckModal({
     ? deck.superDecks[deck.superDecks.length - 1]
     : null;
 
+  // Not the deck it is in already, and not the deck itself or one of its own
+  // sub-decks: moving a deck inside itself would make a loop.
   const [decks, areDecksReady] = useDecks((decks) =>
-    decks?.filter((d) => d.id !== oldSuperDeck)
+    decks?.filter(
+      (d) => d.id !== oldSuperDeck && !isSelfOrDescendant(d, deck.id)
+    )
   );
   const [newDeckID, setNewDeckID] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
 
-  const handleMove = () => {
-    const newDeck = decks?.find((deck) => deck.id === newDeckID);
-    if (newDeck !== undefined) {
-      moveDeck(deck.id, newDeck.id);
-      successfullyMovedCardTo(newDeck.name);
+  const handleMove = async () => {
+    const newDeck = decks?.find((d) => d.id === newDeckID);
+    if (newDeck === undefined) return;
+    setMoving(true);
+    try {
+      await moveDeck(deck.id, newDeck.id);
+      notify("Deck moved", `“${deck.name}” is now in ${newDeck.name}.`);
       setOpened(false);
+    } catch (error) {
+      notify("Not moved", String((error as Error).message ?? error), "error");
+    } finally {
+      setMoving(false);
     }
   };
 
   const isValidSelection =
-    areDecksReady && newDeckID && newDeckID !== oldSuperDeck;
+    areDecksReady &&
+    !!newDeckID &&
+    !!decks?.some((d) => d.id === newDeckID) &&
+    !moving;
 
   return (
     <Modal title="Move Deck" opened={opened} onClose={() => setOpened(false)}>
       <div className={`${BASE_URL}__content`}>
-        {decks?.length! > 1 ? (
+        {decks && decks.length > 0 ? (
           <Combobox
             searchable
             label="Move To"
             nothingFoundMessage="No Decks Found"
             disabled={!areDecksReady}
-            data={
-              decks?.map((deck) => ({
-                value: deck.id,
-                label: deck.name,
-              })) ?? []
-            }
+            data={decks.map((d) => ({
+              value: d.id,
+              label: d.name,
+            }))}
             value={newDeckID}
             onChange={(value: string | null) => {
               setNewDeckID(value);
@@ -67,8 +79,8 @@ export default function MoveDeckModal({
         ) : (
           <EmptyNotice
             icon={IconNotes}
-            title="You have just this one deck."
-            description="It seems like there are no other valid decks to move this deck to. Try creating another one."
+            title="No other deck to move it to."
+            description="A deck can go into any deck except the one it's in and its own sub-decks. Create another deck first."
           />
         )}
         <div className={`${BASE_URL}__actions`}>

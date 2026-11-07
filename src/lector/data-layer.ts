@@ -5,6 +5,7 @@
 import { db, getDeviceId } from "@/logic/db";
 import { v4 as uuidv4 } from "uuid";
 import { id as pack } from "./languages/id/manifest";
+import { emptyDailyStats } from "./lib/dailyStats";
 import { dateStringInTimeZone } from "./lib/dates";
 import { foldWord } from "./lib/languages";
 import type { DailyStats, Lesson, VocabEntry, WordState } from "./types";
@@ -25,19 +26,7 @@ export function todayKey(date = new Date()) {
 
 type CountField = Exclude<keyof DailyStats, "date">;
 
-function emptyDay(date: string): DailyStats {
-  return {
-    date,
-    wordsRead: 0,
-    newWordsSaved: 0,
-    wordsMarkedKnown: 0,
-    minutesRead: 0,
-    clozePracticed: 0,
-    points: 0,
-    dictionaryLookups: 0,
-    ankiReviews: 0,
-  };
-}
+const emptyDay = emptyDailyStats;
 
 /**
  * Adds to today's count for this device. Each device keeps its own row per
@@ -57,7 +46,9 @@ export async function incrementDailyStat(
         id,
         device,
       };
-      row[field] += by;
+      // A row saved before a field existed doesn't have it (undefined + 1 is
+      // NaN, which would stick).
+      row[field] = (row[field] || 0) + by;
       await db.activity.put(row);
     });
     return true;
