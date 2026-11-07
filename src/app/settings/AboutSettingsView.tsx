@@ -63,6 +63,11 @@ export default function AboutSettingsView() {
           Opus-MT by Helsinki-NLP (Apache-2.0), kept only when they contain the
           word's dictionary meaning.
         </li>
+        <li>
+          Articles added by link are fetched through Jina Reader (r.jina.ai) and
+          cut down to their headline and story with Mozilla Readability
+          (Apache-2.0).
+        </li>
       </ul>
       <p>
         This app is AGPL-3.0 licensed.{" "}

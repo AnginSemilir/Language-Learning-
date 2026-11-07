@@ -5,6 +5,7 @@
   "private": false,
   "dependencies": {
     "@hello-pangea/dnd": "16.5.0",
+    "@mozilla/readability": "0.6.0",
     "@tabler/icons-react": "3.14.0",
     "@tauri-apps/api": "^1.6.0",
     "@tiptap/core": "2.27.1",

@@ -48,9 +48,14 @@ talked to its server were rewritten to use the browser database
   word counts as known) and a grand oak (90 days or more). **Edit** in the
   card's ⋯ menu (or E) opens the card right there; the editor has bold,
   italic, underline, text colours, highlight and more.
-- **Read.** 20 graded starter stories, or add your own: paste text, or import a
-  `.txt`/`.md` file, subtitles (`.srt`/`.vtt`) or an EPUB book (one lesson per
-  chapter). Lessons are split into pages you swipe through. Tap a word to hear
+- **Read.** 20 graded starter stories, or add your own: a link to an article,
+  pasted text, or a `.txt`/`.md` file, subtitles (`.srt`/`.vtt`) or an EPUB
+  book (one lesson per chapter). From a link only the headline and story are
+  kept (Mozilla Readability, Apache-2.0); the page is fetched through
+  [Jina Reader](https://jina.ai/reader/) (r.jina.ai), since a web app can't
+  read other sites' pages itself. Some sites, such as Kompas, Detik and Tempo,
+  don't allow that: copy the whole page in your browser and paste it, and the
+  headline and story are picked out the same way. Lessons are split into pages you swipe through. Tap a word to hear
   it, see its dictionary entry, mark how well you know it, or add it as a
   flashcard. Words already in your flashcards are highlighted as "learning".
 - **Mark the rest as known.** Turning the page offers to mark every word on it
