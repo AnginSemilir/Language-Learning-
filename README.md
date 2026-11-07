@@ -149,7 +149,7 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   forms in the dictionary, from [wordfreq](https://github.com/rspeer/wordfreq)
   3.1.1 (data CC BY-SA 4.0).
 - `public/data/sentences/`: up to 20 example sentences for each of about
-  29,000 Indonesian words and phrases (20 for the 5,000 most frequent
+  35,000 Indonesian words and phrases (20 for the 5,000 most frequent
   words), split into 512 files by word. Built with
   `scripts/extract-sentences.py` (download commands in its header) and
   `pnpm build:sentences <tsv>`. Sentences translated by people come first:
