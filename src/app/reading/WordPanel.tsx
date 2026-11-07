@@ -6,6 +6,7 @@
 // one card.
 
 import Explanation from "@/app/explain/Explanation";
+import GenerateCardButton from "@/app/explain/GenerateCardButton";
 import {
   Button,
   Group,
@@ -345,6 +346,7 @@ export default function WordPanel({
               </Group>
               {explaining && (
                 <Explanation
+                  noteId={phrase.card?.noteId}
                   input={{
                     kind: "word",
                     text: phrase.text,
@@ -396,6 +398,7 @@ export default function WordPanel({
               </Group>
               {explaining && (
                 <Explanation
+                  noteId={data.card?.noteId}
                   input={{
                     kind: "word",
                     text: data.word,
@@ -532,6 +535,14 @@ export default function WordPanel({
                   value={translation}
                   onChange={(e) => setTranslation(e.currentTarget.value)}
                   required
+                />
+                <GenerateCardButton
+                  read={() => ({
+                    front: phrase?.text ?? data.word,
+                    back: translation,
+                  })}
+                  sentence={phrase?.sentence ?? data.sentence}
+                  onGenerated={(card) => setTranslation(card.back)}
                 />
                 {decks.length > 0 && (
                   <Select

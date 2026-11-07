@@ -54,3 +54,37 @@
   font-weight: 600;
   color: var(--theme-primary-700);
 }
+
+.explanation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+/* "Update card": Claude's suggested card, editable before it's saved. */
+.card-update {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--theme-neutral-200);
+}
+
+.card-update--saved {
+  flex-direction: row;
+  align-items: center;
+  color: var(--theme-primary-700);
+}
+
+/* "Generate with AI" while making a card. */
+.generate-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+}
+
+.generate-card__error {
+  color: var(--theme-neutral-700);
+}

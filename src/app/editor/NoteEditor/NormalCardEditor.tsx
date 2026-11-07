@@ -1,3 +1,5 @@
+import GenerateCardButton from "@/app/explain/GenerateCardButton";
+import { fillEditors, readEditors } from "@/app/explain/editorCard";
 import { Stack } from "@/components/ui/Stack";
 import { Text } from "@/components/ui/Text";
 import { EditMode } from "@/logic/NoteTypeAdapter";
@@ -100,6 +102,13 @@ function NormalCardEditor({
 
   return (
     <Stack gap="xl">
+      {mode === "new" && (
+        <GenerateCardButton
+          hint="Type the word in Indonesian or English, and Claude fills in the rest with an example."
+          read={() => readEditors(frontEditor, backEditor)}
+          onGenerated={(card) => fillEditors(frontEditor, backEditor, card)}
+        />
+      )}
       <Stack gap="xs">
         <Text size="sm" weight="semibold">
           {t("note.edit.type-specific.normal.front")}

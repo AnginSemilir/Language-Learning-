@@ -1,4 +1,6 @@
 import NoteEditor, { useNoteEditor } from "@/app/editor/NoteEditor/NoteEditor";
+import GenerateCardButton from "@/app/explain/GenerateCardButton";
+import { fillEditors, readEditors } from "@/app/explain/editorCard";
 import { Stack } from "@/components/ui/Stack";
 import { Text } from "@/components/ui/Text";
 import { EditMode } from "@/logic/NoteTypeAdapter";
@@ -102,6 +104,13 @@ function DoubleSidedCardEditor({
 
   return (
     <Stack gap="xl">
+      {mode === "new" && (
+        <GenerateCardButton
+          hint="Type the word in Indonesian or English, and Claude fills in the rest with an example."
+          read={() => readEditors(editor1, editor2)}
+          onGenerated={(card) => fillEditors(editor1, editor2, card)}
+        />
+      )}
       <Stack gap="xs">
         <Text size="sm" weight="semibold">
           {t("note.edit.type-specific.double-sided.front")}
