@@ -53,9 +53,12 @@ talked to its server were rewritten to use the browser database
   book (one lesson per chapter). From a link only the headline and story are
   kept (Mozilla Readability, Apache-2.0); the page is fetched through
   [Jina Reader](https://jina.ai/reader/) (r.jina.ai), since a web app can't
-  read other sites' pages itself. Some sites, such as Kompas, Detik and Tempo,
-  don't allow that: copy the whole page in your browser and paste it, and the
-  headline and story are picked out the same way. Lessons are split into pages you swipe through. Tap a word to hear
+  read other sites' pages itself. It is free without a key, but pauses keyless
+  access to a site for a while when it sees anything odd on its pages; a free
+  key from jina.ai (entered in the Link tab, kept on the device) avoids that.
+  Some sites, such as Kompas and Tempo, show apps a robot check instead: copy
+  the whole page in your browser and paste it, and the headline and story are
+  picked out the same way. Lessons are split into pages you swipe through. Tap a word to hear
   it, see its dictionary entry, mark how well you know it, or add it as a
   flashcard. Words already in your flashcards are highlighted as "learning".
 - **Mark the rest as known.** Turning the page offers to mark every word on it

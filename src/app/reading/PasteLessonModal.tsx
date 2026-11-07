@@ -15,6 +15,7 @@ import {
 import { type ImportedText, readTextFile } from "@/lector/import/textFiles";
 import {
   ArticleError,
+  type ArticleProblem,
   articleFromHtml,
   fetchArticle,
 } from "@/lector/import/webArticle";
@@ -29,6 +30,22 @@ interface PasteLessonModalProps {
   onSave: (lessons: ImportedText[]) => void;
 }
 
+/** A Jina Reader API key, kept on this device only. */
+const KEY_STORAGE = "kartu.jinaReaderKey";
+function loadKey() {
+  try {
+    return localStorage.getItem(KEY_STORAGE) ?? "";
+  } catch {
+    return "";
+  }
+}
+function saveKey(key: string) {
+  try {
+    if (key.trim()) localStorage.setItem(KEY_STORAGE, key.trim());
+    else localStorage.removeItem(KEY_STORAGE);
+  } catch {}
+}
+
 const ACCEPT =
   ".txt,.md,.markdown,.srt,.vtt,.epub,text/plain,application/epub+zip";
 
@@ -41,6 +58,9 @@ export default function PasteLessonModal({
   const [url, setUrl] = useState("");
   const [article, setArticle] = useState<ImportedText | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [problem, setProblem] = useState<ArticleProblem | null>(null);
+  const [key, setKey] = useState(loadKey);
+  const [showKey, setShowKey] = useState(false);
   const [fetching, setFetching] = useState(false);
   /** All of a pasted web page, when only its story was kept. */
   const [pastedAll, setPastedAll] = useState<string | null>(null);
@@ -57,6 +77,7 @@ export default function PasteLessonModal({
     setUrl("");
     setArticle(null);
     setLinkError(null);
+    setProblem(null);
     setPastedAll(null);
     setTitle("");
     setAuthor("");
@@ -69,13 +90,17 @@ export default function PasteLessonModal({
   const getArticle = async () => {
     setArticle(null);
     setLinkError(null);
+    setProblem(null);
     setFetching(true);
     try {
-      setArticle(await fetchArticle(url));
+      setArticle(await fetchArticle(url, { key }));
     } catch (e) {
-      setLinkError(
-        e instanceof ArticleError ? e.message : "The page couldn't be read."
-      );
+      const known = e instanceof ArticleError;
+      setLinkError(known ? e.message : "The page couldn't be read.");
+      setProblem(known ? e.problem : "reader");
+      if (known && ["busy", "paused", "key"].includes(e.problem)) {
+        setShowKey(true);
+      }
     } finally {
       setFetching(false);
     }
@@ -155,13 +180,15 @@ export default function PasteLessonModal({
               <TextInput
                 id="link-url"
                 label="Link to an article"
-                type="url"
+                type="text"
                 inputMode="url"
+                autoComplete="off"
                 value={url}
                 onChange={(e) => {
                   setUrl(e.currentTarget.value);
                   setArticle(null);
                   setLinkError(null);
+                  setProblem(null);
                 }}
                 placeholder="https://"
                 error={linkError}
@@ -199,10 +226,40 @@ export default function PasteLessonModal({
                   {fetching ? "Getting the article…" : "Get article"}
                 </Button>
               )}
+              {(problem === "robot" || problem === "no-story") && (
+                <Button onClick={() => setTab("paste")}>
+                  Paste a copied page instead
+                </Button>
+              )}
+              {showKey && (
+                <TextInput
+                  id="link-key"
+                  label="Jina Reader key (optional)"
+                  description="Free from jina.ai: sign up and copy your API key. With a key, free access isn't paused and 500 pages a minute can be fetched. Kept on this device only."
+                  value={key}
+                  onChange={(e) => {
+                    setKey(e.currentTarget.value);
+                    saveKey(e.currentTarget.value);
+                  }}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="jina_…"
+                />
+              )}
               {!linkError && (
                 <Text size="xs" variant="dimmed">
                   Only the headline and the story are kept. Pages are fetched
-                  through Jina Reader (r.jina.ai).
+                  through Jina Reader (r.jina.ai)
+                  {key ? " with your key" : ""}.{" "}
+                  {!showKey && (
+                    <button
+                      type="button"
+                      className="add-text__undo"
+                      onClick={() => setShowKey(true)}
+                    >
+                      {key ? "Change the key" : "Add a key"}
+                    </button>
+                  )}
                 </Text>
               )}
             </Stack>
