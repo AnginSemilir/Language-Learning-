@@ -3,8 +3,9 @@
 // keeping only the steps that apply to Indonesian: exact entry, inflection
 // table, then the pack's clitic/prefix peeling (stemCandidates). Added here:
 // an entry that only points to another word ("active of lihat") shows that
-// word's meanings; words Wiktionary lacks come from its Malay entries or
-// Wordnet Bahasa; and failing all that, the word's root, marked as a guess.
+// word's meanings; words Wiktionary lacks come from its Malay entries,
+// Wordnet Bahasa or a machine translation; and failing all that, the word's
+// root, marked as a guess.
 //
 // Data: Lector's dictionary-id release (Wiktionary via kaikki.org, CC BY-SA),
 // converted by scripts/build-dictionary-json.py to public/data/dictionary-id.json,
@@ -19,7 +20,7 @@ export interface DictionarySense {
   partOfSpeech: string;
   gloss: string;
   /** Not from Wiktionary's Indonesian entries. */
-  source?: "malay" | "wordnet" | "spoken";
+  source?: "malay" | "wordnet" | "spoken" | "machine";
 }
 
 export interface DictionaryEntry {
@@ -79,7 +80,12 @@ function inflectionLabel(type: string | null): string {
 const FORM_OF =
   /^((?:[\w-]+ )*?(?:form|spelling|active|passive|imperative|causative|synonym|plural|singular|clipping|contraction|abbreviation)) of ([\p{L}-]+(?: [\p{L}-]+)*?)(?: \(“.*”\))?$/u;
 
-const SOURCES = { m: "malay", w: "wordnet", s: "spoken" } as const;
+const SOURCES = {
+  m: "malay",
+  w: "wordnet",
+  s: "spoken",
+  t: "machine",
+} as const;
 
 function sensesOf(data: DictionaryData, word: string): DictionarySense[] {
   const own = data.e[word];
@@ -193,15 +199,75 @@ export function resolveWord(
     );
   }
 
-  // 5. The root by form alone (kutemukan → temu), marked as a guess.
-  const root = lex?.looseLemma(lower);
-  if (root && root !== lower && data.e[root]) {
+  // 5. The root by form alone (penyadapan → sadap), marked as a guess.
+  const roots = rootsByForm(lower);
+  const loose = lex?.looseLemma(lower);
+  if (loose && loose !== lower) roots.push(loose);
+  const root = roots.find((r) => data.e[r]) ?? roots.find((r) => data.x?.[r]);
+  if (root) {
     const entry = build(data, root);
     if (entry) {
       return { ...entry, guess: true, lemmaInfo: { label: "", stem: root } };
     }
   }
   return undefined;
+}
+
+/** Prefixes a derived word may carry, longest first. */
+const PREFIXES = [
+  "memper",
+  "diper",
+  "meng",
+  "meny",
+  "mem",
+  "men",
+  "me",
+  "di",
+  "ber",
+  "be",
+  "ter",
+  "per",
+  "peng",
+  "peny",
+  "pem",
+  "pen",
+  "pe",
+  "ke",
+  "se",
+  "ku",
+  "kau",
+];
+const SUFFIXES = ["kan", "an", "i", "nya", ""];
+/** meN- and peN- take the place of a root's first sound: menyadap ← sadap. */
+const RESTORE: Record<string, string> = {
+  meny: "s",
+  peny: "s",
+  men: "t",
+  pen: "t",
+  mem: "p",
+  pem: "p",
+  meng: "k",
+  peng: "k",
+};
+
+/**
+ * Roots a word may come from by its affixes, the least stripped first
+ * (menempatkan → tempat before empat).
+ */
+export function rootsByForm(word: string): string[] {
+  const roots = new Set<string>();
+  for (const prefix of ["", ...PREFIXES]) {
+    if (!word.startsWith(prefix)) continue;
+    const stem = word.slice(prefix.length);
+    for (const suffix of SUFFIXES) {
+      if ((!prefix && !suffix) || !stem.endsWith(suffix)) continue;
+      const core = stem.slice(0, stem.length - suffix.length);
+      for (const root of [(RESTORE[prefix] ?? "") + core, core]) {
+        if (root.length >= 3 && root !== word) roots.add(root);
+      }
+    }
+  }
+  return [...roots].sort((a, b) => b.length - a.length);
 }
 
 export async function lookupWord(

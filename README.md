@@ -153,18 +153,20 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   `dict-id-2026-08-21` release, converted with
   `scripts/build-dictionary-json.py`, which also extracts verb forms, derived
   nouns and names from the entries' etymologies. Words it lacks are added by
-  `scripts/build-dictionary-extra.py` (5,748 words, only ones that occur in
+  `scripts/build-dictionary-extra.py` (8,354 words, only ones that occur in
   the Leipzig corpora): Wiktionary's Malay entries (CC BY-SA), which cover
   many words Indonesian shares with Malay (cemburu, entah, begini);
   [Wordnet Bahasa](https://wn-msa.sourceforge.net/) (Francis Bond et al., MIT)
   with English [WordNet](https://wordnet.princeton.edu/) 3.0 (WordNet
   licence), for derived words (pertunjukan, membutuhkan), shown as approximate
-  meanings; and a short list of everyday spoken words (sih, kagak, gitu). It
+  meanings; a short list of everyday spoken words (sih, kagak, gitu); and
+  Opus-MT machine translations of 2,606 frequent words none of these has
+  (penyadapan: tapping, pelecehan: harassment), marked "may be wrong". It
   also puts a word's own meaning first where initialisms or a name crowded it
   out of the four senses kept (api: fire, antara: among, si). An
   entry that only points to another word ("active of lihat") shows that
-  word's meanings, and a word in none of them shows its root's, marked as a
-  guess.
+  word's meanings, and a word in none of them shows its root's (found by its
+  affixes: penyadapan → sadap), marked as a guess.
 - `public/data/frequency-id.json`: the 14,500 most frequent Indonesian word
   forms in the dictionary (about 12,000 distinct words), from
   [wordfreq](https://github.com/rspeer/wordfreq) 3.1.1 (data CC BY-SA 4.0).

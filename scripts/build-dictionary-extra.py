@@ -29,11 +29,23 @@ Inputs (download commands):
   The -words.txt lists in ind_news_2023_1M.tar.gz and ind_wikipedia_2021_1M.tar.gz
   from https://wortschatz.uni-leipzig.de/en/download/Indonesian
 
+  4. With --mt-words: machine translations (Opus-MT, as for the sentence
+     pool) of frequent words none of the above has, source "t". The words:
+     those used at least 10 times in the Leipzig lists or among wordfreq's
+     30,000 most frequent Indonesian words, of 4+ letters, not more common in
+     English, not mostly capitalised (names), that the app's lookup (with 1-3
+     added) can't find or can only guess a root for (penyadapan, pelecehan,
+     pergelangan). One word per line, translated with
+     scripts/translate/translate-sentences.mjs. Translations that copy the
+     word, run longer than five words or use a rare English word (wordfreq
+     Zipf under 2: garbled output) are dropped. Needs `pip install wordfreq`.
+
 Usage:
   python3 scripts/build-dictionary-extra.py kaikki.org-dictionary-Indonesian.jsonl \\
     kaikki.org-dictionary-Malay.jsonl \\
     omw-1.4/msa/wn-data-ind.tab wordnet/ ind_news_2023_1M-words.txt \\
-    ind_wikipedia_2021_1M-words.txt [public/data/dictionary-id.json]
+    ind_wikipedia_2021_1M-words.txt [public/data/dictionary-id.json] \\
+    [--mt-words mt-words.tsv]
 """
 
 import collections
@@ -47,7 +59,13 @@ WORDNET_SENSES = 2
 ENGLISH_WORDS = 3
 MIN_USES = 3
 
-indonesian_path, malay_path, wn_path, pwn_dir, *rest = sys.argv[1:]
+args = sys.argv[1:]
+mt_path = None
+if "--mt-words" in args:
+    at = args.index("--mt-words")
+    mt_path = args[at + 1]
+    del args[at : at + 2]
+indonesian_path, malay_path, wn_path, pwn_dir, *rest = args
 freq_paths = [p for p in rest if p.endswith(".txt")]
 dict_path = next(
     (p for p in rest if p.endswith(".json")), "public/data/dictionary-id.json"
@@ -275,12 +293,33 @@ for word, (pos, gloss) in SPOKEN.items():
     else:
         extra[word] = [[pos, gloss, "s"]]
 
+# 4. Machine translations of frequent words still missing.
+machine = 0
+if mt_path:
+    import wordfreq
+
+    for line in open(mt_path, encoding="utf8"):
+        word, _, english = line.rstrip("\n").partition("\t")
+        if not WORD.match(word) or len(word) < 4 or word in known or word in extra:
+            continue
+        english = english.strip().strip('"“”').rstrip(".!?…").strip()
+        tokens = re.findall(r"[A-Za-z]+(?:'[a-z]+)?", english)
+        if not tokens or len(tokens) > 5 or english.lower() == word:
+            continue
+        if any(wordfreq.zipf_frequency(t.lower(), "en") < 2 for t in tokens):
+            continue
+        if english[:1].isupper() and not english[1:2].isupper():
+            english = english[0].lower() + english[1:]
+        extra[word] = [["", english, "t"]]
+        machine += 1
+
 data["x"] = dict(sorted(extra.items()))
 with open(dict_path, "w", encoding="utf8") as f:
     json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
 by_source = collections.Counter(senses[0][2] for senses in extra.values())
 print(
     f"added {len(extra)} words: {by_source['m']} from Malay Wiktionary, "
-    f"{by_source['w']} from Wordnet Bahasa, {by_source['s']} spoken words; "
+    f"{by_source['w']} from Wordnet Bahasa, {by_source['s']} spoken words, "
+    f"{by_source['t']} machine translations; "
     f"real meanings put first for {len(reordered)}: {' '.join(reordered)}"
 )
