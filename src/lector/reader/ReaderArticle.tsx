@@ -1,9 +1,10 @@
 // Ported from Lector (heuwels/lector@eb393ce, AGPL-3.0-only):
 // src/components/MarkdownReader/ReaderArticle/index.tsx
-// Changes: dropped ruby annotations, stored segmentation, phrase highlighting
-// and prose-style settings (none apply to Indonesian here); Tailwind classes
-// replaced with reader.css; word state comes from a grammar-aware `stateOf`
-// instead of a surface-form map.
+// Changes: dropped ruby annotations, stored segmentation and prose-style
+// settings (none apply to Indonesian here); Tailwind classes replaced with
+// reader.css; word state comes from a grammar-aware `stateOf` instead of a
+// surface-form map. Phrases are new: the looked-up word can grow into a run of
+// words, and phrases on the user's flashcards are underlined.
 import {
   Fragment,
   type ReactElement,
@@ -17,14 +18,25 @@ import remarkBreaks from "remark-breaks";
 import { id as pack } from "../languages/id/manifest";
 import { splitSentences } from "../languages/tokenizer";
 import WordCell from "./WordCell";
+import { type WordPlace, blockWords, phraseInSet, phraseRuns } from "./phrase";
 import type { DisplayState } from "./useLexicon";
-import { readableText, splitWords } from "./utils";
+import { collectParts, readableText, splitWords } from "./utils";
 import "./reader.css";
 
 export interface ActiveReaderWord {
   blockId: number;
   wordIndex: number;
+  /** The last word, when a phrase starting at wordIndex is picked. */
+  endIndex?: number;
 }
+
+/** Phrases to underline (phraseKey form), with the most words any has. */
+export interface SavedPhrases {
+  keys: ReadonlySet<string>;
+  maxWords: number;
+}
+
+type WordClick = (word: string, sentence: string, place: WordPlace) => void;
 
 type BlockTag = "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
@@ -35,11 +47,12 @@ interface ReaderBlockProps {
   blockId: number;
   stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
-  onWordClick: (word: string, sentence: string) => void;
+  savedPhrases?: SavedPhrases;
+  onWordClick: WordClick;
   onActivateWord: (word: ActiveReaderWord) => void;
 }
 
-function findSentence(element: HTMLElement): string {
+export function findSentence(element: HTMLElement): string {
   const block = element.closest("p, li, blockquote, h1, h2, h3, h4, h5, h6");
   const text = block ? readableText(block) : "";
   const wordText = readableText(element);
@@ -56,9 +69,39 @@ function ReaderBlock({
   blockId,
   stateOf,
   activeWord,
+  savedPhrases,
   onWordClick,
   onActivateWord,
 }: ReaderBlockProps) {
+  const parts = collectParts(children, pack);
+  const runs = savedPhrases?.keys.size
+    ? phraseRuns(
+        blockWords(parts),
+        (key) => phraseInSet(savedPhrases.keys, key) !== undefined,
+        savedPhrases.maxWords
+      )
+    : null;
+  const active = activeWord?.blockId === blockId ? activeWord : null;
+  const isActive = (i: number) =>
+    !!active &&
+    i >= active.wordIndex &&
+    i <= (active.endIndex ?? active.wordIndex);
+  // The space inside a picked or saved phrase is marked with its words.
+  const gapClass = (before: number) => {
+    const after = before + 1;
+    if (before >= 0 && isActive(before) && isActive(after)) {
+      return "reader-gap reader-gap--active";
+    }
+    if (
+      runs &&
+      before >= 0 &&
+      runs[before] >= 0 &&
+      runs[before] === runs[after]
+    ) {
+      return "reader-gap reader-gap--phrase";
+    }
+    return undefined;
+  };
   const renderChildren = (
     value: ReactNode,
     context: { i: number },
@@ -68,26 +111,36 @@ function ReaderBlock({
       return splitWords(value, pack).map((part, index) => {
         if (!part.isWord) {
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: tokens of static text; position is the identity
-            <span key={`${keyPrefix}-${index}`} data-leaf="">
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: tokens of static text; position is the identity
+              key={`${keyPrefix}-${index}`}
+              data-leaf=""
+              className={gapClass(context.i - 1)}
+            >
               {part.text}
             </span>
           );
         }
-        const wordIndex = context.i++;
+        // Not `context.i++`: the React Compiler turns that into a
+        // pre-increment.
+        const wordIndex = context.i;
+        context.i += 1;
         const state = stateOf(part.text);
-        const isActive =
-          activeWord?.blockId === blockId && activeWord.wordIndex === wordIndex;
         return (
           <WordCell
             // biome-ignore lint/suspicious/noArrayIndexKey: tokens of static text; position is the identity
             key={`${keyPrefix}-${index}`}
             text={part.text}
             state={state}
-            isActive={isActive}
+            isActive={isActive(wordIndex)}
+            inPhrase={!!runs && runs[wordIndex] >= 0}
             onActivate={(text, element) => {
               onActivateWord({ blockId, wordIndex });
-              onWordClick(text, findSentence(element));
+              onWordClick(text, findSentence(element), {
+                blockId,
+                wordIndex,
+                parts,
+              });
             }}
           />
         );
@@ -115,14 +168,19 @@ function ReaderBlock({
   };
 
   const content = renderChildren(children, { i: 0 });
-  return <Tag className={className}>{content}</Tag>;
+  return (
+    <Tag className={className} data-block-id={blockId}>
+      {content}
+    </Tag>
+  );
 }
 
 interface ReaderArticleProps {
   content: string;
   stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
-  onWordClick: (word: string, sentence: string) => void;
+  savedPhrases?: SavedPhrases;
+  onWordClick: WordClick;
   onActivateWord: (word: ActiveReaderWord) => void;
 }
 
@@ -130,12 +188,14 @@ function ReaderArticle({
   content,
   stateOf,
   activeWord,
+  savedPhrases,
   onWordClick,
   onActivateWord,
 }: ReaderArticleProps) {
   const blockProps = {
     stateOf,
     activeWord,
+    savedPhrases,
     onWordClick,
     onActivateWord,
   };
@@ -204,7 +264,8 @@ interface ReaderTitleProps {
   className?: string;
   stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
-  onWordClick: (word: string, sentence: string) => void;
+  savedPhrases?: SavedPhrases;
+  onWordClick: WordClick;
   onActivateWord: (word: ActiveReaderWord) => void;
 }
 

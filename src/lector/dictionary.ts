@@ -14,7 +14,12 @@
 import { id as pack } from "./languages/id/manifest";
 import { stemCandidates } from "./languages/morphology";
 import { foldWord } from "./languages/text";
-import { type GrammarData, type Lemmatizer, createLemmatizer } from "./lemma";
+import {
+  type GrammarData,
+  type Lemmatizer,
+  createLemmatizer,
+  phraseKey,
+} from "./lemma";
 
 export interface DictionarySense {
   partOfSpeech: string;
@@ -254,6 +259,36 @@ export function resolveWord(
   return undefined;
 }
 
+/**
+ * Several words' meanings: their entry ("bulan madu": honeymoon), or that of
+ * the phrase without a clitic on its last word (bulan madunya).
+ */
+export function resolvePhrase(
+  everything: DictionaryData,
+  phrase: string,
+  options: LookupOptions = {}
+): DictionaryEntry | undefined {
+  const data = only(everything, options.skip);
+  const key = phraseKey(phrase);
+  if (!key.includes(" ")) return undefined;
+  if (data.e[key] || data.x?.[key]) {
+    const entry = build(data, key);
+    if (entry) return entry;
+  }
+  for (const clitic of pack.morphology?.clitics ?? []) {
+    const bare = key.slice(0, -clitic.length);
+    if (!key.endsWith(clitic) || bare.endsWith(" ")) continue;
+    if (data.e[bare] || data.x?.[bare]) {
+      const entry = build(data, bare, {
+        stem: bare,
+        label: `${clitic} form of`,
+      });
+      if (entry) return entry;
+    }
+  }
+  return undefined;
+}
+
 /** Prefixes a derived word may carry, longest first. */
 const PREFIXES = [
   "memper",
@@ -309,6 +344,14 @@ export function rootsByForm(word: string): string[] {
     }
   }
   return [...roots].sort((a, b) => b.length - a.length);
+}
+
+export async function lookupPhrase(
+  phrase: string,
+  options?: LookupOptions
+): Promise<DictionaryEntry | undefined> {
+  const { data } = await loadGrammar();
+  return resolvePhrase(data, phrase, options);
 }
 
 export async function lookupWord(

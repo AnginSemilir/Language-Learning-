@@ -167,6 +167,29 @@ export function collectWords(
 }
 
 /**
+ * A react-markdown block's text as words and the text between them, in the
+ * order the renderer splits it (as collectWords). A line break counts as a
+ * newline, so a phrase can't run across it.
+ */
+export function collectParts(
+  children: ReactNode,
+  pack: LanguageConfig
+): TextPart[] {
+  if (typeof children === "string") return splitWords(children, pack);
+  if (Array.isArray(children)) {
+    return children.flatMap((child) => collectParts(child, pack));
+  }
+  if (isValidElement(children)) {
+    if (children.type === "br") return [{ text: "\n", isWord: false }];
+    return collectParts(
+      (children as ReactElement<{ children?: ReactNode }>).props.children,
+      pack
+    );
+  }
+  return [];
+}
+
+/**
  * Indices (into a block's word list) covered by the currently highlighted
  * phrase. Matches the first contiguous run, comparing folded word keys
  * (case-insensitive; script-aware via foldWord). Empty phrase or no match →

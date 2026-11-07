@@ -9,6 +9,8 @@ export interface WordCellProps {
   state?: DisplayState;
   /** The currently looked-up word (panel open). */
   isActive?: boolean;
+  /** Part of a phrase on one of the user's flashcards. */
+  inPhrase?: boolean;
   /** Tap/Enter/Space. The element is passed so callers can find the sentence. */
   onActivate?: (text: string, element: HTMLElement) => void;
 }
@@ -21,6 +23,7 @@ export default function WordCell({
   text,
   state,
   isActive = false,
+  inPhrase = false,
   onActivate,
 }: WordCellProps) {
   const interactive = onActivate !== undefined;
@@ -39,7 +42,7 @@ export default function WordCell({
       }}
       className={`word-cell word-cell--${state ?? "new"}${
         isActive ? " word-cell--active" : ""
-      }`}
+      }${inPhrase ? " word-cell--phrase" : ""}`}
     >
       {text}
     </span>

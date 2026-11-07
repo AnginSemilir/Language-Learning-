@@ -8,8 +8,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadGrammar } from "../dictionary";
 import { type CardMatch, getUserCardIndex } from "../flashcards";
 import { id as pack } from "../languages/id/manifest";
-import { type Lemmatizer, findNames, fold, isNameToken } from "../lemma";
+import {
+  type Lemmatizer,
+  findNames,
+  fold,
+  isNameToken,
+  phraseKey,
+} from "../lemma";
 import type { WordState } from "../types";
+import type { SavedPhrases } from "./ReaderArticle";
+import { phraseInSet } from "./phrase";
 import { splitWords } from "./utils";
 
 export type DisplayState = WordState | "name";
@@ -26,8 +34,15 @@ export interface ReaderLexicon {
   /** The user's override for this form, if any. */
   linkOf: (word: string) => "separate" | "group" | undefined;
   cardFor: (word: string) => CardMatch | undefined;
+  /** The user's card for several words ("bulan madu"), if any. */
+  cardForPhrase: (text: string) => CardMatch | undefined;
+  /** Phrases on the user's cards, to underline in the text. */
+  savedPhrases: SavedPhrases;
   isName: (word: string) => boolean;
 }
+
+/** Longer card fronts are sentences, not phrases to find in the text. */
+const MAX_PHRASE_WORDS = 6;
 
 export function textBlocks(content: string) {
   return content.split(/\n\s*\n/).map((b) => splitWords(b, pack));
@@ -86,6 +101,33 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     }
     return index;
   }, [cards, lex]);
+
+  const phraseCards = useMemo(() => {
+    const map = new Map<string, CardMatch>();
+    for (const [key, card] of cards) {
+      const phrase = phraseKey(key);
+      if (phrase.includes(" ") && !map.has(phrase)) map.set(phrase, card);
+    }
+    return map;
+  }, [cards]);
+
+  const savedPhrases = useMemo(() => {
+    const keys = new Set<string>();
+    let maxWords = 0;
+    for (const key of phraseCards.keys()) {
+      const words = key.split(" ").length;
+      if (words > MAX_PHRASE_WORDS) continue;
+      keys.add(key);
+      maxWords = Math.max(maxWords, words);
+    }
+    return { keys, maxWords };
+  }, [phraseCards]);
+
+  const cardForPhrase = useCallback(
+    (text: string) =>
+      phraseCards.get(phraseInSet(phraseCards, phraseKey(text)) ?? ""),
+    [phraseCards]
+  );
 
   const names = useMemo(
     () =>
@@ -158,6 +200,8 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     rootOf,
     linkOf,
     cardFor,
+    cardForPhrase,
+    savedPhrases,
     isName,
   };
 }
