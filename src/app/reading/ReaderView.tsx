@@ -35,6 +35,7 @@ import type { Lesson, WordState } from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
 import { useTopLevelDecks } from "@/logic/deck/hooks/useTopLevelDecks";
+import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
 import {
   IconBook,
   IconChevronLeft,
@@ -112,6 +113,7 @@ export default function ReaderView() {
 
   // ── Word panel ──────────────────────────────────────────────────────────
 
+  const dictionary = useDictionaryChoice();
   const onWordClick = useCallback(
     async (word: string, sentence: string) => {
       speak(word);
@@ -131,13 +133,13 @@ export default function ReaderView() {
         card: lexicon.cardFor(word),
       });
       try {
-        const entry = await lookupWord(word);
+        const entry = await lookupWord(word, dictionary.lookup);
         setPanel((p) => (p && p.word === word ? { ...p, entry } : p));
       } catch {
         setPanel((p) => (p && p.word === word ? { ...p, entry: "error" } : p));
       }
     },
-    [lexicon]
+    [lexicon, dictionary.lookup]
   );
 
   // Keep the open panel in step with grouping and state changes.

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { resolveWord, rootsByForm } from "./dictionary";
+import { DICTIONARY_LINKS } from "./dictionaryLinks";
 import { createLemmatizer } from "./lemma";
 
 const data = JSON.parse(
@@ -72,6 +73,35 @@ describe("resolveWord (Indonesian)", () => {
     expect(e?.guess).toBe(true);
     expect(e?.lemmaInfo?.stem).toBe("belikan");
     expect(resolveWord(data, "kubelikan")?.word).toBe("belikan");
+  });
+
+  it("leaves out the sources turned off in Settings", () => {
+    // Without machine translations, penyadapan falls back on its root.
+    const noMachine = resolveWord(data, "penyadapan", undefined, {
+      skip: ["machine"],
+    });
+    expect(noMachine?.guess).toBe(true);
+    expect(noMachine?.lemmaInfo?.stem).toBe("sadap");
+    // And without guesses, there is nothing.
+    expect(
+      resolveWord(data, "penyadapan", undefined, {
+        skip: ["machine"],
+        guess: false,
+      })
+    ).toBeUndefined();
+    expect(
+      resolveWord(data, "cemburu", undefined, { skip: ["malay"] })?.senses[0]
+        .source
+    ).not.toBe("malay");
+  });
+
+  it("links to other dictionaries", () => {
+    const url = (key: string) =>
+      DICTIONARY_LINKS.find((l) => l.key === key)?.url("penyadapan");
+    expect(url("kbbi")).toBe(
+      "https://kbbi.kemendikdasmen.go.id/entri/penyadapan"
+    );
+    expect(url("google")).toContain("sl=id&tl=en");
   });
 
   it("returns undefined for nonsense", () => {

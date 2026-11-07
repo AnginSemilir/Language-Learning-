@@ -3,6 +3,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
 import {
   IconBolt,
+  IconBook,
   IconBraces,
   IconCloud,
   IconDatabase,
@@ -19,6 +20,7 @@ import AboutSettingsView from "./AboutSettingsView";
 import AppearanceSettingsView from "./AppearanceSettingsView";
 import CloudSettingsView from "./CloudSettingsView";
 import DatabaseSettingsView from "./DatabaseSettingsView/DatabaseSettingsView";
+import DictionarySettingsView from "./DictionarySettingsView";
 import EditingSettingsView from "./EditingSettingsView/EditingSettingsView";
 import GeneralSettingsView from "./GeneralSettingsView";
 import LearnSettingsView from "./LearnSettingsView";
@@ -72,6 +74,10 @@ export default function SettingsView() {
             <IconBolt size={18} />
             {t("settings.learn.title")}
           </Tabs.Tab>
+          <Tabs.Tab value="dictionary">
+            <IconBook size={18} />
+            Dictionary
+          </Tabs.Tab>
           <Tabs.Tab value="database">
             <IconDatabase size={18} />
             {t("settings.database.title")}
@@ -102,6 +108,9 @@ export default function SettingsView() {
         </Tabs.Panel>
         <Tabs.Panel value="learn">
           <LearnSettingsView />
+        </Tabs.Panel>
+        <Tabs.Panel value="dictionary">
+          <DictionarySettingsView />
         </Tabs.Panel>
         <Tabs.Panel value="database">
           <DatabaseSettingsView />

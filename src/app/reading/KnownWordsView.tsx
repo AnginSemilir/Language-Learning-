@@ -5,10 +5,15 @@ import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { notify } from "@/components/Notification";
 import { Button, Group, Text, TextInput } from "@/components/ui";
 import { deleteVocab } from "@/lector/data-layer";
-import { loadGrammar, meaningsOf } from "@/lector/dictionary";
+import {
+  type LookupOptions,
+  loadGrammar,
+  meaningsOf,
+} from "@/lector/dictionary";
 import { getKnownWords } from "@/lector/knownWords";
 import type { GrammarData } from "@/lector/lemma";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
 import { IconCopy, IconX } from "@tabler/icons-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState } from "react";
@@ -19,12 +24,17 @@ import "./reading.css";
 
 const AUTO_MARK_KEY = "kartu-mark-known";
 
-function firstGloss(data: GrammarData | null, word: string) {
-  const sense = data ? meaningsOf(data, word)[0] : undefined;
+function firstGloss(
+  data: GrammarData | null,
+  word: string,
+  options: LookupOptions
+) {
+  const sense = data ? meaningsOf(data, word, options)[0] : undefined;
   return sense ? sense.gloss.split(/[;:(]/)[0].trim() : "";
 }
 
 export default function KnownWordsView() {
+  const dictionary = useDictionaryChoice();
   useDocumentTitle("Known words");
   const [query, setQuery] = useState("");
   const [data, setData] = useState<GrammarData | null>(null);
@@ -125,7 +135,8 @@ export default function KnownWordsView() {
           <ul className="known-words__list">
             {rows.map((v) => {
               const forms = v.forms;
-              const gloss = v.translation || firstGloss(data, v.text);
+              const gloss =
+                v.translation || firstGloss(data, v.text, dictionary.lookup);
               return (
                 <li key={v.text} className="known-words__row">
                   <div className="known-words__text">

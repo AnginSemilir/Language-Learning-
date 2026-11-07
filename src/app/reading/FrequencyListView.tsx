@@ -4,11 +4,16 @@
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { Button, SegmentedControl, Text } from "@/components/ui";
 import { deleteVocab, markHeadwordsKnown } from "@/lector/data-layer";
-import { loadGrammar, meaningsOf } from "@/lector/dictionary";
+import {
+  type LookupOptions,
+  loadGrammar,
+  meaningsOf,
+} from "@/lector/dictionary";
 import type { GrammarData } from "@/lector/lemma";
 import type { DisplayState } from "@/lector/reader/useLexicon";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
+import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -36,10 +41,10 @@ const NOISE_GLOSS =
  * "bad" before the verb "can"; one sense per part of speech gives
  * "venom; can, be able".
  */
-function gloss(data: GrammarData | null, word: string) {
+function gloss(data: GrammarData | null, word: string, options: LookupOptions) {
   const byPos = new Map<string, string>();
   for (const { partOfSpeech: pos, gloss: g } of data
-    ? meaningsOf(data, word)
+    ? meaningsOf(data, word, options)
     : []) {
     if (NOISE_POS.has(pos) || NOISE_GLOSS.test(g)) continue;
     const short = g.split(/[;:(]/)[0].trim();
@@ -60,6 +65,7 @@ const LABEL: Record<DisplayState, string> = {
 };
 
 export default function FrequencyListView() {
+  const dictionary = useDictionaryChoice();
   const band = Number(useParams().band) || 1000;
   useDocumentTitle(`Top ${band.toLocaleString()} words`);
   const { ranked, coverage, lexicon, error } = useFrequency();
@@ -175,7 +181,7 @@ export default function FrequencyListView() {
                       </span>
                     )}
                     <span className="frequency-list__gloss">
-                      {gloss(data, r.headword)}
+                      {gloss(data, r.headword, dictionary.lookup)}
                     </span>
                   </span>
                   <span
