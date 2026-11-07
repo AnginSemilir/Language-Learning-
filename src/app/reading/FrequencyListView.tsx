@@ -14,6 +14,10 @@ import type { DisplayState } from "@/lector/reader/useLexicon";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
 import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
+import {
+  IconSortAscendingNumbers,
+  IconSortDescendingNumbers,
+} from "@tabler/icons-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -70,6 +74,7 @@ export default function FrequencyListView() {
   useDocumentTitle(`Top ${band.toLocaleString()} words`);
   const { ranked, coverage, lexicon, error } = useFrequency();
   const [filter, setFilter] = useState<Filter>("all");
+  const [rarestFirst, setRarestFirst] = useState(false);
   const [shown, setShown] = useState(PAGE);
   const [data, setData] = useState<GrammarData | null>(null);
   const explicitKnown = useLiveQuery(
@@ -91,7 +96,7 @@ export default function FrequencyListView() {
   const { stateOf } = lexicon;
   const rows = useMemo(() => {
     const top = (ranked ?? []).slice(0, band);
-    return top
+    const filtered = top
       .map((r) => ({ ...r, state: stateOf(r.headword) }))
       .filter((r) =>
         filter === "all"
@@ -100,7 +105,8 @@ export default function FrequencyListView() {
             ? r.state === "known"
             : r.state !== "known"
       );
-  }, [ranked, band, stateOf, filter]);
+    return rarestFirst ? filtered.reverse() : filtered;
+  }, [ranked, band, stateOf, filter, rarestFirst]);
 
   const known = coverage?.find((c) => c.band === band)?.known;
 
@@ -132,22 +138,42 @@ export default function FrequencyListView() {
             {known !== undefined
               ? `${known.toLocaleString()} of ${band.toLocaleString()} known (${formatPercent(known, band)}). `
               : ""}
-            Most frequent first. Tap a word to mark it known, or tap a known
-            word to unmark it.
+            {rarestFirst ? "Least" : "Most"} frequent first. Tap a word to mark
+            it known, or tap a known word to unmark it.
           </Text>
         </div>
-        <SegmentedControl
-          value={filter}
-          onChange={(v) => {
-            setFilter(v as Filter);
-            setShown(PAGE);
-          }}
-          data={[
-            { value: "all", label: "All" },
-            { value: "unknown", label: "Not known" },
-            { value: "known", label: "Known" },
-          ]}
-        />
+        <div className="frequency-list__controls">
+          <SegmentedControl
+            value={filter}
+            onChange={(v) => {
+              setFilter(v as Filter);
+              setShown(PAGE);
+            }}
+            data={[
+              { value: "all", label: "All" },
+              { value: "unknown", label: "Not known" },
+              { value: "known", label: "Known" },
+            ]}
+          />
+          <Button
+            variant="default"
+            leftSection={
+              // Ranks count down when the rarest come first.
+              rarestFirst ? (
+                <IconSortDescendingNumbers size={18} />
+              ) : (
+                <IconSortAscendingNumbers size={18} />
+              )
+            }
+            onClick={() => {
+              setRarestFirst(!rarestFirst);
+              setShown(PAGE);
+            }}
+            aria-label={`Sorted ${rarestFirst ? "least" : "most"} common first; tap to reverse`}
+          >
+            {rarestFirst ? "Least common first" : "Most common first"}
+          </Button>
+        </div>
         {error && <Text>The word list could not be loaded.</Text>}
         {!ranked && !error && <Text>Loading…</Text>}
         <ul className="frequency-list">
