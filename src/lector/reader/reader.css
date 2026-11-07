@@ -120,3 +120,15 @@
   outline: 2px solid var(--w-active);
   background: color-mix(in srgb, var(--w-active) 22%, transparent);
 }
+
+/* Phrases: the words of one on the user's flashcards are underlined, and a
+   phrase being picked is highlighted as one run, the spaces included. */
+.word-cell--phrase,
+.reader-gap--phrase {
+  text-decoration: underline 2px
+    color-mix(in srgb, var(--w-active) 55%, transparent);
+  text-underline-offset: 0.3em;
+}
+.reader-gap--active {
+  background: color-mix(in srgb, var(--w-active) 22%, transparent);
+}

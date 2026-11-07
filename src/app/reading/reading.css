@@ -498,3 +498,17 @@
   border-color: var(--w-l2-bd);
   color: var(--w-l2-fg);
 }
+
+/* Making a phrase: a phrase the word is in, and the words to add. */
+.word-panel__phrase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Each word's meaning, for a phrase the dictionary doesn't have. */
+.word-panel__glosses {
+  margin: var(--spacing-xs) 0;
+  padding-left: 1.2em;
+  line-height: 1.5;
+}

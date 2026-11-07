@@ -4,8 +4,9 @@
 // up → set its state or save it.
 //
 // New here: lessons are split into pages you swipe through, word states are
-// stored per headword (membeli/dibeli → beli), and moving forward offers to
-// mark the page's untouched words as known, as LingQ does.
+// stored per headword (membeli/dibeli → beli), moving forward offers to mark
+// the page's untouched words as known, as LingQ does, and several words next
+// to each other can be picked as one phrase to make a card ("bulan madu").
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import EmptyNotice from "@/components/EmptyNotice";
 import { notify } from "@/components/Notification";
@@ -19,16 +20,39 @@ import {
   setWordLink,
   touchLesson,
 } from "@/lector/data-layer";
-import { loadGrammar, lookupWord } from "@/lector/dictionary";
-import { addWordAsCard, getLastDeckId } from "@/lector/flashcards";
+import {
+  loadGrammar,
+  lookupPhrase,
+  lookupWord,
+  resolvePhrase,
+} from "@/lector/dictionary";
+import {
+  type CardMatch,
+  addWordAsCard,
+  getLastDeckId,
+} from "@/lector/flashcards";
 import { id as pack } from "@/lector/languages/id/manifest";
 import { countTypedWords } from "@/lector/languages/tokenizer";
 import { fold } from "@/lector/lemma";
 import ReaderArticle, {
   type ActiveReaderWord,
   ReaderTitle,
+  findSentence,
 } from "@/lector/reader/ReaderArticle";
 import { paginate } from "@/lector/reader/paginate";
+import {
+  type BlockWords,
+  type WordPlace,
+  type WordRange,
+  blockWords,
+  grow,
+  phraseAround,
+  phraseInBlock,
+  phraseInSet,
+  phraseText,
+  selectedPhrase,
+  wordCellAt,
+} from "@/lector/reader/phrase";
 import { useLexicon } from "@/lector/reader/useLexicon";
 import { splitWords } from "@/lector/reader/utils";
 import { speak } from "@/lector/tts";
@@ -46,11 +70,42 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppHeaderContent } from "../shell/Header/Header";
 import MarkKnownSheet, { type PageWord } from "./MarkKnownSheet";
-import WordPanel, { type WordPanelData } from "./WordPanel";
+import WordPanel, {
+  firstGloss,
+  type PhrasePanelData,
+  type PhraseTools,
+  type WordPanelData,
+} from "./WordPanel";
 import "./reading.css";
 
 const AUTO_MARK_KEY = "kartu-mark-known";
 const SWIPE_MIN_PX = 50;
+/** The most words a dictionary phrase offered for a tapped word has. */
+const DICTIONARY_PHRASE_WORDS = 5;
+
+/** The tapped word's block, and the words picked in it. */
+interface Picked extends WordRange {
+  blockId: number;
+  /** The tapped word. */
+  origin: number;
+  block: BlockWords;
+  sentence: string;
+  /** A phrase the tapped word is part of; `title` is its card's front. */
+  suggestion?: WordRange & { gloss: string; title?: string; onCard: boolean };
+}
+
+const CLITIC_FORM = new RegExp(
+  `^(${(pack.morphology?.clitics ?? []).join("|")}) form of$`
+);
+
+/** "Bulan madu" → "bulan madu", unless it starts with a name. */
+function cardFront(text: string, startsWithName: boolean) {
+  const first = text.split(" ")[0];
+  if (startsWithName || first.slice(1) !== first.slice(1).toLowerCase()) {
+    return text;
+  }
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
 
 function getAutoMark() {
   try {
@@ -78,6 +133,14 @@ interface Finished {
   nextLessonId?: string;
 }
 
+function cardTitle(card: CardMatch | undefined) {
+  return { gloss: card?.back ?? "", title: card?.front };
+}
+
+function wordAt(picked: Picked, index: number | undefined) {
+  return index === undefined ? undefined : picked.block.words[index];
+}
+
 export default function ReaderView() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
@@ -86,6 +149,8 @@ export default function ReaderView() {
   const [direction, setDirection] = useState<"next" | "prev">("next");
   const [panel, setPanel] = useState<WordPanelData | null>(null);
   const [activeWord, setActiveWord] = useState<ActiveReaderWord | null>(null);
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const [phrase, setPhrase] = useState<PhrasePanelData | null>(null);
   const [prompt, setPrompt] = useState<PageWord[] | null>(null);
   const [finished, setFinished] = useState<Finished | null>(null);
   const [markedThisLesson, setMarkedThisLesson] = useState(0);
@@ -116,9 +181,38 @@ export default function ReaderView() {
 
   const dictionary = useDictionaryChoice();
   const onWordClick = useCallback(
-    async (word: string, sentence: string) => {
-      speak(word);
+    async (
+      word: string,
+      sentence: string,
+      place: WordPlace,
+      { quiet = false } = {}
+    ) => {
+      if (!quiet) speak(word);
       incrementDailyStat("dictionaryLookups");
+      const block = blockWords(place.parts);
+      const at = place.wordIndex;
+      const onCard = phraseAround(
+        block,
+        at,
+        (key) => phraseInSet(lexicon.savedPhrases.keys, key) !== undefined,
+        lexicon.savedPhrases.maxWords
+      );
+      setPicked({
+        blockId: place.blockId,
+        origin: at,
+        from: at,
+        to: at,
+        block,
+        sentence,
+        suggestion: onCard
+          ? {
+              ...onCard,
+              ...cardTitle(lexicon.cardForPhrase(phraseText(block, onCard))),
+              onCard: true,
+            }
+          : undefined,
+      });
+      setPhrase(null);
       const headword = lexicon.headwordOf(word);
       const state = lexicon.stateOf(word);
       setPanel({
@@ -136,12 +230,181 @@ export default function ReaderView() {
       try {
         const entry = await lookupWord(word, dictionary.lookup);
         setPanel((p) => (p && p.word === word ? { ...p, entry } : p));
+        if (onCard) return;
+        // A phrase in the dictionary the word is part of ("bulan" in
+        // "bulan madu").
+        const { data } = await loadGrammar();
+        const found = (key: string) =>
+          !!resolvePhrase(data, key, dictionary.lookup);
+        const inDictionary = phraseAround(
+          block,
+          at,
+          found,
+          DICTIONARY_PHRASE_WORDS
+        );
+        if (!inDictionary) return;
+        const gloss = firstGloss(
+          resolvePhrase(
+            data,
+            phraseText(block, inDictionary),
+            dictionary.lookup
+          )
+        );
+        setPicked((p) =>
+          p && p.block === block
+            ? { ...p, suggestion: { ...inDictionary, gloss, onCard: false } }
+            : p
+        );
       } catch {
         setPanel((p) => (p && p.word === word ? { ...p, entry: "error" } : p));
       }
     },
     [lexicon, dictionary.lookup]
   );
+
+  /** Show the picked words as one phrase, and look it up. */
+  const pickPhrase = useCallback(
+    async (range: WordRange, { quiet = false } = {}) => {
+      if (!picked) return;
+      const text = phraseText(picked.block, range);
+      setPicked({ ...picked, ...range });
+      setActiveWord({
+        blockId: picked.blockId,
+        wordIndex: range.from,
+        endIndex: range.to,
+      });
+      if (range.from === range.to) {
+        setPhrase(null);
+        return;
+      }
+      if (!quiet) speak(text);
+      setPhrase({
+        text,
+        sentence: picked.sentence,
+        entry: "loading",
+        card: lexicon.cardForPhrase(text),
+      });
+      const update = (change: Partial<PhrasePanelData>) =>
+        setPhrase((p) => (p && p.text === text ? { ...p, ...change } : p));
+      try {
+        const entry = await lookupPhrase(text, dictionary.lookup);
+        update({ entry });
+        if (entry) return;
+        const words = picked.block.words.slice(range.from, range.to + 1);
+        const glosses = await Promise.all(
+          words.map(async (word) => ({
+            word,
+            gloss: firstGloss(await lookupWord(word, dictionary.lookup)),
+          }))
+        );
+        update({ glosses });
+      } catch {
+        update({ entry: "error" });
+      }
+    },
+    [picked, lexicon, dictionary.lookup]
+  );
+
+  // Desktop: dragging from one word to another picks them as a phrase. The
+  // block is kept by its id: highlighting the words re-renders the blocks.
+  const drag = useRef<{ blockId: number; start: number; end: number } | null>(
+    null
+  );
+
+  const openDragged = (found: ReturnType<typeof phraseInBlock>) => {
+    const block = blockWords(found.parts);
+    onWordClick(
+      block.words[found.range.from],
+      findSentence(found.first),
+      {
+        blockId: found.blockId,
+        wordIndex: found.range.from,
+        parts: found.parts,
+      },
+      { quiet: true }
+    );
+    setPendingRange(found.range);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    drag.current = null;
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    const at = wordCellAt(e.target);
+    if (!at) return;
+    const blockId = Number(at.block.dataset.blockId);
+    drag.current = { blockId, start: at.index, end: at.index };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const current = drag.current;
+    if (!current || e.pointerType !== "mouse") return;
+    const at = wordCellAt(e.target);
+    if (!at || Number(at.block.dataset.blockId) !== current.blockId) return;
+    if (at.index === current.end) return;
+    current.end = at.index;
+    setActiveWord({
+      blockId: current.blockId,
+      wordIndex: Math.min(current.start, current.end),
+      endIndex: Math.max(current.start, current.end),
+    });
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    const current = drag.current;
+    drag.current = null;
+    if (e.pointerType !== "mouse") return;
+    const block =
+      current &&
+      current.end !== current.start &&
+      (e.currentTarget as HTMLElement).querySelector<HTMLElement>(
+        `[data-block-id="${current.blockId}"]`
+      );
+    if (current && block) {
+      openDragged(phraseInBlock(block, current.start, current.end));
+      return;
+    }
+    // A selection begun between words.
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) return;
+    const found = selectedPhrase(selection.getRangeAt(0));
+    if (!found) return;
+    selection.removeAllRanges();
+    openDragged(found);
+  };
+
+  // The phrase picked by dragging, once the first word's panel is set up.
+  const [pendingRange, setPendingRange] = useState<WordRange | null>(null);
+  useEffect(() => {
+    if (!pendingRange || !picked) return;
+    setPendingRange(null);
+    pickPhrase(pendingRange);
+  }, [pendingRange, picked, pickPhrase]);
+
+  const phraseTools: PhraseTools | null = picked
+    ? {
+        before: wordAt(picked, grow(picked.block, picked, "before")?.from),
+        after: wordAt(picked, grow(picked.block, picked, "after")?.to),
+        suggestion: picked.suggestion && {
+          text:
+            picked.suggestion.title ??
+            phraseText(picked.block, picked.suggestion),
+          gloss: picked.suggestion.gloss,
+          onCard: picked.suggestion.onCard,
+        },
+        onGrow: (side) => {
+          const range = grow(picked.block, picked, side);
+          if (range) pickPhrase(range);
+        },
+        onOpenSuggestion: () => {
+          if (picked.suggestion) pickPhrase(picked.suggestion);
+        },
+        onReset: () =>
+          pickPhrase(
+            { from: picked.origin, to: picked.origin },
+            { quiet: true }
+          ),
+      }
+    : null;
 
   // Keep the open panel in step with grouping and state changes.
   const { stateOf, headwordOf, linkOf } = lexicon;
@@ -166,6 +429,8 @@ export default function ReaderView() {
 
   const closePanel = () => {
     setPanel(null);
+    setPhrase(null);
+    setPicked(null);
     setActiveWord(null);
   };
 
@@ -193,7 +458,31 @@ export default function ReaderView() {
     if (state === "known" || state === "ignored") closePanel();
   };
 
+  const addPhraseCard = async (
+    shown: PhrasePanelData,
+    translation: string,
+    deckId: string | null
+  ) => {
+    const first = shown.text.split(" ")[0];
+    // "bulan madunya" makes a card for "bulan madu".
+    const info =
+      typeof shown.entry === "object" ? shown.entry.lemmaInfo : undefined;
+    const front =
+      info && CLITIC_FORM.test(info.label)
+        ? info.stem
+        : cardFront(shown.text, lexicon.isName(first));
+    const { deckName } = await addWordAsCard({
+      word: front,
+      translation,
+      sentence: shown.sentence,
+      deckId,
+    });
+    notify("Card added", `“${front}” added to ${deckName}.`, "success");
+    closePanel();
+  };
+
   const addCard = async (translation: string, deckId: string | null) => {
+    if (phrase) return addPhraseCard(phrase, translation, deckId);
     if (!panel) return;
     const { noteId, deckName } = await addWordAsCard({
       word: panel.word,
@@ -404,6 +693,9 @@ export default function ReaderView() {
           className="reading-view"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
         >
           {lesson && (
             <>
@@ -415,6 +707,7 @@ export default function ReaderView() {
                       className="reading-view__title"
                       stateOf={lexicon.stateOf}
                       activeWord={activeWord}
+                      savedPhrases={lexicon.savedPhrases}
                       onWordClick={onWordClick}
                       onActivateWord={setActiveWord}
                     />
@@ -432,6 +725,7 @@ export default function ReaderView() {
                   content={pages[page] ?? ""}
                   stateOf={lexicon.stateOf}
                   activeWord={activeWord}
+                  savedPhrases={lexicon.savedPhrases}
                   onWordClick={onWordClick}
                   onActivateWord={setActiveWord}
                 />
@@ -466,6 +760,8 @@ export default function ReaderView() {
 
       <WordPanel
         data={panel}
+        phrase={phrase}
+        phraseTools={phraseTools}
         decks={decks ?? []}
         defaultDeckId={getLastDeckId()}
         onClose={closePanel}

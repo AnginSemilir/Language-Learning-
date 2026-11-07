@@ -95,6 +95,16 @@ export function fold(word: string) {
   return foldWord(word, pack);
 }
 
+/**
+ * Several words as one lookup key: folded, single spaces, no punctuation at
+ * either end ("Bulan  madu," → "bulan madu").
+ */
+export function phraseKey(text: string) {
+  return foldWord(text, pack)
+    .replace(/\s+/g, " ")
+    .replace(/^[\s\p{P}]+|[\s\p{P}]+$/gu, "");
+}
+
 export function createLemmatizer(data: GrammarData): Lemmatizer {
   const roots = new Set(Object.keys(data.e));
   for (const form of Object.keys(data.i)) roots.delete(form);

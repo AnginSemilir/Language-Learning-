@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { resolveWord, rootsByForm } from "./dictionary";
+import { resolvePhrase, resolveWord, rootsByForm } from "./dictionary";
 import { DICTIONARY_LINKS } from "./dictionaryLinks";
 import { createLemmatizer } from "./lemma";
 
@@ -107,5 +107,27 @@ describe("resolveWord (Indonesian)", () => {
 
   it("returns undefined for nonsense", () => {
     expect(resolveWord(data, "qzxqzx")).toBeUndefined();
+  });
+});
+
+describe("resolvePhrase", () => {
+  it("finds several words' entry, whatever the case and spacing", () => {
+    const e = resolvePhrase(data, "Bulan  madu");
+    expect(e?.word).toBe("bulan madu");
+    expect(e?.senses[0].gloss).toMatch(/honeymoon/);
+    expect(
+      resolvePhrase(data, "kambing hitam,")?.senses.map((s) => s.gloss)
+    ).toContain("scapegoat");
+  });
+
+  it("finds the phrase without a clitic on its last word", () => {
+    const e = resolvePhrase(data, "bulan madunya");
+    expect(e?.word).toBe("bulan madu");
+    expect(e?.lemmaInfo).toEqual({ label: "nya form of", stem: "bulan madu" });
+  });
+
+  it("is for phrases only", () => {
+    expect(resolvePhrase(data, "bulan")).toBeUndefined();
+    expect(resolvePhrase(data, "bulan purnama madu")).toBeUndefined();
   });
 });
