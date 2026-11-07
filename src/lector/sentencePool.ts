@@ -11,7 +11,7 @@
 // downloaded files for offline use (see vite.config.ts).
 
 /** Bump when the pool is rebuilt, so cached files from the old build are not reused. */
-export const POOL_VERSION = 3;
+export const POOL_VERSION = 4;
 export const SHARD_COUNT = 512;
 
 /**

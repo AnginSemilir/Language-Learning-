@@ -22,6 +22,9 @@
 // Wiktionary ahead of the parallel corpora), then machine translations that
 // pass the meaning check for that word (src/lector/meaningCheck.ts), then
 // untranslated ones; within each, fewer rare words and shorter is better.
+//
+// Reduplicated words written with spaces round the hyphen ("anak - anak")
+// are joined up first (src/lector/spacedHyphens.ts).
 
 import {
   createReadStream,
@@ -44,6 +47,7 @@ import {
   shardFile,
   shardOf,
 } from "../src/lector/sentencePool";
+import { joinSpacedHyphens } from "../src/lector/spacedHyphens";
 
 /** Sentences kept for each of the 5,000 most frequent words. */
 const PER_COMMON_WORD = 20;
@@ -84,16 +88,19 @@ function lines(path: string) {
   });
 }
 
-/** Machine translations: Indonesian sentence → English. */
+const data = JSON.parse(readFileSync("public/data/dictionary-id.json", "utf8"));
+/** Sentences as the pool shows them. */
+const tidy = (text: string) => joinSpacedHyphens(text, data.e);
+
+/** Machine translations: Indonesian sentence (tidied) → English. */
 const machine = new Map<string, string>();
 if (mtPath) {
   for await (const line of lines(mtPath)) {
     const [text, english] = line.split("\t");
-    if (english) machine.set(text, english);
+    if (english) machine.set(tidy(text), english);
   }
 }
 
-const data = JSON.parse(readFileSync("public/data/dictionary-id.json", "utf8"));
 const freq: string[] = JSON.parse(
   readFileSync("public/data/frequency-id.json", "utf8")
 ).words;
@@ -166,11 +173,12 @@ interface Parsed {
 async function* sentences(): AsyncGenerator<Parsed> {
   const seen = new Set<number>();
   for await (const line of lines(input)) {
-    const [source, text, translation = ""] = line.split("\t") as [
+    const [source, raw, translation = ""] = line.split("\t") as [
       PoolSource,
       string,
       string?,
     ];
+    const text = tidy(raw);
     const tokens = tokenizeWords(text, pack);
     if (!usable(source, text, tokens.length)) continue;
     const folded = tokens.map((t) => fold(t.text));
