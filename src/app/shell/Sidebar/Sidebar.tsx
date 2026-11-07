@@ -5,6 +5,7 @@ import { setColorScheme, useIsDark } from "@/hooks/useTheme";
 import { breakpoints } from "@/lib/breakpoints";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
+  IconBolt,
   IconBook,
   IconCards,
   IconChartBar,
@@ -99,6 +100,13 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               label={t("home.title")}
               path="/home"
               icon={<IconHome />}
+              collapsed={minimalMode}
+              onClick={close}
+            />
+            <NavItem
+              label="Flashcards"
+              path="/flashcards"
+              icon={<IconBolt />}
               collapsed={minimalMode}
               onClick={close}
             />

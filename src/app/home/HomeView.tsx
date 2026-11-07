@@ -3,11 +3,8 @@ import EmptyNotice from "@/components/EmptyNotice";
 import { Button, Kbd, Tooltip } from "@/components/ui";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
-import { getCardsOf } from "@/logic/card/getCardsOf";
-import { buildDailyQueue } from "@/logic/dailyQueue";
-import type { Deck } from "@/logic/deck/deck";
+import { useDueToday } from "@/logic/deck/hooks/useDueToday";
 import { useTopLevelDecks } from "@/logic/deck/hooks/useTopLevelDecks";
-import { getDailyLimits } from "@/logic/settings/dailyLimits";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
 import {
   IconBolt,
@@ -19,7 +16,6 @@ import {
   IconPlus,
   IconSparkles,
 } from "@tabler/icons-react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -40,24 +36,6 @@ function greeting(hour: number): [string, string] {
   if (hour >= 10 && hour < 15) return ["Selamat siang", "Good day"];
   if (hour >= 15 && hour < 18) return ["Selamat sore", "Good afternoon"];
   return ["Selamat malam", "Good evening"];
-}
-
-/** Cards to study today across your decks, and the deck with the most. */
-function useDueToday(decks: Deck[] | undefined) {
-  return useLiveQuery(async () => {
-    if (!decks) return undefined;
-    const limits = await getDailyLimits();
-    let total = 0;
-    let top: { deck: Deck; count: number } | undefined;
-    for (const deck of decks) {
-      const queue = buildDailyQueue((await getCardsOf(deck)) ?? [], limits);
-      const count =
-        queue.newCards.length + queue.reviews.length + queue.learning.length;
-      total += count;
-      if (count > (top?.count ?? 0)) top = { deck, count };
-    }
-    return { total, deck: top?.deck };
-  }, [decks]);
 }
 
 function Action({
