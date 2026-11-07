@@ -31,6 +31,10 @@ describe("hasMeaning", () => {
     );
   });
 
+  it("copes with gloss words that are names of object properties", () => {
+    expect(hasMeaning("He is a constructor.", ["constructor"])).toBe(true);
+  });
+
   it("uses only the first four senses", () => {
     const glosses = ["one", "two", "three", "four", "hospital"];
     expect(hasMeaning("He is in hospital.", glosses)).toBe(false);
