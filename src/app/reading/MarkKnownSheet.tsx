@@ -87,8 +87,8 @@ export default function MarkKnownSheet({
               variant="primary"
               onClick={() => onConfirm(selected, always)}
             >
-              Mark {selected.length} known
-              {isLastPage ? " and finish" : " and continue"}
+              {/* One string: the React Compiler drops the space in "Mark {n}". */}
+              {`Mark ${selected.length} known ${isLastPage ? "and finish" : "and continue"}`}
             </Button>
           </Group>
         </Stack>
