@@ -68,14 +68,24 @@
   background-color: var(--theme-sky-200);
 }
 
+/* Phones: as tall as the footer makes them (LearnViewFooter.css). The time
+   can take two lines ("in 10 min."), so it sits at the top and the label at
+   the bottom, level across the four buttons. */
 @media (max-width: 768px) {
   .answer-card-button {
-    height: 4rem;
-    gap: 2px;
+    height: var(--learn-button-height, 4rem);
+    justify-content: space-between;
+    padding: 0.5rem 0.25rem;
   }
 
+  .answer-card-button__time-info {
+    font-size: 0.9rem;
+    line-height: 1.15;
+  }
+
+  /* A little smaller on narrow phones, so "Again" still fits. */
   .answer-card-button__label {
-    font-size: var(--font-size-lg);
+    font-size: min(1.35rem, 5.5vw);
   }
 }
 

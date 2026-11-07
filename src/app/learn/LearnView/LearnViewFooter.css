@@ -22,16 +22,22 @@
   height: 2.5rem;
 }
 
-/* Bigger targets on phones: rating buttons ~64px, Show answer full width. */
+/* Big targets on phones, using some of the empty space above: about a
+   tenth of the screen's height. Show answer is as tall as the rating
+   buttons, so the card doesn't move when the answer appears. */
 @media (max-width: 768px) {
+  .learn-view-footer {
+    --learn-button-height: clamp(4.75rem, 11vh, 6rem);
+  }
+
   .learn-view-footer__buttons {
     gap: var(--spacing-sm);
   }
 
   .learn-view-footer__show-answer {
     width: 100%;
-    height: 3.5rem;
-    font-size: var(--font-size-lg);
+    height: var(--learn-button-height);
+    font-size: 1.35rem;
   }
 }
 
@@ -84,13 +90,18 @@
     justify-content: center;
     flex: 0 0 3rem;
     align-self: stretch;
-    min-height: 3.5rem;
+    min-height: var(--learn-button-height);
     padding: 0;
     border: 1px solid var(--theme-neutral-300);
     border-radius: var(--radius-md);
     background: var(--theme-neutral-100);
     color: var(--theme-neutral-700);
     cursor: pointer;
+  }
+
+  .learn-view-footer__back svg {
+    width: 1.75rem;
+    height: 1.75rem;
   }
 
   .learn-view-footer__back:disabled {
