@@ -153,9 +153,16 @@ export function FirstVisit({
   items: Found[];
   onDone: () => void;
 }) {
-  const shown = items.filter((f) => f.kind !== "level").slice(0, SUMMARY_LIMIT);
-  const levels = items.filter((f) => f.kind === "level").length;
-  const more = items.length - levels - shown.length;
+  const finds = items.filter((f) => f.kind !== "level");
+  // The proverbs share one tile, so the summary isn't a row of bottles.
+  const proverbs = finds.filter((f) => f.kind === "proverb");
+  const tiles = finds.filter((f) => f.kind !== "proverb" || f === proverbs[0]);
+  const shown = tiles.slice(0, SUMMARY_LIMIT);
+  const more = tiles.length - shown.length;
+  const label = (f: Found) => {
+    if (f.kind !== "proverb") return f.word;
+    return proverbs.length > 1 ? `${proverbs.length} peribahasa` : "peribahasa";
+  };
   return (
     <Overlay label="Kejutan" onClose={onDone}>
       <p className="kejutan__kicker">
@@ -167,9 +174,7 @@ export function FirstVisit({
         {shown.map((f) => (
           <li key={f.id}>
             <DiscoveryArt id={artFor(f.id, f.word)} />
-            <span lang="id">
-              {f.kind === "proverb" ? "peribahasa" : f.word}
-            </span>
+            <span lang="id">{label(f)}</span>
           </li>
         ))}
       </ul>
