@@ -3,6 +3,7 @@ import App from "@/App";
 import DeckView from "@/app/deck/DeckView";
 import NewNotesView from "@/app/editor/NewNotesView";
 import NoteExplorerView from "@/app/explorer/NoteExplorerView";
+import FlashcardsView from "@/app/flashcards/FlashcardsView";
 import GamesView from "@/app/games/GamesView";
 import HomeView from "@/app/home/HomeView";
 import LearnView from "@/app/learn/LearnView/LearnView";
@@ -51,6 +52,10 @@ const router = createHashRouter(
         {
           path: "/home",
           element: <HomeView />,
+        },
+        {
+          path: "/flashcards",
+          element: <FlashcardsView />,
         },
         {
           path: "/settings/:section?",
