@@ -71,6 +71,10 @@ export default function AboutSettingsView() {
           cut down to their headline and story with Mozilla Readability
           (Apache-2.0).
         </li>
+        <li>
+          Explanations come from Claude Haiku 5.5 through Anthropic's API, with
+          your own key, using Anthropic's TypeScript SDK (MIT).
+        </li>
       </ul>
       <p>
         This app is AGPL-3.0 licensed.{" "}

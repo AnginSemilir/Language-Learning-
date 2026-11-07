@@ -82,3 +82,10 @@
     padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
   }
 }
+
+/* "Explain" under the answer: Claude's explanation of the card. */
+.learn-view__explain {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-xs);
+}

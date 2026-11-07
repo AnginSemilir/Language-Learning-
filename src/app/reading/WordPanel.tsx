@@ -4,6 +4,8 @@
 // it saves the word to a Skola deck instead of Lector's Anki export. So are
 // phrases: the word can grow into the words around it ("bulan madu") to make
 // one card.
+
+import Explanation from "@/app/explain/Explanation";
 import {
   Button,
   Group,
@@ -27,6 +29,7 @@ import {
   IconCheck,
   IconExternalLink,
   IconEyeOff,
+  IconSparkles,
   IconVolume,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -276,6 +279,13 @@ export default function WordPanel({
   const [translation, setTranslation] = useState("");
   const [deckId, setDeckId] = useState<string | null>(defaultDeckId);
   const [saving, setSaving] = useState(false);
+  // Claude's explanation, asked for with the Explain button; closed again
+  // for the next word or phrase.
+  const [explaining, setExplaining] = useState(false);
+  const asked = phrase?.text ?? data?.word;
+  useEffect(() => {
+    if (asked !== undefined) setExplaining(false);
+  }, [asked]);
 
   useEffect(() => {
     const shown = phrase ?? data;
@@ -290,6 +300,16 @@ export default function WordPanel({
   const grouped = !!data && data.headword !== surface;
   const related = !!data && !grouped && data.root !== surface;
   const card = phrase ? phrase.card : data?.card;
+  const explainButton = !explaining && (
+    <Button
+      variant="ghost"
+      size="sm"
+      leftSection={<IconSparkles size={16} />}
+      onClick={() => setExplaining(true)}
+    >
+      Explain
+    </Button>
+  );
   const phraseRow = data && phraseTools && (
     <PhraseRow tools={phraseTools} word={data.word} inPhrase={!!phrase} />
   );
@@ -321,7 +341,17 @@ export default function WordPanel({
                     Sentence
                   </Button>
                 )}
+                {explainButton}
               </Group>
+              {explaining && (
+                <Explanation
+                  input={{
+                    kind: "word",
+                    text: phrase.text,
+                    sentence: phrase.sentence,
+                  }}
+                />
+              )}
               {phraseRow}
               {phrase.card && (
                 <div className="word-panel__card">
@@ -362,7 +392,17 @@ export default function WordPanel({
                     Sentence
                   </Button>
                 )}
+                {explainButton}
               </Group>
+              {explaining && (
+                <Explanation
+                  input={{
+                    kind: "word",
+                    text: data.word,
+                    sentence: data.sentence,
+                  }}
+                />
+              )}
 
               {(grouped || related || data.derivedFrom || data.isName) && (
                 <div className="word-panel__grammar">

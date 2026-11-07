@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import FinishedLearningView from "../FinishedLearningView/FinishedLearningView";
 import LearnViewCurrentCardStateIndicator from "../LearnViewCurrentCardStateIndicator/LearnViewCurrentCardStateIndicator";
 import CognitivePromptConnector from "./CognitivePromptConnector";
+import ExplainCard from "./ExplainCard";
 import "./LearnView.css";
 import LearnViewDailyProgress from "./LearnViewDailyProgress";
 import LearnViewFooter from "./LearnViewFooter";
@@ -91,6 +92,13 @@ function LearnView() {
                   cardContent
                 )}
             </Paper>
+            {controller.showingAnswer &&
+              typeof controller.currentCard?.note === "string" && (
+                <ExplainCard
+                  noteId={controller.currentCard.note}
+                  content={cardContent}
+                />
+              )}
             {showCognitivePrompts && controller.showingAnswer && (
               <>
                 {showPrompts && (
