@@ -22,15 +22,15 @@ Download into one directory (sources that are missing are skipped):
   curl -o GlobalVoices-en-id.txt.zip https://object.pouta.csc.fi/OPUS-GlobalVoices/v2018q4/moses/en-id.txt.zip
   # TICO-19 (CC0)
   curl -O https://tico-19.github.io/data/tico19-testset.zip
-  # Not used: OpenSubtitles v2018 via OPUS. Its translations are often
-  # unrelated to the Indonesian line ("Pemikat wanita apanya." / "Man, sit
-  # your candy-ass down."), and it has no stated licence. To try it anyway,
-  # download it and run with WITH_OPENSUBTITLES=1:
-  # curl -o OpenSubtitles-en-id.txt.zip https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-id.txt.zip
+  # OpenSubtitles v2018 via OPUS: Indonesian lines only. Its English lines are
+  # often unrelated to the Indonesian ("Pemikat wanita apanya." / "Man, sit
+  # your candy-ass down."), so they are dropped and the pool shows a machine
+  # translation instead (see scripts/translate/). No stated licence.
+  curl -o OpenSubtitles-en-id.txt.zip https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/moses/en-id.txt.zip
 
 Usage: python3 scripts/extract-sentences.py <download dir> <out.tsv>
 Output columns: source code (see src/lector/sentencePool.ts), Indonesian,
-English (may be empty).
+English (empty when the source has no human translation).
 """
 
 import bz2
@@ -188,17 +188,17 @@ with open(out_path, "w", encoding="utf-8") as out:
                     if len(cols) >= 4:
                         write(out, "c", cols[3], cols[2])
 
-    # OpenSubtitles (OPUS): off unless asked for (see the header). Subtitle
-    # lines often have a space before punctuation ("Kami menyelesaikan ini .").
-    if os.environ.get("WITH_OPENSUBTITLES") and have("OpenSubtitles-en-id.txt.zip"):
+    # OpenSubtitles (OPUS): the Indonesian side only (see the header). Subtitle
+    # lines often have a space before punctuation ("Kami menyelesaikan ini .");
+    # lines starting with "-" are two speakers' lines run together.
+    if have("OpenSubtitles-en-id.txt.zip"):
         space_before = re.compile(r"\s+([.,!?;:])")
         with zipfile.ZipFile(path("OpenSubtitles-en-id.txt.zip")) as z:
-            with z.open("OpenSubtitles.en-id.id") as fi, z.open("OpenSubtitles.en-id.en") as fe:
-                for i, e in zip(fi, fe):
-                    i = space_before.sub(r"\1", i.decode("utf-8").strip())
-                    e = space_before.sub(r"\1", e.decode("utf-8").strip())
-                    if i and e and not i.startswith("-") and plausible(i, e):
-                        write(out, "o", i, e)
+            with z.open("OpenSubtitles.en-id.id") as f:
+                for raw in f:
+                    i = space_before.sub(r"\1", raw.decode("utf-8").strip())
+                    if i and not i.startswith("-"):
+                        write(out, "o", i, "")
 
     # Leipzig: "<id>\t<sentence>" in the *-sentences.txt member of each archive.
     for name, source in [("ind_news_2023_1M", "n"), ("ind_wikipedia_2021_1M", "p")]:

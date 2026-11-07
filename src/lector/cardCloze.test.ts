@@ -132,6 +132,27 @@ describe("pickSentence", () => {
     ).toBe(b.text);
   });
 
+  it("prefers a human translation to a machine one", () => {
+    const machine = {
+      ...candidate("Aku makan.", "I eat."),
+      machine: true,
+    };
+    // Both have one other word; a person's translation wins the tie.
+    const human = candidate("Kami makan.", "We eat.");
+    const pick = pickSentence(
+      makan,
+      [machine, human],
+      undefined,
+      new Set(),
+      lex
+    );
+    expect(pick?.sentence).toBe(human.text);
+    expect(pick?.machineTranslation).toBeUndefined();
+    const only = pickSentence(makan, [machine, b], undefined, new Set(), lex);
+    expect(only?.sentence).toBe(machine.text);
+    expect(only?.machineTranslation).toBe(true);
+  });
+
   it("shows the card's own example first", () => {
     const own = {
       ...candidate("Kami makan bersama."),

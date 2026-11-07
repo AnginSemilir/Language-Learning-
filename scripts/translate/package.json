@@ -1,0 +1,9 @@
+{
+  "name": "translate-sentences",
+  "private": true,
+  "description": "Machine translation for the sentence pool (see translate-sentences.mjs). Kept apart from the app, whose install it would slow down.",
+  "type": "module",
+  "dependencies": {
+    "@huggingface/transformers": "3.8.1"
+  }
+}

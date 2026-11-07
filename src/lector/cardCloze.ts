@@ -59,8 +59,8 @@ interface Candidate {
   translation: string;
   source: ClozeSource;
   sourceName: string;
-  /** Picked after the others: OpenSubtitles, whose translations are loose. */
-  lowPriority?: boolean;
+  /** The English is a machine translation: picked after human ones. */
+  machine?: boolean;
 }
 
 function poolSource(source: PoolSource): ClozeSource {
@@ -207,14 +207,16 @@ async function poolCandidates(
   const candidates: Candidate[] = [];
   let failed = false;
   try {
-    for (const [text, translation, source] of await poolSentences(word.key)) {
+    for (const [text, translation, source, machine] of await poolSentences(
+      word.key
+    )) {
       candidates.push({
         id: sentenceKey(text),
         text,
         translation,
         source: poolSource(source),
         sourceName: POOL_SOURCE_LABEL[source] ?? "",
-        lowPriority: source === "o",
+        machine: machine === 1,
       });
     }
   } catch {
@@ -249,6 +251,7 @@ function toCloze(
     // span (a phrase, a hyphenated word) rather than one whitespace token.
     tokens: [text.slice(0, span.start), gap, text.slice(span.end)],
     translation: candidate.translation,
+    machineTranslation: candidate.machine || undefined,
     source: candidate.source,
     sourceName: candidate.sourceName,
     collection: "cards",
@@ -267,7 +270,8 @@ function toCloze(
 /**
  * The sentence to show: not hidden, not shown recently (the oldest-seen one
  * if all have been), the card's own example first, then the one with the
- * fewest words you don't know, translated if possible.
+ * fewest words you don't know, translated if possible (by a person rather
+ * than a machine).
  */
 export function pickSentence(
   word: CardWord,
@@ -289,8 +293,10 @@ export function pickSentence(
     const own = candidate.source === "card";
     const score =
       (seen >= 0 ? 1000 + seen * 10 : 0) +
-      (own ? -100 : unknown * 2 + (candidate.translation ? 0 : 3)) +
-      (candidate.lowPriority ? 6 : 0) +
+      (own
+        ? -100
+        : unknown * 2 +
+          (candidate.translation ? (candidate.machine ? 1 : 0) : 3)) +
       index * 0.25;
     if (!best || score < best.score) best = { score, candidate, span };
   }
