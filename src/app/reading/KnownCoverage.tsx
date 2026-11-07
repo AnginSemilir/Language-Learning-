@@ -1,6 +1,7 @@
-// How many of the top 1,000 / 2,000 / 5,000 Indonesian words you know.
+// How many of the top 1,000 / 2,000 / 5,000 / 10,000 Indonesian words you know.
 // Each row opens the list of those words by frequency.
 import { Progress, Text } from "@/components/ui";
+import { BANDS } from "@/lector/frequency";
 import { IconChevronRight } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import type { BandCoverage } from "./useFrequency";
@@ -25,7 +26,7 @@ export default function KnownCoverage({
   }
   return (
     <div className="known-coverage">
-      {(coverage ?? [1000, 2000, 5000].map((band) => ({ band, known: 0 }))).map(
+      {(coverage ?? BANDS.map((band) => ({ band, known: 0 }))).map(
         ({ band, known }) => {
           const pct = Math.round((known / band) * 100);
           return (
@@ -37,7 +38,8 @@ export default function KnownCoverage({
               disabled={!coverage}
             >
               <span className="known-coverage__label">
-                Top {band.toLocaleString()} words
+                {/* One string: the React Compiler dropped the space in "Top {band}". */}
+                {`Top ${band.toLocaleString()} words`}
               </span>
               <span className="known-coverage__value">
                 {coverage ? formatPercent(known, band) : "…"}

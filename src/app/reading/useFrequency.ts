@@ -1,4 +1,4 @@
-// Ranked frequency list plus how many of the top 1,000 / 2,000 / 5,000 words
+// Ranked frequency list plus how many of the top 1,000 / 2,000 / 5,000 / 10,000 words
 // you know, using the reader's own word states (including mature flashcards).
 import {
   BANDS,

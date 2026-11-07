@@ -94,7 +94,7 @@ talked to its server were rewritten to use the browser database
 - **Known words.** Words marked known while reading, plus flashcard words
   you've learned (the Indonesian → English card reviewed with a gap of 21
   days or more, Anki's "mature"). Shows how many of the top 1,000 / 2,000 /
-  5,000 Indonesian words you know; tap a band to see those words by
+  5,000 / 10,000 Indonesian words you know; tap a band to see those words by
   frequency and mark them known or not. Frequency data:
   [wordfreq](https://github.com/rspeer/wordfreq) (data CC BY-SA 4.0), built
   with `scripts/build-frequency-json.py`.
@@ -153,19 +153,24 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   `dict-id-2026-08-21` release, converted with
   `scripts/build-dictionary-json.py`, which also extracts verb forms, derived
   nouns and names from the entries' etymologies. Words it lacks are added by
-  `scripts/build-dictionary-extra.py` (6,110 words, only ones that occur in
+  `scripts/build-dictionary-extra.py` (5,748 words, only ones that occur in
   the Leipzig corpora): Wiktionary's Malay entries (CC BY-SA), which cover
   many words Indonesian shares with Malay (cemburu, entah, begini);
   [Wordnet Bahasa](https://wn-msa.sourceforge.net/) (Francis Bond et al., MIT)
   with English [WordNet](https://wordnet.princeton.edu/) 3.0 (WordNet
   licence), for derived words (pertunjukan, membutuhkan), shown as approximate
-  meanings; and a short list of everyday spoken words (sih, kagak, gitu). An
+  meanings; and a short list of everyday spoken words (sih, kagak, gitu). It
+  also puts a word's own meaning first where initialisms or a name crowded it
+  out of the four senses kept (api: fire, antara: among, si). An
   entry that only points to another word ("active of lihat") shows that
   word's meanings, and a word in none of them shows its root's, marked as a
   guess.
-- `public/data/frequency-id.json`: the 9,000 most frequent Indonesian word
-  forms in the dictionary, from [wordfreq](https://github.com/rspeer/wordfreq)
-  3.1.1 (data CC BY-SA 4.0).
+- `public/data/frequency-id.json`: the 14,500 most frequent Indonesian word
+  forms in the dictionary (about 12,000 distinct words), from
+  [wordfreq](https://github.com/rspeer/wordfreq) 3.1.1 (data CC BY-SA 4.0).
+  Single letters, short abbreviations (rp, yg) and words that are clearly
+  English or another European language (to, we, but) are left out; see
+  `scripts/build-frequency-json.py`.
 - `public/data/sentences/`: up to 20 example sentences for each of about
   35,000 Indonesian words and phrases (20 for the 5,000 most frequent
   words), split into 512 files by word. Built with

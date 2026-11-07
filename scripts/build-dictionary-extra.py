@@ -21,6 +21,7 @@ word lists) are added, so Malaysia-only words and stray Wordnet lemmas stay
 out.
 
 Inputs (download commands):
+  curl -O https://kaikki.org/dictionary/Indonesian/kaikki.org-dictionary-Indonesian.jsonl
   curl -O https://kaikki.org/dictionary/Malay/kaikki.org-dictionary-Malay.jsonl
   curl -O https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/omw-1.4.zip
   curl -O https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip
@@ -29,7 +30,8 @@ Inputs (download commands):
   from https://wortschatz.uni-leipzig.de/en/download/Indonesian
 
 Usage:
-  python3 scripts/build-dictionary-extra.py kaikki.org-dictionary-Malay.jsonl \\
+  python3 scripts/build-dictionary-extra.py kaikki.org-dictionary-Indonesian.jsonl \\
+    kaikki.org-dictionary-Malay.jsonl \\
     omw-1.4/msa/wn-data-ind.tab wordnet/ ind_news_2023_1M-words.txt \\
     ind_wikipedia_2021_1M-words.txt [public/data/dictionary-id.json]
 """
@@ -45,7 +47,7 @@ WORDNET_SENSES = 2
 ENGLISH_WORDS = 3
 MIN_USES = 3
 
-malay_path, wn_path, pwn_dir, *rest = sys.argv[1:]
+indonesian_path, malay_path, wn_path, pwn_dir, *rest = sys.argv[1:]
 freq_paths = [p for p in rest if p.endswith(".txt")]
 dict_path = next(
     (p for p in rest if p.endswith(".json")), "public/data/dictionary-id.json"
@@ -55,16 +57,28 @@ data = json.load(open(dict_path, encoding="utf8"))
 known = set(data["e"]) | set(data["p"])
 WORD = re.compile(r"^[a-z]+(?:-[a-z]+)*$")
 
-uses = collections.Counter()
+uses = collections.Counter()  # in lower case
+capitalised = collections.Counter()
 for path in freq_paths:
     for line in open(path, encoding="utf8"):
         parts = line.rstrip("\n").split("\t")
-        if len(parts) == 3 and WORD.match(parts[1]):
+        if len(parts) != 3:
+            continue
+        if WORD.match(parts[1]):
             uses[parts[1]] += int(parts[2])
+        elif WORD.match(parts[1].lower()):
+            capitalised[parts[1].lower()] += int(parts[2])
 
 
 def wanted(word):
-    return WORD.match(word) and word not in known and uses[word] >= MIN_USES
+    # Two-letter words from these sources are mostly notes, letters and
+    # foreign words ("re", "pi", "ek").
+    return (
+        WORD.match(word)
+        and len(word) >= 3
+        and word not in known
+        and uses[word] >= MIN_USES
+    )
 
 
 def short(gloss):
@@ -72,6 +86,38 @@ def short(gloss):
 
 
 extra = {}
+
+# 0. Entries whose first senses crowd out the real meaning: Lector's data
+#    keeps four senses in Wiktionary's order, so "api" shows four initialisms
+#    and not "fire". Put the word's own senses first (from the current
+#    Indonesian extract), then fill up with the rest.
+NOT_A_MEANING = re.compile(
+    r"^(initialism|abbreviation|acronym|syllabic abbreviation) of|"
+    r"name of the latin script letter",
+    re.I,
+)
+own = collections.defaultdict(list)
+for line in open(indonesian_path, encoding="utf8"):
+    entry = json.loads(line)
+    if entry.get("pos") == "name":
+        continue
+    for sense in entry.get("senses", []):
+        gloss = (sense.get("glosses") or [""])[0]
+        if gloss and not NOT_A_MEANING.search(gloss) and not sense.get("form_of"):
+            own[entry["word"]].append([entry.get("pos", ""), short(gloss)])
+reordered = []
+for word, senses in data["e"].items():
+    first_pos, first_gloss = senses[0]
+    # A name or an initialism first is right for Bandung or Jabar (West
+    # Java), not for antara ("among", also the news agency ANTARA) or api
+    # ("fire"): only when the word is mostly written in lower case.
+    crowded = first_pos in ("name", "symbol") or NOT_A_MEANING.search(first_gloss)
+    if crowded and own.get(word) and uses[word] > capitalised[word]:
+        shown = {g for _, g in senses}
+        real = [s for s in own[word] if s[1] not in shown][:2]
+        if real:
+            data["e"][word] = (real + senses)[:MAX_SENSES]
+            reordered.append(word)
 
 # 1. Wiktionary's Malay entries.
 for line in open(malay_path, encoding="utf8"):
@@ -85,6 +131,8 @@ for line in open(malay_path, encoding="utf8"):
         if not glosses or len(senses) >= MAX_SENSES:
             continue
         if any(t in sense.get("tags", []) for t in ("Malaysia", "Brunei", "Singapore")):
+            continue
+        if entry.get("pos") == "name":
             continue
         senses.append([entry.get("pos", ""), short(glosses[-1]), "m"])
     if not senses:
@@ -101,9 +149,11 @@ for name in ("noun", "verb", "adj", "adv"):
         parts = line.split("|")[0].split()
         kind = "a" if parts[2] in "as" else parts[2]
         count = int(parts[3], 16)
-        lemmas[f"{parts[0]}-{kind}"] = [
-            parts[4 + 2 * i].replace("_", " ").lower() for i in range(count)
-        ]
+        names = [parts[4 + 2 * i].replace("_", " ") for i in range(count)]
+        # Places and people (London, Einstein): names, not words.
+        if all(n[:1].isupper() for n in names):
+            continue
+        lemmas[f"{parts[0]}-{kind}"] = [n.lower() for n in names]
 # How often each English word is used in each meaning (SemCor counts).
 used = collections.Counter()
 for line in open(f"{pwn_dir}/index.sense", encoding="latin-1"):
@@ -213,6 +263,7 @@ SPOKEN = {
     "nunggu": ("verb", "to wait (spoken form of menunggu)"),
     "bro": ("noun", "bro, mate (term of address)"),
     "sob": ("noun", "mate, buddy (from sobat)"),
+    "kak": ("noun", "older sibling; used to address someone a little older (from kakak)"),
     "wkwk": ("intj", "haha (laughter in writing)"),
     "nih": ("particle", "here, this (spoken form of ini): here you go"),
     "ngga": ("adv", "no, not (spoken form of enggak, tidak)"),
@@ -230,5 +281,6 @@ with open(dict_path, "w", encoding="utf8") as f:
 by_source = collections.Counter(senses[0][2] for senses in extra.values())
 print(
     f"added {len(extra)} words: {by_source['m']} from Malay Wiktionary, "
-    f"{by_source['w']} from Wordnet Bahasa, {by_source['s']} spoken words"
+    f"{by_source['w']} from Wordnet Bahasa, {by_source['s']} spoken words; "
+    f"real meanings put first for {len(reordered)}: {' '.join(reordered)}"
 )

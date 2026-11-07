@@ -1,4 +1,4 @@
-// The top 1,000 / 2,000 / 5,000 Indonesian words by frequency, with which
+// The top 1,000 / 2,000 / 5,000 / 10,000 Indonesian words by frequency, with which
 // ones you know. Tap a word to mark it known, or tap a known word to unmark it
 // (words known through flashcards stay known while the card is mature).
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
