@@ -61,7 +61,9 @@ function NewNotesView() {
           focusSelectNoteType,
         })
       : null;
-  }, [deck, noteType, setNoteType, focusSelectNoteType]);
+    // requestedFinish too: it's how the footer's Add Card button asks the
+    // editor to save the card.
+  }, [deck, noteType, requestedFinish, focusSelectNoteType]);
 
   if (isReady && !deck) {
     return <NotFound />;

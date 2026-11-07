@@ -2,11 +2,12 @@
 // API key (kept on this device) and what explanations have cost so far.
 import { Button, Group, Text, TextInput } from "@/components/ui";
 import {
-  EXPLAIN_MODEL_NAME,
+  CLAUDE_MODEL_NAME,
   formatCost,
   getApiKey,
+  getSpent,
   setApiKey,
-} from "@/lector/explain";
+} from "@/lector/claude";
 import { db } from "@/logic/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
@@ -15,18 +16,15 @@ import Section from "./Section";
 export default function ExplainSettings() {
   const [key, setKey] = useState(getApiKey);
   const [shown, setShown] = useState(false);
-  const spent = useLiveQuery(async () => {
-    const all = await db.explanations.toArray();
-    return {
-      count: all.length,
-      cost: all.reduce((sum, e) => sum + (e.cost || 0), 0),
-    };
-  }, []);
+  const spent = useLiveQuery(
+    async () => ({ count: await db.explanations.count() }),
+    []
+  );
 
   return (
     <Section title="Explanations by Claude">
       <Text size="sm">
-        {`Tap Explain on a word, a phrase or a flashcard and ${EXPLAIN_MODEL_NAME} explains it: what it means in that sentence, how it's built, how formal it is, with examples. It uses your own Anthropic API key and is billed to your Anthropic account, about $0.0005 per explanation. Each explanation is saved, so looking at it again is free.`}
+        {`Tap Explain on a word, a phrase or a flashcard and ${CLAUDE_MODEL_NAME} explains it: what it means in that sentence, how it's built, how formal it is, with examples. After an explanation, Update card lets it fix the card and add an example sentence, and Generate with AI fills in a new card for you. It uses your own Anthropic API key and is billed to your Anthropic account, about $0.0005 each time. Explanations are saved, so looking at one again is free.`}
       </Text>
       <TextInput
         id="anthropic-key"
@@ -73,9 +71,9 @@ export default function ExplainSettings() {
           </Button>
         )}
       </Group>
-      {!!spent?.count && (
+      {(!!spent?.count || getSpent() > 0) && (
         <Text size="sm">
-          {`${spent.count} explanation${spent.count === 1 ? "" : "s"} saved, about ${formatCost(spent.cost)} in all.`}
+          {`${spent?.count ?? 0} explanation${spent?.count === 1 ? "" : "s"} saved. About ${formatCost(getSpent())} spent on Claude from this device.`}
         </Text>
       )}
     </Section>

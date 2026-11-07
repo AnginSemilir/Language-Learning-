@@ -12,15 +12,8 @@ vi.mock("@/logic/db", () => ({
   },
 }));
 
-import {
-  ExplainError,
-  costOf,
-  explain,
-  explanationId,
-  formatCost,
-  promptFor,
-  setApiKey,
-} from "./explain";
+import { ClaudeError, costOf, formatCost, setApiKey } from "./claude";
+import { explain, explanationId, promptFor } from "./explain";
 
 /** A streamed Messages API response, as server-sent events. */
 function sse(events: object[]) {
@@ -201,7 +194,7 @@ describe("explain", () => {
       text: "makan",
       sentence: "",
     }).catch((e) => e);
-    expect(error).toBeInstanceOf(ExplainError);
+    expect(error).toBeInstanceOf(ClaudeError);
     expect(error.problem).toBe("key");
     expect(saved).toEqual([]);
   });
