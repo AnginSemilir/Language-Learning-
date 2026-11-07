@@ -34,6 +34,12 @@ import { usePhase } from "./usePhase";
 const INTRO =
   "Every word on your flashcards is a tree here, growing from a seed to a grand oak as you learn it. Study to earn XP, level up and build the island, one Indonesian word at a time. Animals, visitors and a secret or two turn up along the way.";
 
+const BOTTLE: IslandThing = {
+  id: "botol",
+  word: "pesan dalam botol",
+  meaning: "message in a bottle",
+};
+
 const VANISHED =
   "The stranger slips away behind the coconut palms before you can reach her…";
 
@@ -161,7 +167,7 @@ export default function WorldView() {
           </p>
         </section>
 
-        <TodayPanel day={world.day} />
+        <TodayPanel day={world.day} onOpenBottle={() => pick(BOTTLE)} />
 
         <Paper withBorder className="world-view__level">
           <LevelBadge level={level.level} />

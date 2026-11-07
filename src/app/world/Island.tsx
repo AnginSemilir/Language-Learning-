@@ -360,8 +360,17 @@ export default function Island({
   const [skyTop, skyBottom] = SKY[phase];
   const [seaTop, seaBottom] = SEA[phase];
 
-  /** Something on the island, tappable when the island is interactive. */
-  const tappable = (thing: IslandThing, at: string, children: ReactNode) => {
+  /**
+   * Something on the island, tappable when the island is interactive. Small
+   * things get a bigger invisible target (`hit`, in island units), so they
+   * can be tapped on a phone.
+   */
+  const tappable = (
+    thing: IslandThing,
+    at: string,
+    children: ReactNode,
+    hit = 0
+  ) => {
     if (!onPick) return <g transform={at}>{children}</g>;
     const pick = () => onPick(thing);
     const onKeyDown = (e: KeyboardEvent) => {
@@ -385,6 +394,7 @@ export default function Island({
         onKeyDown={onKeyDown}
       >
         <title>{`${thing.word} · ${thing.meaning}`}</title>
+        {hit > 0 && <circle cy={-hit / 2} r={hit} fill="transparent" />}
         {children}
       </g>
     );
@@ -400,11 +410,11 @@ export default function Island({
 
   /** An animal at home, once it has come to live here. */
   const animal = (id: string, children: ReactNode) =>
-    lives(id) && tappable(NAMES[id], place(HOMES[id]), children);
+    lives(id) && tappable(NAMES[id], place(HOMES[id]), children, 9);
 
   /** A visitor, on the days it comes. */
   const visitor = (id: string, children: ReactNode) =>
-    visits(id) && tappable(NAMES[id], place(VISITS[id]), children);
+    visits(id) && tappable(NAMES[id], place(VISITS[id]), children, 10);
 
   /**
    * At night the land is in shadow; its windows and lamps are drawn again on
@@ -679,7 +689,7 @@ export default function Island({
         {animal("gajah", <Elephant />)}
         {visitor("penyu", <Turtle />)}
         {visitor("komodo", <Komodo />)}
-        {day.bottle && tappable(BOTTLE, "translate(172 214)", <Bottle />)}
+        {day.bottle && tappable(BOTTLE, "translate(172 214)", <Bottle />, 10)}
 
         <g transform="translate(112 204)">
           {VILLAGERS.slice(0, scene.villagers).map((name, i) => (
@@ -744,13 +754,15 @@ export default function Island({
         tappable(
           STRANGER,
           "translate(86 207)",
-          <Stranger glow={`${uid}-blue`} />
+          <Stranger glow={`${uid}-blue`} />,
+          10
         )}
 
       {tappable(
         CAMPFIRE,
         "translate(286 201)",
-        <Campfire lit={scene.campfire} />
+        <Campfire lit={scene.campfire} />,
+        10
       )}
 
       {scene.celebrate && phase === "day" && (

@@ -57,7 +57,7 @@ export function Rain({ weather }: { weather: Weather }) {
   }
   const light = weather === "gerimis";
   return (
-    <g className="island__rain" aria-hidden="true">
+    <g className="island__rain">
       <path
         d={light ? DRIZZLE : RAIN}
         stroke="#e2f1ff"

@@ -1,5 +1,5 @@
-import { addDaysToDateString } from "@/lector/lib/dates";
 import { emptyDailyStats } from "@/lector/lib/dailyStats";
+import { addDaysToDateString } from "@/lector/lib/dates";
 import type { DailyStats } from "@/lector/types";
 import { describe, expect, it } from "vitest";
 import { celebrationOn, eventsFor, seasonOf, weatherFor } from "./calendar";

@@ -27,12 +27,20 @@ interface Chip {
   word: string;
   meaning: string;
   note?: string;
+  onClick?: () => void;
 }
 
 const STUDY_FIRST = "Study today, and today's finds go into your collection.";
 
 /** Hari ini: the weather, what's on, who's visiting. */
-export function TodayPanel({ day }: { day: IslandDay }) {
+export function TodayPanel({
+  day,
+  onOpenBottle,
+}: {
+  day: IslandDay;
+  /** Opens today's bottle, like tapping it on the beach. */
+  onOpenBottle: () => void;
+}) {
   const [weather, weatherEn] = WEATHER_WORDS[day.weather];
   const [season, seasonEn] = SEASON_WORDS[day.season];
   const chips: Chip[] = [
@@ -80,7 +88,8 @@ export function TodayPanel({ day }: { day: IslandDay }) {
       art: <DiscoveryArt id="peribahasa" />,
       word: "pesan dalam botol",
       meaning: "a message in a bottle",
-      note: "tap it on the beach",
+      note: "tap to open",
+      onClick: onOpenBottle,
     });
   }
   const finds = day.visitors.length > 0 || !!day.bottle || !!day.celebration;
@@ -91,19 +100,36 @@ export function TodayPanel({ day }: { day: IslandDay }) {
         Hari ini <span>Today on the island</span>
       </h2>
       <ul className="today__chips">
-        {chips.map((chip) => (
-          <li key={chip.id} className="today__chip">
-            <span className="today__art">{chip.art}</span>
-            <span className="today__text">
-              <span className="today__word" lang="id">
-                {chip.word}
+        {chips.map((chip) => {
+          const content = (
+            <>
+              <span className="today__art">{chip.art}</span>
+              <span className="today__text">
+                <span className="today__word" lang="id">
+                  {chip.word}
+                </span>
+                <span className="today__meaning">
+                  {chip.note ? `${chip.meaning} · ${chip.note}` : chip.meaning}
+                </span>
               </span>
-              <span className="today__meaning">
-                {chip.note ? `${chip.meaning} · ${chip.note}` : chip.meaning}
-              </span>
-            </span>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={chip.id} className="today__chip">
+              {chip.onClick ? (
+                <button
+                  type="button"
+                  className="today__open"
+                  onClick={chip.onClick}
+                >
+                  {content}
+                </button>
+              ) : (
+                content
+              )}
+            </li>
+          );
+        })}
       </ul>
       {finds && !day.studied && <p className="today__note">{STUDY_FIRST}</p>}
     </section>
