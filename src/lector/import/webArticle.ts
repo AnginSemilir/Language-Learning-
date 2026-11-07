@@ -5,8 +5,11 @@
 // dropped afterwards.
 //
 // The page comes either from a link, fetched through Jina Reader (r.jina.ai,
-// which lets a web app read other sites' pages), or from a page the reader
-// copied in their own browser and pasted.
+// which lets a web app read other sites' pages; free without a key, but it
+// pauses keyless access to a site for a while when it sees anything odd on
+// its pages), or from a page the reader copied in their own browser and
+// pasted. Sites that show apps a robot check (Kompas) are left alone: the
+// reader is told to copy the page instead.
 
 import { Readability } from "@mozilla/readability";
 import { countWords, htmlToMarkdown } from "./html-to-markdown";
@@ -132,49 +135,134 @@ export function articleFromHtml(
   return { title, author: site, content };
 }
 
-/** Why an article couldn't be imported, in words for the reader. */
-export class ArticleError extends Error {}
+/** What went wrong, so the form can offer the right next step. */
+export type ArticleProblem =
+  | "address"
+  | "offline"
+  | "busy"
+  | "paused"
+  | "key"
+  | "reader"
+  | "robot"
+  | "no-story";
 
-const NO_STORY =
-  "No story found on that page. Some sites, such as Kompas, don't let apps fetch their pages: open the article in your browser, select all, copy, and paste it in the Paste tab. Only the headline and story are kept.";
+/** Why an article couldn't be imported, in words for the reader. */
+export class ArticleError extends Error {
+  constructor(
+    message: string,
+    readonly problem: ArticleProblem
+  ) {
+    super(message);
+  }
+}
+
+const COPY_INSTEAD =
+  "Open the article in your browser, select all, copy, and paste it in the Paste tab: only the headline and story are kept.";
+
+/** A "check you're not a robot" page, shown instead of the article. */
+const ROBOT_CHECK =
+  /awsWafCookieDomainList|challenge-platform|cf-chl-|Just a moment\.\.\.|not a robot|captcha/i;
+
+/** Jina Reader's error, from its JSON answer: `{name, message, ...}`. */
+async function readerError(response: Response, host: string, key: boolean) {
+  let name = "";
+  let message = "";
+  try {
+    const body = await response.json();
+    name = String(body?.name ?? "");
+    message = String(body?.message ?? "");
+  } catch {}
+  if (response.status === 429) {
+    return new ArticleError(
+      key
+        ? "Jina Reader is busy. Wait a minute and try again."
+        : "Jina Reader fetches 20 pages a minute for free. Wait a minute and try again, or add a free key below.",
+      "busy"
+    );
+  }
+  if (name === "AuthenticationFailedError" || response.status === 401) {
+    return new ArticleError(
+      "Jina Reader didn't accept the key. Check it, or remove it to use the free access.",
+      "key"
+    );
+  }
+  // Free (keyless) access to a site is paused for a while after Jina sees
+  // anything odd on its pages.
+  if (name === "AbuseAlleviationError" || /anonymous access/i.test(message)) {
+    const until = message.match(
+      /blocked until (.+?\d{2}:\d{2}:\d{2} GMT[+-]\d{4})/
+    )?.[1];
+    const time = until && new Date(until);
+    const when =
+      time && !Number.isNaN(time.getTime())
+        ? ` until ${time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+        : " for a while";
+    return new ArticleError(
+      `Jina Reader, which fetches pages for the app, has paused free access to ${host}${when}. Try again then, or add a free key below.`,
+      "paused"
+    );
+  }
+  const reason = message.replace(/\s+/g, " ").slice(0, 160);
+  return new ArticleError(
+    reason
+      ? `Jina Reader couldn't get that page: ${reason}`
+      : `Jina Reader couldn't get that page (error ${response.status}). Try again in a moment.`,
+    "reader"
+  );
+}
 
 /** Fetches a web page and returns its headline and story. */
 export async function fetchArticle(
   address: string,
-  fetchPage: typeof fetch = fetch
+  {
+    key = "",
+    fetchPage = fetch,
+  }: { key?: string; fetchPage?: typeof fetch } = {}
 ): Promise<ImportedText> {
+  // A shared link often comes with the headline in front of it.
+  const link = address.match(/https?:\/\/\S+/i)?.[0];
   let url: URL;
   try {
-    url = new URL(address.trim());
+    url = new URL(link ?? "");
   } catch {
     throw new ArticleError(
-      "That isn't a web address. Paste a link starting with https://"
-    );
-  }
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new ArticleError(
-      "That isn't a web address. Paste a link starting with https://"
+      "That isn't a link. Paste a web address starting with https://",
+      "address"
     );
   }
 
-  let response: Response;
-  try {
-    response = await fetchPage(READER + url.href, {
-      headers: { "X-Return-Format": "html" },
-    });
-  } catch {
+  const headers: Record<string, string> = { "X-Return-Format": "html" };
+  if (key.trim()) headers.Authorization = `Bearer ${key.trim()}`;
+  let response: Response | undefined;
+  // One more try when the reader can't be reached or has a passing fault.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await fetchPage(READER + url.href, { headers });
+      if (response.status < 500) break;
+    } catch {
+      response = undefined;
+    }
+  }
+  if (!response) {
     throw new ArticleError(
-      "The page couldn't be fetched. Check your connection and try again."
+      "Couldn't reach Jina Reader (r.jina.ai), which fetches pages for the app. Check your connection and try again.",
+      "offline"
     );
   }
-  if (response.status === 429) {
-    throw new ArticleError(
-      "Too many pages fetched in the last minute. Wait a minute and try again."
-    );
-  }
-  if (!response.ok) throw new ArticleError(NO_STORY);
+  if (!response.ok)
+    throw await readerError(response, url.hostname, !!key.trim());
 
-  const article = articleFromHtml(await response.text(), url.href);
-  if (!article) throw new ArticleError(NO_STORY);
-  return article;
+  const html = await response.text();
+  const article = articleFromHtml(html, url.href);
+  if (article) return article;
+  if (ROBOT_CHECK.test(html)) {
+    throw new ArticleError(
+      `${url.hostname} shows apps a "check you're not a robot" page instead of the article (Kompas does this). ${COPY_INSTEAD}`,
+      "robot"
+    );
+  }
+  throw new ArticleError(
+    `No story found on that page. If it is an article, the site may not let apps read it. ${COPY_INSTEAD}`,
+    "no-story"
+  );
 }

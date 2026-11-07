@@ -86,39 +86,122 @@ describe("articleFromHtml", () => {
 });
 
 describe("fetchArticle", () => {
-  const respond = (body: string, status = 200) =>
-    vi.fn(
-      async (_url: string | URL | Request, _init?: RequestInit) =>
-        new Response(body, { status })
+  type Answer = { body: string; status?: number } | "offline";
+  /** A fake fetch giving these answers in turn. */
+  const answers = (...list: Answer[]) =>
+    vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => {
+      const next = list.length > 1 ? list.shift() : list[0];
+      if (!next || next === "offline") throw new TypeError("Failed to fetch");
+      return new Response(next.body, { status: next.status ?? 200 });
+    });
+  const jinaError = (status: number, name: string, message: string) => ({
+    status,
+    body: JSON.stringify({ code: status, name, message }),
+  });
+  const problem = (promise: Promise<unknown>) =>
+    promise.then(
+      () => "no error",
+      (e: ArticleError) => `${e.problem}: ${e.message}`
     );
 
   it("fetches the page through the reader and extracts it", async () => {
-    const fetchPage = respond(newsPage());
+    const fetchPage = answers({ body: newsPage() });
     const article = await fetchArticle(
-      " https://regional.kompas.com/read/1 ",
-      fetchPage
+      "Banjir rendam rumah - Kompas.com https://regional.kompas.com/read/1 ",
+      { fetchPage, key: " jina_abc " }
     );
     expect(article.title).toBe(HEADLINE);
     expect(fetchPage).toHaveBeenCalledWith(
       "https://r.jina.ai/https://regional.kompas.com/read/1",
       {
-        headers: { "X-Return-Format": "html" },
+        headers: {
+          "X-Return-Format": "html",
+          Authorization: "Bearer jina_abc",
+        },
       }
     );
   });
 
-  it("says what went wrong", async () => {
-    await expect(fetchArticle("kompas", respond(""))).rejects.toThrow(
-      "isn't a web address"
+  it("tries again once when the reader has a passing fault", async () => {
+    const fetchPage = answers("offline", { body: newsPage() });
+    expect((await fetchArticle("https://a.id/1", { fetchPage })).title).toBe(
+      HEADLINE
     );
-    await expect(
-      fetchArticle("https://a.id/1", respond("", 429))
-    ).rejects.toThrow("Wait a minute");
-    await expect(
-      fetchArticle("https://a.id/1", respond("", 403))
-    ).rejects.toThrow("Paste tab");
-    await expect(
-      fetchArticle("https://a.id/1", respond("<html></html>"))
-    ).rejects.toBeInstanceOf(ArticleError);
+    const failing = answers({ body: "", status: 502 });
+    expect(
+      await problem(fetchArticle("https://a.id/1", { fetchPage: failing }))
+    ).toMatch(/^reader: .*error 502/);
+    expect(failing).toHaveBeenCalledTimes(2);
+    expect(
+      await problem(
+        fetchArticle("https://a.id/1", { fetchPage: answers("offline") })
+      )
+    ).toMatch(/^offline: Couldn't reach Jina Reader/);
+  });
+
+  it("says what went wrong", async () => {
+    const fetchWith = (answer: Answer, key = "") =>
+      problem(
+        fetchArticle("https://www.bbc.com/indonesia/1", {
+          fetchPage: answers(answer),
+          key,
+        })
+      );
+    expect(
+      await problem(fetchArticle("kompas", { fetchPage: answers("offline") }))
+    ).toMatch(/^address: /);
+    expect(await fetchWith({ body: "", status: 429 })).toMatch(
+      /^busy: .*20 pages a minute.*add a free key/
+    );
+    expect(await fetchWith({ body: "", status: 429 }, "jina_abc")).not.toMatch(
+      /add a free key/
+    );
+    expect(
+      await fetchWith(
+        jinaError(
+          403,
+          "AbuseAlleviationError",
+          "Anonymous access to domain www.bbc.com blocked until Sat Nov 07 2026 09:40:30 GMT+0000 (Coordinated Universal Time) due to previous abuse"
+        )
+      )
+    ).toMatch(
+      /^paused: .*paused free access to www\.bbc\.com until \d{2}.\d{2}\b.*add a free key/
+    );
+    expect(
+      await fetchWith(
+        jinaError(401, "AuthenticationFailedError", "Invalid API key"),
+        "jina_x"
+      )
+    ).toMatch(/^key: /);
+    expect(
+      await fetchWith(
+        jinaError(
+          422,
+          "SubmittedDataMalformedError",
+          "Domain could not be resolved"
+        )
+      )
+    ).toBe(
+      "reader: Jina Reader couldn't get that page: Domain could not be resolved"
+    );
+  });
+
+  it("tells a robot check from a page without a story", async () => {
+    const robot = `<html><head><script>window.awsWafCookieDomainList = [];</script></head>
+      <body><noscript>we need to verify that you're not a robot.</noscript></body></html>`;
+    expect(
+      await problem(
+        fetchArticle("https://regional.kompas.com/1", {
+          fetchPage: answers({ body: robot }),
+        })
+      )
+    ).toMatch(/^robot: regional\.kompas\.com shows apps .*Paste tab/);
+    expect(
+      await problem(
+        fetchArticle("https://a.id/", {
+          fetchPage: answers({ body: "<html><body>Beranda</body></html>" }),
+        })
+      )
+    ).toMatch(/^no-story: /);
   });
 });
