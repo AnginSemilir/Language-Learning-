@@ -153,8 +153,10 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   `dict-id-2026-08-21` release, converted with
   `scripts/build-dictionary-json.py`, which also extracts verb forms, derived
   nouns and names from the entries' etymologies. Words it lacks are added by
-  `scripts/build-dictionary-extra.py` (8,354 words, only ones that occur in
-  the Leipzig corpora): Wiktionary's Malay entries (CC BY-SA), which cover
+  `scripts/build-dictionary-extra.py` (8,800 words, mostly ones that occur in
+  the Leipzig corpora): 644 entries the current Wiktionary extract has and
+  Lector's older copy lacks (sadap, penipuan); Wiktionary's Malay entries
+  (CC BY-SA), which cover
   many words Indonesian shares with Malay (cemburu, entah, begini);
   [Wordnet Bahasa](https://wn-msa.sourceforge.net/) (Francis Bond et al., MIT)
   with English [WordNet](https://wordnet.princeton.edu/) 3.0 (WordNet
