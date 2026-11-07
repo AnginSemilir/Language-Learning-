@@ -26,6 +26,7 @@ import { countTypedWords } from "@/lector/languages/tokenizer";
 import { fold } from "@/lector/lemma";
 import ReaderArticle, {
   type ActiveReaderWord,
+  ReaderTitle,
 } from "@/lector/reader/ReaderArticle";
 import { paginate } from "@/lector/reader/paginate";
 import { useLexicon } from "@/lector/reader/useLexicon";
@@ -221,7 +222,9 @@ export default function ReaderView() {
   const newWordsOn = useCallback(
     (index: number): PageWord[] => {
       const byHeadword = new Map<string, Set<string>>();
-      for (const token of splitWords(pages[index] ?? "", pack)) {
+      // The title is on the first page too.
+      const text = `${index === 0 ? `${lesson?.title ?? ""}\n` : ""}${pages[index] ?? ""}`;
+      for (const token of splitWords(text, pack)) {
         if (!token.isWord || token.text.length < 2) continue;
         if (lexicon.stateOf(token.text) !== "new") continue;
         const headword = lexicon.headwordOf(token.text);
@@ -234,7 +237,7 @@ export default function ReaderView() {
         forms: [...forms],
       }));
     },
-    [pages, lexicon]
+    [pages, lexicon, lesson?.title]
   );
 
   const goTo = (index: number, dir: "next" | "prev") => {
@@ -406,7 +409,16 @@ export default function ReaderView() {
             <>
               {page === 0 && (
                 <>
-                  <h1 className="reading-view__title">{lesson.title}</h1>
+                  <div lang="id">
+                    <ReaderTitle
+                      title={lesson.title}
+                      className="reading-view__title"
+                      stateOf={lexicon.stateOf}
+                      activeWord={activeWord}
+                      onWordClick={onWordClick}
+                      onActivateWord={setActiveWord}
+                    />
+                  </div>
                   {lesson.author && (
                     <p className="reading-view__author">{lesson.author}</p>
                   )}

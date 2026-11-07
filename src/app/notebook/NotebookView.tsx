@@ -66,7 +66,7 @@ export default function NotebookView() {
       </div>
       {deck?.notes && deck?.notes?.length > NOTEBOOK_LIMIT && (
         <div className={`${BASE}__limit-notice`}>
-          Currently there is a limit of {NOTEBOOK_LIMIT} notes displayed.{" "}
+          {`Currently there is a limit of ${NOTEBOOK_LIMIT} notes displayed.`}{" "}
           {deck.notes.length - NOTEBOOK_LIMIT} notes have been omitted.
         </div>
       )}

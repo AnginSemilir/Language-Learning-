@@ -26,8 +26,11 @@ export interface ActiveReaderWord {
   wordIndex: number;
 }
 
+type BlockTag = "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+
 interface ReaderBlockProps {
-  as: "p" | "li";
+  as: BlockTag;
+  className?: string;
   children: ReactNode;
   blockId: number;
   stateOf: (word: string) => DisplayState;
@@ -48,6 +51,7 @@ function findSentence(element: HTMLElement): string {
 
 function ReaderBlock({
   as: Tag,
+  className,
   children,
   blockId,
   stateOf,
@@ -111,7 +115,7 @@ function ReaderBlock({
   };
 
   const content = renderChildren(children, { i: 0 });
-  return Tag === "p" ? <p>{content}</p> : <li>{content}</li>;
+  return <Tag className={className}>{content}</Tag>;
 }
 
 interface ReaderArticleProps {
@@ -158,6 +162,28 @@ function ReaderArticle({
               {children}
             </ReaderBlock>
           ),
+          // Headings in an article ("## Boikot sebagai bentuk solidaritas")
+          // are words to look up too.
+          ...Object.fromEntries(
+            (["h1", "h2", "h3", "h4", "h5", "h6"] as const).map((tag) => [
+              tag,
+              ({
+                node,
+                children,
+              }: {
+                node?: { position?: { start?: { offset?: number } } };
+                children?: ReactNode;
+              }) => (
+                <ReaderBlock
+                  as={tag}
+                  blockId={node?.position?.start?.offset ?? 0}
+                  {...blockProps}
+                >
+                  {children}
+                </ReaderBlock>
+              ),
+            ])
+          ),
           a: ({ href, children }) => (
             <a href={href ?? undefined} target="_blank" rel="noreferrer">
               {children}
@@ -172,3 +198,25 @@ function ReaderArticle({
 }
 
 export default memo(ReaderArticle);
+
+interface ReaderTitleProps {
+  title: string;
+  className?: string;
+  stateOf: (word: string) => DisplayState;
+  activeWord: ActiveReaderWord | null;
+  onWordClick: (word: string, sentence: string) => void;
+  onActivateWord: (word: ActiveReaderWord) => void;
+}
+
+/** A lesson's title, with words that can be tapped like the text's. */
+export function ReaderTitle({
+  title,
+  className,
+  ...blockProps
+}: ReaderTitleProps) {
+  return (
+    <ReaderBlock as="h1" className={className} blockId={-1} {...blockProps}>
+      {title}
+    </ReaderBlock>
+  );
+}

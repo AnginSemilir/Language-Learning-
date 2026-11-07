@@ -76,6 +76,8 @@
   font-weight: 500;
   margin: var(--spacing-md) 0 0;
   text-wrap: balance;
+  /* Room between lines for the words' highlights. */
+  line-height: 1.4;
 }
 
 .reading-view__author {

@@ -121,7 +121,7 @@ function StatsView() {
                     : derived.streak.current > 0
                       ? "Study today to keep your streak."
                       : "Review cards, practise or read to start a streak."}{" "}
-                  Longest: {derived.streak.longest}
+                  {`Longest: ${derived.streak.longest}`}
                 </span>
               </div>
             </div>
