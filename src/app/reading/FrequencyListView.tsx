@@ -4,7 +4,7 @@
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { Button, SegmentedControl, Text } from "@/components/ui";
 import { deleteVocab, markHeadwordsKnown } from "@/lector/data-layer";
-import { loadGrammar } from "@/lector/dictionary";
+import { loadGrammar, meaningsOf } from "@/lector/dictionary";
 import type { GrammarData } from "@/lector/lemma";
 import type { DisplayState } from "@/lector/reader/useLexicon";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -38,7 +38,9 @@ const NOISE_GLOSS =
  */
 function gloss(data: GrammarData | null, word: string) {
   const byPos = new Map<string, string>();
-  for (const [pos, g] of data?.e[word] ?? []) {
+  for (const { partOfSpeech: pos, gloss: g } of data
+    ? meaningsOf(data, word)
+    : []) {
     if (NOISE_POS.has(pos) || NOISE_GLOSS.test(g)) continue;
     const short = g.split(/[;:(]/)[0].trim();
     if (short && !byPos.has(pos)) byPos.set(pos, short);

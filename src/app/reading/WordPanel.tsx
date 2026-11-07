@@ -60,6 +60,17 @@ const LEVELS: { state: WordState; label: string }[] = [
   { state: "level4", label: "4" },
 ];
 
+/** Where the meanings shown come from. */
+function credit(entry: DictionaryEntry) {
+  const sources = new Set(entry.senses.map((s) => s.source));
+  if (sources.has("wordnet")) {
+    return "Wordnet Bahasa (MIT): approximate meanings, from English WordNet";
+  }
+  if (sources.has("malay")) return "Wiktionary's Malay entry, CC BY-SA";
+  if (sources.has("spoken")) return "Everyday spoken Indonesian (Kartu's list)";
+  return "Wiktionary, CC BY-SA";
+}
+
 function firstGloss(entry: WordPanelData["entry"]) {
   if (!entry || typeof entry === "string") return "";
   return entry.senses[0]?.gloss.split(/[;:(]/)[0].trim() ?? "";
@@ -186,11 +197,18 @@ export default function WordPanel({
             )}
             {entry && typeof entry === "object" && (
               <>
-                {entry.lemmaInfo && (
+                {entry.guess ? (
                   <Text size="sm">
-                    {entry.lemmaInfo.label}{" "}
-                    <strong>{entry.lemmaInfo.stem}</strong>
+                    Not in the dictionary. Probably from{" "}
+                    <strong>{entry.lemmaInfo?.stem}</strong>:
                   </Text>
+                ) : (
+                  entry.lemmaInfo && (
+                    <Text size="sm">
+                      {entry.lemmaInfo.label}{" "}
+                      <strong>{entry.lemmaInfo.stem}</strong>
+                    </Text>
+                  )
                 )}
                 <ol className="word-panel__senses">
                   {entry.senses.map((s, i) => (
@@ -205,7 +223,7 @@ export default function WordPanel({
                   ))}
                 </ol>
                 <Text size="xs" className="word-panel__credit">
-                  Wiktionary, CC BY-SA
+                  {credit(entry)}
                 </Text>
               </>
             )}
