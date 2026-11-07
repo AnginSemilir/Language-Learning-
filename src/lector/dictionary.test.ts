@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { resolveWord } from "./dictionary";
+import { resolveWord, rootsByForm } from "./dictionary";
 import { createLemmatizer } from "./lemma";
 
 const data = JSON.parse(
@@ -54,12 +54,24 @@ describe("resolveWord (Indonesian)", () => {
     expect(resolveWord(data, "sih")?.senses[0].source).toBe("spoken");
   });
 
+  it("has machine translations for frequent words no source has", () => {
+    const e = resolveWord(data, "penyadapan");
+    expect(e?.senses[0]).toMatchObject({ gloss: "tapping", source: "machine" });
+  });
+
+  it("finds roots by their affixes, the least stripped first", () => {
+    expect(rootsByForm("penyadapan")).toContain("sadap");
+    const roots = rootsByForm("menempatkan");
+    expect(roots.indexOf("tempat")).toBeLessThan(roots.indexOf("empat"));
+    expect(rootsByForm("kutemukan")).toContain("temu");
+  });
+
   it("falls back on the root, marked as a guess", () => {
-    const lex = createLemmatizer(data);
-    const e = resolveWord(data, "kutemukan", lex);
+    // A form no source has: ku- + belikan ("buy for"), the least stripped root.
+    const e = resolveWord(data, "kubelikan", createLemmatizer(data));
     expect(e?.guess).toBe(true);
-    expect(e?.lemmaInfo?.stem).toBe("temu");
-    expect(resolveWord(data, "kutemukan")).toBeUndefined();
+    expect(e?.lemmaInfo?.stem).toBe("belikan");
+    expect(resolveWord(data, "kubelikan")?.word).toBe("belikan");
   });
 
   it("returns undefined for nonsense", () => {

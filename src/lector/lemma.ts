@@ -36,7 +36,8 @@ export interface GrammarData {
   /**
    * More words, for lookup only (scripts/build-dictionary-extra.py):
    * headword → [pos, gloss, source], source "m" for Wiktionary's Malay
-   * entries, "w" for Wordnet Bahasa, "s" for everyday spoken words.
+   * entries, "w" for Wordnet Bahasa, "s" for everyday spoken words, "t"
+   * for machine translations.
    */
   x?: Record<string, [string, string, string][]>;
 }

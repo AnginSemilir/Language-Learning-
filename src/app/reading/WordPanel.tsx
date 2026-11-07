@@ -63,6 +63,9 @@ const LEVELS: { state: WordState; label: string }[] = [
 /** Where the meanings shown come from. */
 function credit(entry: DictionaryEntry) {
   const sources = new Set(entry.senses.map((s) => s.source));
+  if (sources.has("machine")) {
+    return "Machine translation (Opus-MT): may be wrong";
+  }
   if (sources.has("wordnet")) {
     return "Wordnet Bahasa (MIT): approximate meanings, from English WordNet";
   }
