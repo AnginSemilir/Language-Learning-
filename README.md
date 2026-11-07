@@ -166,7 +166,11 @@ the `dbUrl` from `dexie-cloud.json` into `db.cloud.configure()`.
   out of the four senses kept (api: fire, antara: among, si). An
   entry that only points to another word ("active of lihat") shows that
   word's meanings, and a word in none of them shows its root's (found by its
-  affixes: penyadapan → sadap), marked as a guess.
+  affixes: penyadapan → sadap), marked as a guess. Settings → Dictionary
+  turns each of these sources on or off, and adds buttons to the word panel
+  that open the word in other dictionaries: KBBI VI Daring (the official
+  Indonesian dictionary, linked to, not copied: it has no open licence),
+  Google Translate, Wiktionary and Glosbe.
 - `public/data/frequency-id.json`: the 14,500 most frequent Indonesian word
   forms in the dictionary (about 12,000 distinct words), from
   [wordfreq](https://github.com/rspeer/wordfreq) 3.1.1 (data CC BY-SA 4.0).

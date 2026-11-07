@@ -43,4 +43,16 @@ export interface SettingsValues {
   "#globalScheduler_maximumInterval": number;
   "#globalScheduler_requestRetention": number;
   "#globalScheduler_w": string;
+
+  // Dictionary (Settings → Dictionary): meanings shown when a word is tapped,
+  // besides Wiktionary's, and other dictionaries to look a word up in.
+  "#dict_malay": boolean;
+  "#dict_wordnet": boolean;
+  "#dict_spoken": boolean;
+  "#dict_machine": boolean;
+  "#dict_rootGuess": boolean;
+  "#dict_linkKbbi": boolean;
+  "#dict_linkGoogle": boolean;
+  "#dict_linkWiktionary": boolean;
+  "#dict_linkGlosbe": boolean;
 }

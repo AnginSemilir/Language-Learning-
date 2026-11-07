@@ -135,17 +135,57 @@ function build(
   };
 }
 
+/** Which meanings to show (Settings → Dictionary). */
+export interface LookupOptions {
+  /** Added sources to leave out. */
+  skip?: NonNullable<DictionarySense["source"]>[];
+  /** Guess a root when nothing else matches (default true). */
+  guess?: boolean;
+}
+
+const withoutSources = new WeakMap<object, Map<string, DictionaryData>>();
+
+/** The data without the skipped sources' words, made once per choice. */
+function only(data: DictionaryData, skip: LookupOptions["skip"]) {
+  if (!skip?.length || !data.x) return data;
+  const key = [...skip].sort().join();
+  let byChoice = withoutSources.get(data);
+  if (!byChoice) withoutSources.set(data, (byChoice = new Map()));
+  let view = byChoice.get(key);
+  if (!view) {
+    const codes = new Set(
+      Object.entries(SOURCES)
+        .filter(([, source]) => skip.includes(source))
+        .map(([code]) => code)
+    );
+    const x: NonNullable<DictionaryData["x"]> = {};
+    for (const [word, senses] of Object.entries(data.x)) {
+      const kept = senses.filter(([, , code]) => !codes.has(code));
+      if (kept.length) x[word] = kept;
+    }
+    view = { ...data, x };
+    byChoice.set(key, view);
+  }
+  return view;
+}
+
 /** A word's meanings for a list: its own, or those of the word it points to. */
-export function meaningsOf(data: DictionaryData, word: string) {
-  return followForms(data, word).senses;
+export function meaningsOf(
+  data: DictionaryData,
+  word: string,
+  options: LookupOptions = {}
+) {
+  return followForms(only(data, options.skip), word).senses;
 }
 
 /** Pure lookup against loaded data, so it can be unit-tested. */
 export function resolveWord(
-  data: DictionaryData,
+  everything: DictionaryData,
   word: string,
-  lex?: Pick<Lemmatizer, "looseLemma">
+  lex?: Pick<Lemmatizer, "looseLemma">,
+  options: LookupOptions = {}
 ): DictionaryEntry | undefined {
+  const data = only(everything, options.skip);
   const lower = foldWord(word, pack);
 
   // 1. Exact match
@@ -200,6 +240,7 @@ export function resolveWord(
   }
 
   // 5. The root by form alone (penyadapan → sadap), marked as a guess.
+  if (options.guess === false) return undefined;
   const roots = rootsByForm(lower);
   const loose = lex?.looseLemma(lower);
   if (loose && loose !== lower) roots.push(loose);
@@ -271,8 +312,9 @@ export function rootsByForm(word: string): string[] {
 }
 
 export async function lookupWord(
-  word: string
+  word: string,
+  options?: LookupOptions
 ): Promise<DictionaryEntry | undefined> {
   const { data, lex } = await loadGrammar();
-  return resolveWord(data, word, lex);
+  return resolveWord(data, word, lex, options);
 }

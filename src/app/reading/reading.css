@@ -113,6 +113,35 @@
   color: var(--theme-neutral-500);
 }
 
+/* Other dictionaries (Settings → Dictionary), opened in the browser. */
+.word-panel__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.word-panel__links .word-panel__label {
+  margin: 0;
+}
+
+.word-panel__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--theme-neutral-300);
+  border-radius: 999px;
+  color: var(--theme-neutral-800);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.word-panel__link:hover {
+  background: var(--theme-neutral-100);
+}
+
 .word-panel__sentence {
   font-style: italic;
   color: var(--theme-neutral-700);

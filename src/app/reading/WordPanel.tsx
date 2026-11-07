@@ -17,9 +17,11 @@ import { fold } from "@/lector/lemma";
 import { speak } from "@/lector/tts";
 import type { WordState } from "@/lector/types";
 import { Deck } from "@/logic/deck/deck";
+import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
 import {
   IconCards,
   IconCheck,
+  IconExternalLink,
   IconEyeOff,
   IconVolume,
 } from "@tabler/icons-react";
@@ -101,6 +103,7 @@ export default function WordPanel({
 
   const entry = data?.entry;
   const surface = data ? fold(data.word) : "";
+  const { links } = useDictionaryChoice();
   const grouped = !!data && data.headword !== surface;
   const related = !!data && !grouped && data.root !== surface;
   return (
@@ -229,6 +232,23 @@ export default function WordPanel({
                   {credit(entry)}
                 </Text>
               </>
+            )}
+            {links.length > 0 && entry !== "loading" && (
+              <div className="word-panel__links">
+                <span className="word-panel__label">Look up in</span>
+                {links.map((link) => (
+                  <a
+                    key={link.key}
+                    className="word-panel__link"
+                    href={link.url(surface)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {link.label}
+                    <IconExternalLink size={14} aria-hidden="true" />
+                  </a>
+                ))}
+              </div>
             )}
           </div>
 
