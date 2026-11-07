@@ -6,6 +6,8 @@ English Wiktionary files many words Indonesian shares with Malay (cemburu,
 entah, begini) under Malay only, and has no entry for many derived words
 (pertunjukan, menyedihkan, membiarkan). Two open sources fill in:
 
+  0. Words the current English-Wiktionary extract has and Lector's older
+     copy lacks (sadap, penipuan), as ordinary entries in "e".
   1. Wiktionary's Malay entries (kaikki.org, CC BY-SA), source "m".
   2. Wordnet Bahasa (Francis Bond et al., MIT), Indonesian words linked to
      English WordNet 3.0 meanings (WordNet licence), source "w". It was
@@ -74,6 +76,7 @@ dict_path = next(
 data = json.load(open(dict_path, encoding="utf8"))
 known = set(data["e"]) | set(data["p"])
 WORD = re.compile(r"^[a-z]+(?:-[a-z]+)*$")
+PHRASE = re.compile(r"^[a-z]+(?:[- ][a-z]+)*$")  # "pemadaman listrik" too
 
 uses = collections.Counter()  # in lower case
 capitalised = collections.Counter()
@@ -114,14 +117,26 @@ NOT_A_MEANING = re.compile(
     r"name of the latin script letter",
     re.I,
 )
-own = collections.defaultdict(list)
+def headline(glosses):
+    """A sense's gloss: the headline, with the specific meaning after a colon
+    ("to tap: to draw off (a liquid) from a container")."""
+    if len(glosses) > 1 and glosses[0].endswith(":"):
+        return f"{glosses[0]} {glosses[-1]}"
+    return glosses[0] if glosses else ""
+
+
+own = collections.defaultdict(list)  # real meanings, for reordering
+current = collections.defaultdict(list)  # every sense, for missing words
 for line in open(indonesian_path, encoding="utf8"):
     entry = json.loads(line)
     if entry.get("pos") == "name":
         continue
     for sense in entry.get("senses", []):
-        gloss = (sense.get("glosses") or [""])[0]
-        if gloss and not NOT_A_MEANING.search(gloss) and not sense.get("form_of"):
+        gloss = headline(sense.get("glosses") or [])
+        if not gloss:
+            continue
+        current[entry["word"]].append([entry.get("pos", ""), short(gloss)])
+        if not NOT_A_MEANING.search(gloss) and not sense.get("form_of"):
             own[entry["word"]].append([entry.get("pos", ""), short(gloss)])
 reordered = []
 for word, senses in data["e"].items():
@@ -136,6 +151,17 @@ for word, senses in data["e"].items():
         if real:
             data["e"][word] = (real + senses)[:MAX_SENSES]
             reordered.append(word)
+
+# 0b. Words in the current Wiktionary extract that Lector's copy (from an
+#     older dump) lacks: sadap, penipuan, pengeboman. Ordinary Wiktionary
+#     entries, so they go into "e".
+from_wiktionary = []
+for word, senses in current.items():
+    if word in data["e"] or word in data["p"] or not PHRASE.match(word):
+        continue
+    data["e"][word] = senses[:MAX_SENSES]
+    from_wiktionary.append(word)
+known |= set(from_wiktionary)
 
 # 1. Wiktionary's Malay entries.
 for line in open(malay_path, encoding="utf8"):
@@ -320,6 +346,7 @@ by_source = collections.Counter(senses[0][2] for senses in extra.values())
 print(
     f"added {len(extra)} words: {by_source['m']} from Malay Wiktionary, "
     f"{by_source['w']} from Wordnet Bahasa, {by_source['s']} spoken words, "
-    f"{by_source['t']} machine translations; "
+    f"{by_source['t']} machine translations; {len(from_wiktionary)} words "
+    f"from the current Wiktionary extract; "
     f"real meanings put first for {len(reordered)}: {' '.join(reordered)}"
 )
