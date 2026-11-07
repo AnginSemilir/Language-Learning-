@@ -52,7 +52,7 @@ export default function WorldView() {
   }
 
   const { level, next } = world;
-  const trees = GROWTH_STAGES.reduce((n, s) => n + world.forest[s], 0);
+  const trees = GROWTH_STAGES.reduce<number>((n, s) => n + world.forest[s], 0);
   const hint =
     world.unlocked.length > 0
       ? "Tap a building to see its Indonesian name."

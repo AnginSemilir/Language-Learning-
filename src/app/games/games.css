@@ -95,9 +95,8 @@
   background-color: var(--theme-surface);
   border: 1px solid var(--theme-neutral-200);
   box-shadow: var(--shadow-sm);
-  transition:
-    transform var(--transition-duration-slow) ease,
-    box-shadow var(--transition-duration-slow) ease;
+  transition: transform var(--transition-duration-slow) ease, box-shadow
+    var(--transition-duration-slow) ease;
 }
 
 .game-card:hover {

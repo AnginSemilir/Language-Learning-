@@ -8,9 +8,8 @@
   height: 3.5rem;
   border-radius: var(--radius-full);
   background: linear-gradient(160deg, #ffd65c, #f59e0b);
-  box-shadow:
-    inset 0 -3px 0 rgba(0, 0, 0, 0.12),
-    0 2px 8px rgba(245, 158, 11, 0.35);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12), 0 2px 8px
+    rgba(245, 158, 11, 0.35);
   color: #5b3200;
   font-family: var(--font-display);
   line-height: 1;

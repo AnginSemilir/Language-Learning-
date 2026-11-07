@@ -119,7 +119,9 @@ export default function GameResults({
                 <span className="game-results__term" lang="id">
                   {word.term}
                 </span>
-                <span className="game-results__meaning">{word.fullMeaning}</span>
+                <span className="game-results__meaning">
+                  {word.fullMeaning}
+                </span>
               </li>
             ))}
           </ul>

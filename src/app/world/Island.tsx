@@ -333,9 +333,7 @@ export default function Island({
 
       {spot("gunung", mountain)}
       {spot("balon-udara", <Balloon />)}
-      {has("kembang-api") && (celebrate || phase === "night") && (
-        <Fireworks />
-      )}
+      {has("kembang-api") && (celebrate || phase === "night") && <Fireworks />}
 
       <rect y="156" width="400" height="94" fill={`url(#${uid}-sea)`} />
       <g className="island__waves" stroke="#ffffff" fill="none">
@@ -442,7 +440,7 @@ export default function Island({
       </g>
 
       {phase === "night" && (
-        <g className="island__lights" aria-hidden="true">
+        <g className="island__lights">
           {light("rumah", <House />)}
           {light("sekolah", <School />)}
           {light("mercusuar", lighthouse)}

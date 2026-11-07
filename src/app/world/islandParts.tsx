@@ -47,11 +47,7 @@ export function House() {
       <Window x={7} y={-19} />
       <path d="M-20 -22L0 -38l20 16z" fill={ROOF} />
       <path d="M-20 -22L0 -38" stroke={ROOF_DARK} strokeWidth="1.4" />
-      <path
-        d="M-6 -33l-3 -6M6 -33l3 -6"
-        stroke={ROOF_DARK}
-        strokeWidth="1.6"
-      />
+      <path d="M-6 -33l-3 -6M6 -33l3 -6" stroke={ROOF_DARK} strokeWidth="1.6" />
     </g>
   );
 }
@@ -422,10 +418,7 @@ export function Palm() {
       <g transform="translate(9 -30)">
         <g className="island__fronds">
           <path d="M0 0c-6 -6 -14 -5 -18 1c6 -3 12 -3 18 -1z" fill={LEAF} />
-          <path
-            d="M0 0c-3 -8 -10 -11 -15 -9c6 1 11 4 15 9z"
-            fill={LEAF_DARK}
-          />
+          <path d="M0 0c-3 -8 -10 -11 -15 -9c6 1 11 4 15 9z" fill={LEAF_DARK} />
           <path d="M0 0c3 -8 10 -11 16 -8c-7 0 -12 3 -16 8z" fill={LEAF} />
           <path
             d="M0 0c6 -5 14 -3 17 3c-6 -3 -12 -3 -17 -3z"
@@ -445,11 +438,7 @@ export function Campfire({ lit }: { lit: boolean }) {
   return (
     <g>
       <ellipse cx="0" cy="-0.5" rx="9" ry="2.4" fill="#000" opacity="0.12" />
-      <path
-        d="M-7 -1l14 -4M-7 -5l14 4"
-        stroke={WOOD_DARK}
-        strokeWidth="2.4"
-      />
+      <path d="M-7 -1l14 -4M-7 -5l14 4" stroke={WOOD_DARK} strokeWidth="2.4" />
       {lit ? (
         <g className="island__flame">
           <path

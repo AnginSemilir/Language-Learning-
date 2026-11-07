@@ -1,19 +1,23 @@
 // Little sounds for the games, made on the spot with Web Audio: no files to
 // download, and nothing plays until a game is started by a tap.
 
-type AudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+interface AudioWindow {
+  AudioContext?: typeof AudioContext;
+  webkitAudioContext?: typeof AudioContext;
+}
 
 let context: AudioContext | null = null;
 
 function audio(): AudioContext | null {
   if (typeof window === "undefined") return null;
-  const w = window as AudioWindow;
+  const w = window as unknown as AudioWindow;
   const Context = w.AudioContext ?? w.webkitAudioContext;
   if (!Context) return null;
   try {
-    context ??= new Context();
-    if (context.state === "suspended") context.resume().catch(() => {});
-    return context;
+    const ctx = context ?? new Context();
+    context = ctx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    return ctx;
   } catch {
     return null;
   }
