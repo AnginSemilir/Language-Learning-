@@ -1,0 +1,44 @@
+.said {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.said__id {
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: 1.45;
+  color: var(--theme-neutral-900);
+}
+
+.said__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.said__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 1.75rem;
+  padding: 0 10px;
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--theme-neutral-600);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.said__tool:hover {
+  background-color: rgba(127, 127, 127, 0.1);
+}
+
+.said__en {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  color: var(--theme-neutral-600);
+}

@@ -50,4 +50,6 @@ export const defaultSettings: SettingsValues = {
   "#games_bestRain": 0,
   "#games_sound": true,
   "#games_words": "learning",
+  "#world_seen": "",
+  "#world_story": "",
 };

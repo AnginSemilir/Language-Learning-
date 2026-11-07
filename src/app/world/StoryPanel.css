@@ -1,0 +1,315 @@
+.secret {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(160deg, #24294a, #343a63);
+  color: #f4ecd8;
+  box-shadow: var(--shadow-md);
+}
+
+/* A few stars over the night-blue. */
+.secret::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(#ffffff 0.8px, transparent 1.2px);
+  background-size: 37px 41px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.secret > * {
+  position: relative;
+}
+
+.secret__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.secret__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: #ffe8a8;
+}
+
+.secret__title span {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: #c9c3e6;
+}
+
+.secret__chapter {
+  margin: 6px 0 0;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #9fd0ff;
+}
+
+.secret .secret__map {
+  flex-shrink: 0;
+  width: 7.5rem;
+  transform: rotate(-3deg);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+.secret__locked {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  margin: 0;
+  color: #d9d3f2;
+}
+
+.secret__locked svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.secret__latest-title {
+  margin: 0 0 var(--spacing-xxs);
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: #fff6e0;
+}
+
+.secret .said__id {
+  color: #f4ecd8;
+}
+
+.secret .said__en {
+  color: #c9c3e6;
+}
+
+.secret .said__tool {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #e6e0ff;
+}
+
+.secret__clue {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px dashed rgba(159, 208, 255, 0.5);
+  border-radius: var(--radius-lg);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.secret__clue-label {
+  margin: 0 0 4px;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9fd0ff;
+}
+
+.secret__clue-label span {
+  margin-left: 4px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #c9c3e6;
+}
+
+.secret__clue-id {
+  margin: 0;
+  font-style: italic;
+  color: #fff6e0;
+}
+
+.secret__clue-en {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: #c9c3e6;
+}
+
+.secret__end {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: #ffe8a8;
+}
+
+.secret__end span {
+  margin-left: 4px;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  color: #c9c3e6;
+}
+
+.secret__notebook summary {
+  font-size: var(--font-size-sm);
+  color: #9fd0ff;
+  cursor: pointer;
+}
+
+.secret__notebook ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.secret__notebook strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--font-size-sm);
+  color: #ffe8a8;
+}
+
+/* A riddle, on old paper. */
+.riddle {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid #e0c99a;
+  border-radius: var(--radius-lg);
+  background-color: #f7ecd2;
+  color: #3b2a14;
+  text-align: left;
+}
+
+.riddle__label {
+  margin: 0 0 var(--spacing-xs);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #8a5a2b;
+}
+
+.riddle__label span {
+  margin-left: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: #a07a4d;
+}
+
+.riddle .said {
+  align-items: flex-start;
+}
+
+.secret .riddle .said__id,
+.kejutan .riddle .said__id,
+.riddle .said__id {
+  font-style: italic;
+  color: #3b2a14;
+}
+
+.secret .riddle .said__en,
+.kejutan .riddle .said__en,
+.riddle .said__en {
+  color: #7a5c38;
+}
+
+.secret .riddle .said__tool,
+.kejutan .riddle .said__tool,
+.riddle .said__tool {
+  border-color: #e0c99a;
+  color: #7a5c38;
+}
+
+.riddle__form {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.riddle__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d4b98a;
+  border-radius: var(--radius-lg);
+  background-color: #fffaf0;
+  color: #3b2a14;
+  font: inherit;
+  font-size: var(--font-size-md);
+}
+
+.riddle__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(212, 185, 138, 0.55);
+}
+
+.riddle__feedback {
+  margin: var(--spacing-xs) 0 0;
+  font-weight: 600;
+  color: #b5532a;
+}
+
+.riddle__hint {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: #7a5c38;
+}
+
+/* The old map. */
+.map-pieces {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.map-pieces path:not([fill]) {
+  fill: none;
+}
+
+.map-pieces__missing {
+  fill: rgba(0, 0, 0, 0.2);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 2;
+}
+
+.map-pieces__q {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  fill: rgba(255, 255, 255, 0.5);
+}
+
+.map-pieces__n {
+  font-family: var(--font-display);
+  font-size: 4px;
+  font-weight: 700;
+  fill: #8a5a2b;
+}
+
+.map-pieces__x {
+  animation: map-x 1.4s ease-in-out infinite alternate;
+}
+
+.map-pieces__fresh {
+  fill: none;
+  stroke: #ffd65c;
+  stroke-width: 1.4;
+  animation: map-fresh 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes map-x {
+  from {
+    opacity: 0.55;
+  }
+}
+
+@keyframes map-fresh {
+  from {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-pieces * {
+    animation: none !important;
+  }
+}

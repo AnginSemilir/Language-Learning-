@@ -1,0 +1,51 @@
+.discovery-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+}
+
+.discovery-art path:not([fill]),
+.weather-icon path:not([fill]) {
+  fill: none;
+}
+
+/* Shown still: leapers, gliders and shooting stars in mid-flight. */
+.discovery-art .island__jump,
+.discovery-art .island__splash,
+.discovery-art .island__leap,
+.discovery-art .island__shoot,
+.discovery-art .island__glide,
+.discovery-art .island__crawl {
+  animation: none;
+  opacity: 1;
+}
+
+.discovery-art--locked .discovery-art__subject {
+  filter: brightness(0);
+  opacity: 0.22;
+}
+
+.discovery-art--locked * {
+  animation: none !important;
+}
+
+.discovery-art__text {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  fill: #7a4a00;
+}
+
+.weather-icon {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-art * {
+    animation: none !important;
+  }
+}

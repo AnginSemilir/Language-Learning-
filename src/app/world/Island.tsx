@@ -1,12 +1,37 @@
 // Pulau Kata, drawn. Everything is placed on a 400 × 250 canvas: sky, sea,
 // the island with its hill, your words as trees (logic/game/world.ts picks
-// them) and whatever your level has built so far. Buildings can be tapped
-// to see what they're called.
+// them), whatever your level has built so far, the animals that live there,
+// today's weather and visitors, and the traces of the island's secret.
+// Buildings, animals and visitors can be tapped to see what they're called.
 
 import { GrowthDrawing } from "@/components/GrowthIcon/GrowthIcon";
-import type { Building, DayPhase, Tree } from "@/logic/game/world";
+import type { Building } from "@/logic/game/buildings";
+import type { Weather } from "@/logic/game/calendar";
+import { ANIMALS, type IslandDay, VISITORS } from "@/logic/game/discoveries";
+import type { DayPhase, Tree } from "@/logic/game/world";
 import { type KeyboardEvent, type ReactNode, useId } from "react";
 import "./Island.css";
+import {
+  BirdOfParadise,
+  Buffalo,
+  Butterflies,
+  Cat,
+  Chicken,
+  Cockatoo,
+  Deer,
+  Dolphins,
+  Elephant,
+  Goat,
+  JumpingFish,
+  Komodo,
+  Monkey,
+  Orangutan,
+  Pinisi,
+  ShootingStar,
+  Stranger,
+  Turtle,
+  Whale,
+} from "./islandLife";
 import {
   Balloon,
   Birds,
@@ -27,6 +52,23 @@ import {
   School,
   Villager,
 } from "./islandParts";
+import {
+  BlueGlow,
+  Bottle,
+  Bunting,
+  Cake,
+  FAR_SLOTS,
+  FarIsland,
+  FishingBoats,
+  GoldenTree,
+  GreasedPole,
+  Kites,
+  Lanterns,
+  Lightning,
+  Mist,
+  Overcast,
+  Rain,
+} from "./islandSky";
 
 /** Where trees grow on the hill, back to front (clear of the buildings). */
 const TREE_SLOTS: [number, number][] = [
@@ -149,8 +191,17 @@ const SIGNPOSTS = new Set([
 
 const WAVE = "q10 -3 20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0t20 0";
 
-export interface IslandProps {
+export interface IslandThing {
+  id: string;
+  word: string;
+  meaning: string;
+}
+
+/** Everything on the island at this moment. */
+export interface IslandScene {
   trees: Tree[];
+  /** Trees on the island across the water. */
+  farTrees: Tree[];
   unlocked: Building[];
   /** The next building to come, shown as a sign where it will stand. */
   next?: Building;
@@ -159,44 +210,169 @@ export interface IslandProps {
   campfire: boolean;
   /** All of today's quests done: birds, fireflies or fireworks. */
   celebrate: boolean;
+  /** Animals living here (see logic/game/discoveries.ts). */
+  animals: string[];
+  /** Today's weather, goings-on, visitors and bottle. */
+  day: IslandDay;
+  /** The island's secret (logic/game/story.ts): the stranger's out… */
+  stranger: boolean;
+  /** …a blue light is seen at the jetty or the lighthouse… */
+  blueLight: "dermaga" | "mercusuar" | null;
+  /** …and, at the end, the cave and the golden tree. */
+  treasure: boolean;
+}
+
+export interface IslandProps {
+  scene: IslandScene;
   phase: DayPhase;
-  /** Makes the buildings tappable. */
-  onPick?: (building: Building) => void;
-  /** The building tapped last, highlighted. */
+  /** Makes buildings, animals and visitors tappable. */
+  onPick?: (thing: IslandThing) => void;
+  /** The thing tapped last, highlighted. */
   picked?: string;
   className?: string;
 }
+
+/** Where the animals live. */
+const HOMES: Record<string, [number, number]> = {
+  ayam: [104, 191],
+  kucing: [172, 201],
+  "kupu-kupu": [88, 178],
+  kambing: [296, 186],
+  kerbau: [242, 177],
+  ikan: [300, 233],
+  monyet: [182, 152],
+  kakatua: [331, 158],
+  rusa: [76, 180],
+  gajah: [40, 203],
+  orangutan: [258, 143],
+};
+
+/** Where visitors turn up. */
+const VISITS: Record<string, [number, number]> = {
+  "lumba-lumba": [100, 237],
+  "bintang-jatuh": [150, 40],
+  pinisi: [262, 247],
+  penyu: [206, 212],
+  paus: [178, 246],
+  komodo: [70, 208],
+  cendrawasih: [0, 58],
+};
+
+/** The Indonesian name and the English one, for what can be tapped. */
+const NAMES: Record<string, IslandThing> = Object.fromEntries(
+  [...ANIMALS, ...VISITORS].map((d) => [
+    d.id,
+    { id: d.id, word: d.word, meaning: d.meaning },
+  ])
+);
+
+const CAMPFIRE: IslandThing = {
+  id: "api-unggun",
+  word: "api unggun",
+  meaning: "campfire",
+};
+const BOTTLE: IslandThing = {
+  id: "botol",
+  word: "pesan dalam botol",
+  meaning: "message in a bottle",
+};
+const STRANGER: IslandThing = {
+  id: "orang-asing",
+  word: "orang asing",
+  meaning: "stranger",
+};
+
+const LIGHT: Record<DayPhase, [number, number]> = {
+  dawn: [1, 1],
+  day: [1, 1],
+  dusk: [0.9, 0.95],
+  night: [0.66, 0.8],
+};
+
+const WEATHER_LIGHT: Record<Weather, number> = {
+  cerah: 1,
+  berawan: 0.95,
+  gerimis: 0.92,
+  hujan: 0.86,
+  badai: 0.78,
+};
+
+/** The light on the land at this hour, and in this weather. */
+function shade(phase: DayPhase, weather?: Weather) {
+  const [light, colour] = LIGHT[phase];
+  const brightness = light * (weather ? WEATHER_LIGHT[weather] : 1);
+  if (brightness > 0.99) return undefined;
+  return { filter: `brightness(${brightness}) saturate(${colour})` };
+}
+
+const RED_WHITE = ["#e23b3b", "#ffffff"];
+const PARTY = ["#f97316", "#facc15", "#22c55e", "#38bdf8", "#a855f7"];
 
 /** Trees further back (higher up the hill) are drawn smaller. */
 function treeSize(y: number) {
   return 19 + ((y - 128) / 56) * 10;
 }
 
+function TreeAt({
+  tree,
+  x,
+  y,
+  size,
+}: {
+  tree: Tree;
+  x: number;
+  y: number;
+  size: number;
+}) {
+  return (
+    <svg
+      className={`island__tree growth-icon--stage-${tree.stage}`}
+      x={x - size / 2}
+      y={y - size * 0.92}
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      overflow="visible"
+      aria-hidden="true"
+    >
+      <GrowthDrawing stage={tree.stage} />
+    </svg>
+  );
+}
+
 export default function Island({
-  trees,
-  unlocked,
-  next,
-  villagers,
-  campfire,
-  celebrate,
+  scene,
   phase,
   onPick,
   picked,
   className = "",
 }: IslandProps) {
   const uid = `island${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const { trees, unlocked, next, day } = scene;
   const has = (id: string) => unlocked.some((b) => b.id === id);
+  const lives = (id: string) => scene.animals.includes(id);
+  const visits = (id: string) => day.visitors.includes(id);
+  const happens = (id: string) => day.events.includes(id);
   const dark = phase === "night" || phase === "dusk";
+  const daylight = phase !== "night";
+  const wet = day.weather === "hujan" || day.weather === "badai";
+  const party = day.celebration;
   const [skyTop, skyBottom] = SKY[phase];
   const [seaTop, seaBottom] = SEA[phase];
 
-  /** A building in its place, tappable when the island is interactive. */
-  const spot = (id: string, children: ReactNode) => {
-    const building = unlocked.find((b) => b.id === id);
-    if (!building) return null;
-    const place = `translate(${SPOTS[id].join(" ")})`;
-    if (!onPick) return <g transform={place}>{children}</g>;
-    const pick = () => onPick(building);
+  /**
+   * Something on the island, tappable when the island is interactive. Small
+   * things get a bigger invisible target (`hit`, in island units), so they
+   * can be tapped on a phone.
+   */
+  const tappable = (
+    thing: IslandThing,
+    at: string,
+    children: ReactNode,
+    hit = 0
+  ) => {
+    if (!onPick) return <g transform={at}>{children}</g>;
+    const pick = () => onPick(thing);
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -204,31 +380,48 @@ export default function Island({
       }
     };
     const classes =
-      picked === id ? "island__spot island__spot--picked" : "island__spot";
+      picked === thing.id
+        ? "island__spot island__spot--picked"
+        : "island__spot";
     return (
       <g
-        transform={place}
+        transform={at}
         className={classes}
         role="button"
         tabIndex={0}
-        aria-label={`${building.word}: ${building.meaning}`}
+        aria-label={`${thing.word}: ${thing.meaning}`}
         onClick={pick}
         onKeyDown={onKeyDown}
       >
-        <title>{`${building.word} · ${building.meaning}`}</title>
+        <title>{`${thing.word} · ${thing.meaning}`}</title>
+        {hit > 0 && <circle cy={-hit / 2} r={hit} fill="transparent" />}
         {children}
       </g>
     );
   };
+
+  const place = ([x, y]: [number, number]) => `translate(${x} ${y})`;
+
+  /** A building in its place, once its level is reached. */
+  const spot = (id: string, children: ReactNode) => {
+    const building = unlocked.find((b) => b.id === id);
+    return building && tappable(building, place(SPOTS[id]), children);
+  };
+
+  /** An animal at home, once it has come to live here. */
+  const animal = (id: string, children: ReactNode) =>
+    lives(id) && tappable(NAMES[id], place(HOMES[id]), children, 9);
+
+  /** A visitor, on the days it comes. */
+  const visitor = (id: string, children: ReactNode) =>
+    visits(id) && tappable(NAMES[id], place(VISITS[id]), children, 10);
 
   /**
    * At night the land is in shadow; its windows and lamps are drawn again on
    * top (the rest of each building hidden), so they keep their glow.
    */
   const light = (id: string, children: ReactNode) =>
-    has(id) && (
-      <g transform={`translate(${SPOTS[id].join(" ")})`}>{children}</g>
-    );
+    has(id) && <g transform={place(SPOTS[id])}>{children}</g>;
 
   // Fewer words than places: spread them over the hill, back to front.
   const placed = trees.map((tree, i) => {
@@ -239,9 +432,32 @@ export default function Island({
   // A sign marks where the next building will stand (on land only).
   const nextSpot = next && SIGNPOSTS.has(next.id) ? SPOTS[next.id] : undefined;
   const mountain = (
-    <Mountain fill={`url(#${uid}-mountain)`} waterfall={has("air-terjun")} />
+    <Mountain
+      fill={`url(#${uid}-mountain)`}
+      waterfall={has("air-terjun")}
+      cave={scene.treasure}
+    />
   );
-  const lighthouse = <Lighthouse lit={dark} beam={`${uid}-beam`} />;
+  const blueLamp = dark && scene.blueLight === "mercusuar";
+  const lighthouse = (
+    <Lighthouse
+      lit={dark}
+      beam={blueLamp ? `${uid}-beam-blue` : `${uid}-beam`}
+      blue={blueLamp}
+    />
+  );
+  const shirt = party === "hari-batik" ? `url(#${uid}-batik)` : undefined;
+  const fireworks =
+    (has("kembang-api") && (scene.celebrate || phase === "night")) ||
+    party === "tahun-baru" ||
+    party === "seratus-hari";
+  const rainbow =
+    has("pelangi") || (happens("pelangi") && daylight && phase !== "dusk");
+  const flags = party === "kemerdekaan" ? RED_WHITE : PARTY;
+  const bunting =
+    party === "kemerdekaan" ||
+    party === "ulang-tahun" ||
+    party === "seratus-hari";
 
   return (
     <svg
@@ -273,15 +489,33 @@ export default function Island({
           <stop offset="0" stopColor="#fff6bf" stopOpacity="0.85" />
           <stop offset="1" stopColor="#fff6bf" stopOpacity="0" />
         </linearGradient>
+        <linearGradient id={`${uid}-beam-blue`} x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0" stopColor="#9fd0ff" stopOpacity="0.85" />
+          <stop offset="1" stopColor="#9fd0ff" stopOpacity="0" />
+        </linearGradient>
         <radialGradient id={`${uid}-glow`}>
           <stop offset="0" stopColor="#fff3b0" stopOpacity="0.9" />
           <stop offset="1" stopColor="#fff3b0" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id={`${uid}-blue`}>
+          <stop offset="0" stopColor="#8ec5ff" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#8ec5ff" stopOpacity="0" />
+        </radialGradient>
+        <pattern
+          id={`${uid}-batik`}
+          width="2.4"
+          height="2.4"
+          patternUnits="userSpaceOnUse"
+        >
+          <rect width="2.4" height="2.4" fill="#6b3f22" />
+          <circle cx="1.2" cy="1.2" r="0.55" fill="#f3dcae" />
+        </pattern>
       </defs>
 
       <rect width="400" height="250" fill={`url(#${uid}-sky)`} />
 
       {phase === "night" &&
+        !wet &&
         STARS.map(([x, y, r], i) => (
           <circle
             key={`${x}-${y}`}
@@ -307,7 +541,11 @@ export default function Island({
         </g>
       )}
 
-      {spot("pelangi", <Rainbow />)}
+      {rainbow && (
+        <g transform={place(SPOTS.pelangi)}>
+          <Rainbow />
+        </g>
+      )}
 
       <g opacity={dark ? 0.35 : 0.95}>
         <g className="island__cloud" style={{ animationDuration: "95s" }}>
@@ -331,9 +569,40 @@ export default function Island({
         </g>
       </g>
 
-      {spot("gunung", mountain)}
-      {spot("balon-udara", <Balloon />)}
-      {has("kembang-api") && (celebrate || phase === "night") && <Fireworks />}
+      {phase === "night" && !wet && visitor("bintang-jatuh", <ShootingStar />)}
+      {fireworks && <Fireworks />}
+
+      <g style={shade(phase)}>
+        {spot("gunung", mountain)}
+        {spot("balon-udara", <Balloon />)}
+        {daylight && visitor("cendrawasih", <BirdOfParadise />)}
+        {daylight && happens("layang-layang") && <Kites />}
+        {has("pulau-seberang") && (
+          <g>
+            {tappable(
+              {
+                id: "pulau-seberang",
+                word: "pulau seberang",
+                meaning: "the island across",
+              },
+              "",
+              <FarIsland temple={has("pura")} />
+            )}
+            {scene.farTrees.map((tree, i) => {
+              const [x, y] = FAR_SLOTS[i % FAR_SLOTS.length];
+              return (
+                <TreeAt
+                  key={tree.id}
+                  tree={tree}
+                  x={x}
+                  y={y}
+                  size={7 + (y - 140) / 7}
+                />
+              );
+            })}
+          </g>
+        )}
+      </g>
 
       <rect y="156" width="400" height="94" fill={`url(#${uid}-sea)`} />
       <g className="island__waves" stroke="#ffffff" fill="none">
@@ -341,9 +610,10 @@ export default function Island({
         <path d={`M-40 236${WAVE}${WAVE}`} opacity="0.25" />
       </g>
 
-      <g className="island__land">
-        {spot("perahu", <Boat />)}
+      <Overcast weather={day.weather} />
 
+      <g className="island__land" style={shade(phase, day.weather)}>
+        {spot("perahu", <Boat />)}
         <ellipse cx="200" cy="207" rx="172" ry="12" fill="#000" opacity="0.1" />
         <path
           d="M28 196C40 176 92 166 150 163C218 160 300 162 352 176C374 182 378 196 356 201C300 212 110 212 52 206C34 204 22 201 28 196Z"
@@ -369,27 +639,23 @@ export default function Island({
         {spot("bianglala", <FerrisWheel />)}
         {spot("sawah", <RiceTerraces />)}
 
-        {placed.map(({ tree, at: [x, y] }) => {
-          const size = treeSize(y);
-          return (
-            <svg
-              key={tree.id}
-              className={`island__tree growth-icon--stage-${tree.stage}`}
-              x={x - size / 2}
-              y={y - size * 0.92}
-              width={size}
-              height={size}
-              viewBox="0 0 32 32"
-              overflow="visible"
-              aria-hidden="true"
-            >
-              <GrowthDrawing stage={tree.stage} />
-            </svg>
-          );
-        })}
+        {placed.map(({ tree, at: [x, y] }) => (
+          <TreeAt key={tree.id} tree={tree} x={x} y={y} size={treeSize(y)} />
+        ))}
 
+        {scene.treasure && (
+          <g transform="translate(168 136)">
+            <GoldenTree />
+          </g>
+        )}
+        {animal("monyet", <Monkey />)}
+        {animal("orangutan", <Orangutan />)}
         {spot("rumah", <House />)}
         {spot("kebun", <Garden />)}
+        {animal("kupu-kupu", <Butterflies />)}
+        {animal("rusa", <Deer />)}
+        {animal("kerbau", <Buffalo />)}
+        {animal("kambing", <Goat />)}
 
         <g transform="translate(58 194)">
           <Palm />
@@ -397,22 +663,42 @@ export default function Island({
         <g transform="translate(344 189) scale(-1 1)">
           <Palm />
         </g>
+        {animal("kakatua", <Cockatoo />)}
         {spot("dermaga", <Jetty />)}
         {spot("warung", <FoodStall />)}
         {spot("pasar", <Market />)}
         {spot("mercusuar", lighthouse)}
 
+        {bunting && <Bunting from={[96, 172]} to={[146, 178]} colors={flags} />}
+        {bunting && (
+          <Bunting from={[196, 176]} to={[262, 178]} colors={flags} />
+        )}
+        {party === "kemerdekaan" && (
+          <g transform="translate(262 203)">
+            <GreasedPole />
+          </g>
+        )}
+        {party === "ulang-tahun" && (
+          <g transform="translate(188 206)">
+            <Cake />
+          </g>
+        )}
+
+        {animal("ayam", <Chicken />)}
+        {animal("kucing", <Cat />)}
+        {animal("gajah", <Elephant />)}
+        {visitor("penyu", <Turtle />)}
+        {visitor("komodo", <Komodo />)}
+        {day.bottle && tappable(BOTTLE, "translate(172 214)", <Bottle />, 10)}
+
         <g transform="translate(112 204)">
-          {VILLAGERS.slice(0, villagers).map((name, i) => (
-            <Villager key={name} index={i} />
+          {VILLAGERS.slice(0, scene.villagers).map((name, i) => (
+            <Villager key={name} index={i} shirt={shirt} />
           ))}
         </g>
 
         {next && nextSpot && (
-          <g
-            className="island__next"
-            transform={`translate(${nextSpot.join(" ")})`}
-          >
+          <g className="island__next" transform={place(nextSpot)}>
             <title>{`Level ${next.level} brings something new here`}</title>
             <path d="M0 0v-12" stroke="#8a5a2b" strokeWidth="1.2" />
             <rect
@@ -437,6 +723,16 @@ export default function Island({
           fill="none"
           opacity="0.7"
         />
+
+        {visitor("paus", <Whale />)}
+        {visitor("lumba-lumba", <Dolphins />)}
+        {animal("ikan", <JumpingFish />)}
+        {visitor(
+          "pinisi",
+          <g transform="scale(0.75)">
+            <Pinisi />
+          </g>
+        )}
       </g>
 
       {phase === "night" && (
@@ -446,17 +742,35 @@ export default function Island({
           {light("mercusuar", lighthouse)}
         </g>
       )}
+      {dark && happens("pasar-malam") && has("pasar") && <Lanterns />}
+      {phase === "dusk" && happens("nelayan") && <FishingBoats />}
+      {dark && scene.blueLight === "dermaga" && has("dermaga") && (
+        <g transform="translate(378 206)">
+          <BlueGlow gradient={`${uid}-blue`} />
+        </g>
+      )}
+      {dark &&
+        scene.stranger &&
+        tappable(
+          STRANGER,
+          "translate(86 207)",
+          <Stranger glow={`${uid}-blue`} />,
+          10
+        )}
 
-      <g transform="translate(286 201)">
-        <Campfire lit={campfire} />
-      </g>
+      {tappable(
+        CAMPFIRE,
+        "translate(286 201)",
+        <Campfire lit={scene.campfire} />,
+        10
+      )}
 
-      {celebrate && phase === "day" && (
+      {scene.celebrate && phase === "day" && (
         <g transform="translate(150 70)">
           <Birds />
         </g>
       )}
-      {celebrate && dark && (
+      {scene.celebrate && dark && (
         <g className="island__fireflies" fill="#fff59d">
           <circle cx="120" cy="150" r="1.2" />
           <circle cx="182" cy="140" r="1" />
@@ -465,6 +779,10 @@ export default function Island({
           <circle cx="150" cy="166" r="1" />
         </g>
       )}
+
+      {phase === "dawn" && day.mist && <Mist />}
+      <Rain weather={day.weather} />
+      {day.weather === "badai" && <Lightning />}
     </svg>
   );
 }

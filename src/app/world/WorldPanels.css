@@ -1,0 +1,267 @@
+.world-panel__title {
+  margin: 0 0 var(--spacing-sm);
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--theme-neutral-900);
+}
+
+.world-panel__title span {
+  margin-left: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--theme-neutral-500);
+}
+
+/* Hari ini */
+.today__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today__chip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: var(--radius-xl);
+  background-color: var(--theme-surface);
+}
+
+.today__open {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.today__chip:has(.today__open) {
+  border-color: #e0c99a;
+  background-color: #fbf3e2;
+}
+
+.today__art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 1.95rem;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background-color: #e3f6ff;
+}
+
+.today__art .discovery-art {
+  border-radius: 0;
+}
+
+.today__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.today__word {
+  font-weight: 600;
+  color: var(--theme-neutral-900);
+}
+
+.today__meaning {
+  font-size: var(--font-size-xs);
+  color: var(--theme-neutral-600);
+}
+
+.today__note {
+  margin: var(--spacing-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--theme-orange-700);
+}
+
+/* Kabar desa */
+.news__lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.news__line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.news__who {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: var(--radius-full);
+  background: linear-gradient(160deg, #ffd65c, #f59e0b);
+  color: #5b3200;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.news__line:nth-child(2) .news__who {
+  background: linear-gradient(160deg, #7dd3fc, #2563eb);
+  color: #ffffff;
+}
+
+.news__line:nth-child(3) .news__who {
+  background: linear-gradient(160deg, #86efac, #16a34a);
+  color: #ffffff;
+}
+
+.news__body {
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: 4px var(--radius-xl) var(--radius-xl) var(--radius-xl);
+  background-color: var(--theme-surface);
+}
+
+.news__name {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--theme-neutral-500);
+}
+
+/* Koleksi */
+.collection__group + .collection__group {
+  margin-top: var(--spacing-md);
+}
+
+.collection__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 var(--spacing-xs);
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--theme-neutral-900);
+}
+
+.collection__heading-en {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  color: var(--theme-neutral-500);
+}
+
+.collection__count {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  color: var(--theme-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.collection__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.25rem, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collection__card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 6px 10px;
+  border: 1px solid var(--theme-neutral-200);
+  border-radius: var(--radius-xl);
+  background-color: var(--theme-surface);
+}
+
+.collection__card .discovery-art {
+  margin-bottom: 4px;
+}
+
+.collection__card--locked {
+  border-style: dashed;
+  background-color: var(--theme-neutral-100);
+}
+
+.collection__word {
+  padding: 0 4px;
+  font-weight: 600;
+  color: var(--theme-neutral-900);
+}
+
+.collection__card--locked .collection__word {
+  letter-spacing: 0.1em;
+  color: var(--theme-neutral-400);
+}
+
+.collection__meaning,
+.collection__hint,
+.collection__date {
+  padding: 0 4px;
+  font-size: var(--font-size-xs);
+  color: var(--theme-neutral-600);
+}
+
+.collection__date {
+  color: var(--theme-neutral-500);
+}
+
+.collection__proverbs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collection__proverb {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid #e0c99a;
+  border-radius: var(--radius-lg);
+  background-color: #f7ecd2;
+}
+
+.collection__proverb .said__id {
+  font-style: italic;
+  color: #3b2a14;
+}
+
+.collection__proverb .said__en,
+.collection__proverb .collection__meaning {
+  padding: 0;
+  color: #7a5c38;
+}
+
+.collection__proverb .said__tool {
+  border-color: #e0c99a;
+  color: #7a5c38;
+}
+
+.collection__proverb--more {
+  border-style: dashed;
+  background-color: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--theme-neutral-500);
+}

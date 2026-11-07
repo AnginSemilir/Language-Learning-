@@ -224,8 +224,19 @@ export function School() {
   );
 }
 
-/** Mercusuar: a lighthouse on the rocks, its light sweeping at night. */
-export function Lighthouse({ lit, beam }: { lit: boolean; beam: string }) {
+/**
+ * Mercusuar: a lighthouse on the rocks, its light sweeping at night (blue,
+ * on the nights the island's secret leads there).
+ */
+export function Lighthouse({
+  lit,
+  beam,
+  blue = false,
+}: {
+  lit: boolean;
+  beam: string;
+  blue?: boolean;
+}) {
   return (
     <g>
       <ellipse cx="0" cy="-1" rx="13" ry="4" fill="#8f8a82" />
@@ -242,7 +253,7 @@ export function Lighthouse({ lit, beam }: { lit: boolean; beam: string }) {
       <path d="M-4.6 -21h9.2l-.4 -6h-8.4z" fill="#e2553f" />
       <rect x="-5" y="-38" width="10" height="5" fill="#33363d" rx="1" />
       <rect
-        className="island__lamp"
+        className={blue ? "island__lamp island__lamp--blue" : "island__lamp"}
         x="-3.2"
         y="-37.2"
         width="6.4"
@@ -254,13 +265,32 @@ export function Lighthouse({ lit, beam }: { lit: boolean; beam: string }) {
   );
 }
 
+/** The cave the secret opens, at the foot of the mountain: crystals glow. */
+export function Cave() {
+  return (
+    <g>
+      <ellipse cx="0" cy="-3" rx="8" ry="6" fill="#7de3ff" opacity="0.18" />
+      <path d="M-6 0c0 -6 2.4 -9 6 -9s6 3 6 9z" fill="#2e2a2a" />
+      <g className="island__glow">
+        <path
+          d="M-3 0l1 -4l1 4zM0 0l1.2 -5.6l1.2 5.6zM2.4 0l.8 -3l.8 3z"
+          fill="#7de3ff"
+        />
+      </g>
+    </g>
+  );
+}
+
 /** Gunung: a volcano behind the island, with a puff of smoke. */
 export function Mountain({
   fill,
   waterfall,
+  cave = false,
 }: {
   fill: string;
   waterfall: boolean;
+  /** The secret cave at its foot, once found. */
+  cave?: boolean;
 }) {
   return (
     <g>
@@ -289,6 +319,11 @@ export function Mountain({
             strokeDasharray="4 5"
           />
           <ellipse cx="32" cy="0" rx="9" ry="3" fill="#e9f9ff" />
+        </g>
+      )}
+      {cave && (
+        <g transform="translate(-40 -21)">
+          <Cave />
         </g>
       )}
     </g>
@@ -466,8 +501,8 @@ export function Campfire({ lit }: { lit: boolean }) {
 const SKIN = ["#f2c7a0", "#d9a074", "#a86b45", "#7b4a2c"];
 const SHIRT = ["#2f8fd8", "#e8553f", "#7cc35a", "#ffc83d", "#a855f7"];
 
-/** A villager walking along the beach. */
-export function Villager({ index }: { index: number }) {
+/** A villager walking along the beach (in batik on Batik Day). */
+export function Villager({ index, shirt }: { index: number; shirt?: string }) {
   const walk = {
     animationDuration: `${14 + index * 3}s`,
     animationDelay: `${-index * 4}s`,
@@ -482,7 +517,7 @@ export function Villager({ index }: { index: number }) {
           width="5.2"
           height="6"
           rx="2"
-          fill={SHIRT[index % SHIRT.length]}
+          fill={shirt ?? SHIRT[index % SHIRT.length]}
         />
         <circle cx="0" cy="-12" r="2.4" fill={SKIN[index % SKIN.length]} />
       </g>

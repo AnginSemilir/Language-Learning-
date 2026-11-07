@@ -62,4 +62,9 @@ export interface SettingsValues {
   "#games_sound": boolean;
   /** Which words the games use: the ones being learned now, or all. */
   "#games_words": "learning" | "all";
+
+  // Pulau Kata: the discoveries already shown (ids, comma-separated), and
+  // the steps of the island's secret done so far (logic/game/story.ts).
+  "#world_seen": string;
+  "#world_story": string;
 }
