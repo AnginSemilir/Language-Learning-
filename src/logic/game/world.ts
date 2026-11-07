@@ -18,6 +18,9 @@ import type { DailyStats } from "@/lector/types";
 import type { Card } from "../card/card";
 import { type GrowthStage, growthStage } from "../growth";
 import type { NoteType } from "../note/note";
+import { BUILDINGS, type Building } from "./buildings";
+import { type Found, type IslandDay, discover } from "./discoveries";
+import { replay } from "./journey";
 import {
   type LevelInfo,
   type Quest,
@@ -26,40 +29,13 @@ import {
   totalXp,
 } from "./progress";
 
-export interface Building {
-  id: string;
-  /** The level that brings it. */
-  level: number;
-  /** Its name in Indonesian, and in English. */
-  word: string;
-  meaning: string;
-}
-
-export const BUILDINGS: Building[] = [
-  { id: "rumah", level: 2, word: "rumah", meaning: "house" },
-  { id: "kebun", level: 3, word: "kebun", meaning: "garden" },
-  { id: "perahu", level: 4, word: "perahu", meaning: "boat" },
-  { id: "warung", level: 5, word: "warung", meaning: "food stall" },
-  { id: "dermaga", level: 6, word: "dermaga", meaning: "jetty" },
-  { id: "sawah", level: 7, word: "sawah", meaning: "rice field" },
-  { id: "pasar", level: 8, word: "pasar", meaning: "market" },
-  { id: "sekolah", level: 10, word: "sekolah", meaning: "school" },
-  { id: "mercusuar", level: 12, word: "mercusuar", meaning: "lighthouse" },
-  { id: "gunung", level: 14, word: "gunung", meaning: "mountain" },
-  { id: "air-terjun", level: 16, word: "air terjun", meaning: "waterfall" },
-  { id: "bianglala", level: 18, word: "bianglala", meaning: "Ferris wheel" },
-  {
-    id: "balon-udara",
-    level: 20,
-    word: "balon udara",
-    meaning: "hot-air balloon",
-  },
-  { id: "pelangi", level: 25, word: "pelangi", meaning: "rainbow" },
-  { id: "kembang-api", level: 30, word: "kembang api", meaning: "fireworks" },
-];
+export { BUILDINGS, type Building } from "./buildings";
 
 /** At most this many trees are drawn; the forest count has the rest. */
 export const MAX_TREES = 42;
+
+/** More trees grow on the island across the water, once it's there. */
+export const FAR_TREES = 16;
 
 /** Villagers: one, plus one more for every 100 words known, up to 6. */
 export const MAX_VILLAGERS = 6;
@@ -86,6 +62,8 @@ export interface WorldState {
   forest: Record<GrowthStage, number>;
   /** The trees drawn on the island, the same ones from day to day. */
   trees: Tree[];
+  /** And on the island across the water (level 9). */
+  farTrees: Tree[];
   unlocked: Building[];
   next: Building | undefined;
   villagers: number;
@@ -95,6 +73,12 @@ export interface WorldState {
   questsDone: boolean;
   studiedToday: boolean;
   phase: DayPhase;
+  /** Animals living on the island (see discoveries.ts). */
+  animals: string[];
+  /** Everything found so far, in the order found. */
+  found: Found[];
+  /** Today on the island: weather, goings-on, visitors, a bottle. */
+  day: IslandDay;
 }
 
 /** A stable number for an id, to place the same trees in the same spots. */
@@ -159,12 +143,24 @@ export function buildWorld(input: {
   const level = levelFor(totalXp(days));
   const streak = computeStreaks(activeDateSet(days), input.today);
   const trees = treesOf(input.cards);
+  const forest = forestOf(trees);
   const quests = questsFor(today);
+  // The island across gets every fourth tree, so both have grown ones.
+  const across = level.level >= 9 ? FAR_TREES : 0;
+  const sample = treeSample(trees, MAX_TREES + across);
+  const far = sample.filter((_, i) => i % 4 === 3).slice(0, across);
+  const near = sample.filter((t) => !far.includes(t)).slice(0, MAX_TREES);
+  const { found, day } = discover({
+    journey: replay(days),
+    today: input.today,
+    island: { forest, knownWords: input.knownWords },
+  });
   return {
     level,
     streak,
-    forest: forestOf(trees),
-    trees: treeSample(trees),
+    forest,
+    trees: near,
+    farTrees: far,
     unlocked: BUILDINGS.filter((b) => b.level <= level.level),
     next: BUILDINGS.find((b) => b.level > level.level),
     villagers: Math.min(MAX_VILLAGERS, 1 + Math.floor(input.knownWords / 100)),
@@ -174,5 +170,8 @@ export function buildWorld(input: {
     questsDone: quests.every((q) => q.complete),
     studiedToday: streak.activeToday,
     phase: dayPhase(input.now.getHours()),
+    animals: found.filter((f) => f.kind === "animal").map((f) => f.id),
+    found,
+    day,
   };
 }

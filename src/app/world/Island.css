@@ -12,15 +12,8 @@
   fill: none;
 }
 
-/* The land takes the light of the hour; lamps and windows keep theirs. */
-.island--dusk .island__land {
-  filter: brightness(0.9) saturate(0.95);
-}
-
-.island--night .island__land {
-  filter: brightness(0.66) saturate(0.8);
-}
-
+/* The land takes the light of the hour (Island.tsx sets the filter);
+   lamps and windows keep theirs. */
 .island__lights {
   visibility: hidden;
   pointer-events: none;
@@ -50,6 +43,12 @@
 .island--dawn .island__lamp {
   fill: #ffe6a0;
   opacity: 0.6;
+}
+
+/* On the nights the island's secret leads to the lighthouse. */
+.island .island__lamp--blue {
+  fill: #9fd0ff;
+  opacity: 1;
 }
 
 /* Tappable buildings. */
@@ -171,6 +170,153 @@
   transform-box: fill-box;
   transform-origin: 50% 50%;
   animation: island-burst 2.4s ease-out infinite;
+}
+
+/* Animals and visitors. */
+.island__peck {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-peck 3.4s ease-in-out infinite;
+}
+
+.island__swish {
+  transform-box: fill-box;
+  transform-origin: 0 100%;
+  animation: island-swish 2.6s ease-in-out infinite alternate;
+}
+
+.island__flutter {
+  animation: island-flutter 7s ease-in-out infinite;
+}
+
+.island__flap {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: island-flap 0.2s ease-in-out infinite alternate;
+}
+
+.island__graze {
+  transform-box: fill-box;
+  transform-origin: 0 100%;
+  animation: island-graze 6s ease-in-out infinite;
+}
+
+.island__jump,
+.island__splash,
+.island__leap {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  opacity: 0;
+}
+
+.island__jump {
+  animation: island-jump 6s ease-in-out infinite;
+}
+
+.island__splash {
+  animation: island-splash 6s ease-out infinite;
+}
+
+.island__leap {
+  animation: island-leap 7s ease-in-out infinite;
+}
+
+.island__swing {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: island-swing 2.8s ease-in-out infinite alternate;
+}
+
+.island__tilt {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-tilt 4s ease-in-out infinite;
+}
+
+.island__trunk {
+  transform-box: fill-box;
+  transform-origin: 0 0;
+  animation: island-trunk 3s ease-in-out infinite alternate;
+}
+
+.island__crawl {
+  animation: island-crawl 18s ease-in-out infinite alternate;
+}
+
+.island__shoot {
+  opacity: 0;
+  animation: island-shoot 7s linear infinite;
+}
+
+.island__spout {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-spout 4.5s ease-out infinite;
+}
+
+.island__tongue {
+  animation: island-tongue 2.2s steps(1) infinite;
+}
+
+.island__glide {
+  animation: island-glide 22s linear infinite;
+}
+
+.island__wingbeat {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-wingbeat 0.5s ease-in-out infinite alternate;
+}
+
+/* Weather and goings-on. */
+.island__rain {
+  animation: island-rain 0.45s linear infinite;
+}
+
+.island__lightning {
+  opacity: 0;
+  animation: island-lightning 9s linear infinite;
+}
+
+.island__mist {
+  animation: island-mist 30s ease-in-out infinite alternate;
+}
+
+.island__kite {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: island-kite 3s ease-in-out infinite alternate;
+}
+
+.island__homeward {
+  animation: island-homeward 40s ease-in-out infinite alternate;
+}
+
+.island__lantern,
+.island__glow {
+  animation: island-glow 1.8s ease-in-out infinite alternate;
+}
+
+.island__bluelamp {
+  animation: island-twinkle 1.6s ease-in-out infinite alternate;
+}
+
+.island__bottle {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-bob 3.2s ease-in-out infinite;
+}
+
+.island__sparkle {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: island-sparkle 2.4s ease-in-out infinite;
+}
+
+.island__candle {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: island-flicker 0.7s ease-in-out infinite alternate;
 }
 
 /* Sways like the tree icons (GrowthIcon.css), a little less. */
@@ -336,8 +482,322 @@
   }
 }
 
+@keyframes island-peck {
+  0%,
+  60%,
+  90%,
+  100% {
+    transform: rotate(0);
+  }
+  70%,
+  82% {
+    transform: rotate(16deg);
+  }
+  76% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes island-swish {
+  from {
+    transform: rotate(-10deg);
+  }
+  to {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes island-flutter {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(5px, -4px);
+  }
+  50% {
+    transform: translate(9px, 1px);
+  }
+  75% {
+    transform: translate(3px, 3px);
+  }
+}
+
+@keyframes island-flap {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.3);
+  }
+}
+
+@keyframes island-graze {
+  0%,
+  35%,
+  100% {
+    transform: rotate(0);
+  }
+  45%,
+  80% {
+    transform: rotate(38deg);
+  }
+}
+
+@keyframes island-jump {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translate(-6px, 3px) rotate(-50deg);
+  }
+  60% {
+    opacity: 1;
+  }
+  70% {
+    transform: translate(-3px, -6px) rotate(-20deg);
+  }
+  78% {
+    transform: translate(1px, -8px) rotate(10deg);
+  }
+  88% {
+    opacity: 1;
+    transform: translate(6px, 1px) rotate(55deg);
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translate(6px, 3px) rotate(60deg);
+  }
+}
+
+@keyframes island-splash {
+  0%,
+  57% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60%,
+  89% {
+    opacity: 0.8;
+    transform: scale(0.4);
+  }
+  72%,
+  86%,
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes island-leap {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translate(-12px, 6px) rotate(-35deg);
+  }
+  53% {
+    opacity: 1;
+  }
+  64% {
+    transform: translate(-4px, -7px) rotate(-12deg);
+  }
+  72% {
+    transform: translate(2px, -9px) rotate(8deg);
+  }
+  83% {
+    opacity: 1;
+    transform: translate(10px, 2px) rotate(38deg);
+  }
+  87%,
+  100% {
+    opacity: 0;
+    transform: translate(12px, 6px) rotate(40deg);
+  }
+}
+
+@keyframes island-swing {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes island-tilt {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0);
+  }
+  50%,
+  70% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes island-trunk {
+  from {
+    transform: rotate(-8deg);
+  }
+  to {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes island-crawl {
+  from {
+    transform: translateX(-4px);
+  }
+  to {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes island-shoot {
+  0%,
+  80% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  82% {
+    opacity: 1;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translate(70px, 23px);
+  }
+}
+
+@keyframes island-spout {
+  0%,
+  40% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scaleY(1.2);
+  }
+}
+
+@keyframes island-tongue {
+  0%,
+  82% {
+    opacity: 0;
+  }
+  72%,
+  90% {
+    opacity: 1;
+  }
+}
+
+@keyframes island-glide {
+  from {
+    transform: translate(-30px, 10px);
+  }
+  to {
+    transform: translate(440px, -16px);
+  }
+}
+
+@keyframes island-wingbeat {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(-0.6);
+  }
+}
+
+@keyframes island-rain {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-7px, 24px);
+  }
+}
+
+@keyframes island-lightning {
+  0%,
+  88%,
+  93%,
+  100% {
+    opacity: 0;
+  }
+  89%,
+  91% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes island-mist {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(12px);
+  }
+}
+
+@keyframes island-kite {
+  from {
+    transform: rotate(-8deg);
+  }
+  to {
+    transform: rotate(8deg) translateY(-2px);
+  }
+}
+
+@keyframes island-homeward {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes island-glow {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes island-sparkle {
+  0%,
+  60%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .island * {
     animation: none !important;
+  }
+
+  /* Still there, just not leaping. */
+  .island__jump,
+  .island__leap {
+    opacity: 1;
   }
 }

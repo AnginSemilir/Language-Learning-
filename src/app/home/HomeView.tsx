@@ -7,7 +7,6 @@ import { getCardsOf } from "@/logic/card/getCardsOf";
 import { buildDailyQueue } from "@/logic/dailyQueue";
 import type { Deck } from "@/logic/deck/deck";
 import { useTopLevelDecks } from "@/logic/deck/hooks/useTopLevelDecks";
-import { useWorld } from "@/logic/game/useWorld";
 import { getDailyLimits } from "@/logic/settings/dailyLimits";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
 import {
@@ -18,6 +17,7 @@ import {
   IconFolder,
   IconPencil,
   IconPlus,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { type ReactNode, useState } from "react";
@@ -28,6 +28,7 @@ import DeckTable from "../deck/DeckTable";
 import { AppHeaderContent } from "../shell/Header/Header";
 import Island from "../world/Island";
 import { LevelBadge, QuestList, StreakChip, XpBar } from "../world/WorldBits";
+import { useIsland } from "../world/useIsland";
 import { usePhase } from "../world/usePhase";
 import "./HomeView.css";
 
@@ -95,7 +96,8 @@ export default function HomeView() {
   const [newDeckModalOpened, setNewDeckModalOpened] = useState(false);
   const [decks, isReady] = useTopLevelDecks();
   const [userName, userNameIsReady] = useSetting("#name");
-  const world = useWorld();
+  const island = useIsland();
+  const world = island?.world;
   const phase = usePhase();
   const due = useDueToday(decks);
   const [hello, english] = greeting(new Date().getHours());
@@ -116,6 +118,7 @@ export default function HomeView() {
     ? `${BASE}__welcome`
     : `${BASE}__welcome invisible`;
   const subtitle = `${english}. Here's your island today.`;
+  const surprises = island?.unseen.length ?? 0;
 
   return (
     <>
@@ -154,18 +157,16 @@ export default function HomeView() {
           onClick={() => navigate("/world")}
           aria-label="Open Pulau Kata, your island"
         >
-          {world ? (
-            <Island
-              trees={world.trees}
-              unlocked={world.unlocked}
-              next={world.next}
-              villagers={world.villagers}
-              campfire={world.studiedToday}
-              celebrate={world.questsDone}
-              phase={phase}
-            />
+          {island ? (
+            <Island scene={island.scene} phase={phase} />
           ) : (
             <div className={`${BASE}__world-placeholder`} />
+          )}
+          {surprises > 0 && (
+            <span className={`${BASE}__surprise`}>
+              <IconSparkles size={16} />
+              {surprises === 1 ? "1 kejutan baru" : `${surprises} kejutan baru`}
+            </span>
           )}
           {world && (
             <span className={`${BASE}__world-bar`}>

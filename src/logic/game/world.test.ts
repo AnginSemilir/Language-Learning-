@@ -112,8 +112,16 @@ describe("buildWorld", () => {
     expect(world.unlocked.map((b) => b.id)).toEqual(
       BUILDINGS.filter((b) => b.level <= 8).map((b) => b.id)
     );
-    expect(world.next?.id).toBe("sekolah");
+    expect(world.next?.id).toBe("pulau-seberang");
     expect(world.studiedToday).toBe(false);
     expect(world.villagers).toBe(1);
+    // Everything that came on the way, and the animals that live here now.
+    const levels = world.found.filter((f) => f.kind === "level");
+    expect(levels.map((f) => f.id)).toEqual(
+      [2, 3, 4, 5, 6, 7, 8].map((l) => `level-${l}`)
+    );
+    expect(world.animals).toContain("ayam");
+    expect(world.farTrees).toEqual([]);
+    expect(world.day.date).toBe(today);
   });
 });
