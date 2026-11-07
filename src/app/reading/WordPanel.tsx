@@ -172,7 +172,7 @@ export default function WordPanel({
                     variant="default"
                     onClick={() => onSetGrouping("group")}
                   >
-                    Group with {data.root}
+                    {`Group with ${data.root}`}
                   </Button>
                 </div>
               )}

@@ -43,8 +43,8 @@ export default defineConfig({
         short_name: "Kartu",
         description:
           "Indonesian flashcards, reading and cloze practice. Built on Skola and Lector.",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
+        theme_color: "#f9f7f3",
+        background_color: "#f9f7f3",
         display: "fullscreen",
         orientation: "portrait-primary",
         start_url: "./",

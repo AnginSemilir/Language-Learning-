@@ -190,6 +190,16 @@ const DRAWINGS: Record<GrowthStage, () => ReactElement> = {
   4: GrandOak,
 };
 
+/**
+ * The tree alone, 32 × 32 units, to place inside another drawing (the
+ * island). Put it in an <svg viewBox="0 0 32 32"> with the class
+ * growth-icon--stage-N so it sways like the icon.
+ */
+export function GrowthDrawing({ stage }: { stage: GrowthStage }) {
+  const Drawing = DRAWINGS[stage];
+  return <Drawing />;
+}
+
 export function GrowthIcon({
   stage,
   size = 32,

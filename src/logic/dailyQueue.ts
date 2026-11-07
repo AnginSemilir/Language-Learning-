@@ -86,11 +86,15 @@ export function buildDailyQueue(
   );
   const queuedNotes = new Set(learning.map((c) => c.note));
 
+  // A card without a valid due date (damaged data) counts as due, so it comes
+  // up and gets a fresh schedule instead of hiding for ever.
+  const isDue = (c: Card<NoteType>) => {
+    const dueTime = time(c.model.due);
+    return !Number.isFinite(dueTime) || dueTime <= time(now);
+  };
   const due = cards
-    .filter(
-      (c) => c.model.state === State.Review && time(c.model.due) <= time(now)
-    )
-    .sort((a, b) => time(a.model.due) - time(b.model.due));
+    .filter((c) => c.model.state === State.Review && isDue(c))
+    .sort((a, b) => (time(a.model.due) || 0) - (time(b.model.due) || 0));
   const reviewsLeft = Math.max(0, limits.reviewsPerDay - reviewsDoneToday);
   const reviews: Card<NoteType>[] = [];
   for (const card of due) {

@@ -36,7 +36,11 @@
   flex: 1;
   min-height: 0;
   height: 100%;
-  overflow: scroll;
+  /* Scroll bars only when needed ("scroll" showed both, always, on desktop
+     browsers); the gutter is kept so pages don't shift when one appears. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .app-shell__main-center {

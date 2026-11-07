@@ -1,10 +1,13 @@
 .import-modal__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   text-align: center;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--theme-neutral-700);
-  text-transform: capitalize;
 }
 
 .import-modal .tabs__panel {

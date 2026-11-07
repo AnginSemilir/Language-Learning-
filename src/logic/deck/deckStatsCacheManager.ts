@@ -4,7 +4,7 @@ import { SimplifiedState } from "../card/getSimplifiedStatesOf";
 import { buildDailyQueue } from "../dailyQueue";
 import { db } from "../db";
 import { NoteType } from "../note/note";
-import { getDailyLimits } from "../settings/dailyLimits";
+import { dayStartHourSetting, getDailyLimits } from "../settings/dailyLimits";
 import getSetting from "../settings/hooks/getSetting";
 import { Deck, DeckStatCache } from "./deck";
 
@@ -27,7 +27,9 @@ async function isCacheValid(
   const now = new Date();
   const lastUpdated = new Date(cache.lastUpdated);
 
-  const rolloverHour = await getSetting("#newDayStartHour");
+  const rolloverHour = dayStartHourSetting(
+    await getSetting("#newDayStartHour")
+  );
 
   const currentDayStart = getStartOfDay(now, rolloverHour);
   const cacheDayStart = getStartOfDay(lastUpdated, rolloverHour);

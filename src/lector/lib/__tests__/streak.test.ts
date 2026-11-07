@@ -111,3 +111,15 @@ describe("activeDateSet", () => {
     expect(set.has("2026-06-09")).toBe(true);
   });
 });
+
+describe("isActiveDay in Kartu", () => {
+  it("counts a day of reading (words read, not minutes)", () => {
+    expect(isActiveDay({ date: "d", wordsRead: 240 })).toBe(true);
+    expect(isActiveDay({ date: "d", wordsMarkedKnown: 3 })).toBe(true);
+    expect(isActiveDay({ date: "d", newWordsSaved: 1 })).toBe(true);
+  });
+
+  it("counts a day with only a word game", () => {
+    expect(isActiveDay({ date: "d", gamesPlayed: 1 })).toBe(true);
+  });
+});

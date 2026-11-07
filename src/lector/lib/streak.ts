@@ -4,7 +4,9 @@
 //
 // A day counts toward the streak when any study activity happened: a
 // dictionary lookup, cloze practice, reading time, or an Anki review (synced
-// from AnkiConnect into dailyStats.ankiReviews).
+// from AnkiConnect into dailyStats.ankiReviews). Here also a page read (the
+// reader counts words read, not minutes), words marked known or saved while
+// reading, and a word game.
 
 import { addDaysToDateString } from "./dates";
 
@@ -14,6 +16,10 @@ export interface DailyActivityRow {
   clozePracticed?: number | null;
   minutesRead?: number | null;
   ankiReviews?: number | null;
+  wordsRead?: number | null;
+  wordsMarkedKnown?: number | null;
+  newWordsSaved?: number | null;
+  gamesPlayed?: number | null;
 }
 
 export function isActiveDay(row: DailyActivityRow): boolean {
@@ -21,7 +27,11 @@ export function isActiveDay(row: DailyActivityRow): boolean {
     (row.dictionaryLookups ?? 0) > 0 ||
     (row.clozePracticed ?? 0) > 0 ||
     (row.minutesRead ?? 0) > 0 ||
-    (row.ankiReviews ?? 0) > 0
+    (row.ankiReviews ?? 0) > 0 ||
+    (row.wordsRead ?? 0) > 0 ||
+    (row.wordsMarkedKnown ?? 0) > 0 ||
+    (row.newWordsSaved ?? 0) > 0 ||
+    (row.gamesPlayed ?? 0) > 0
   );
 }
 

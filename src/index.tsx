@@ -3,6 +3,7 @@ import App from "@/App";
 import DeckView from "@/app/deck/DeckView";
 import NewNotesView from "@/app/editor/NewNotesView";
 import NoteExplorerView from "@/app/explorer/NoteExplorerView";
+import GamesView from "@/app/games/GamesView";
 import HomeView from "@/app/home/HomeView";
 import LearnView from "@/app/learn/LearnView/LearnView";
 import PracticeView from "@/app/practice/PracticeView";
@@ -12,6 +13,7 @@ import LibraryView from "@/app/reading/LibraryView";
 import ReaderView from "@/app/reading/ReaderView";
 import SettingsView from "@/app/settings/SettingsView";
 import StatsView from "@/app/statistics/StatsView";
+import WorldView from "@/app/world/WorldView";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Navigate, RouterProvider, createHashRouter } from "react-router-dom";
@@ -97,6 +99,14 @@ const router = createHashRouter(
         {
           path: "/stats/:deckId?",
           element: <StatsView />,
+        },
+        {
+          path: "/world",
+          element: <WorldView />,
+        },
+        {
+          path: "/games/:game?",
+          element: <GamesView />,
         },
       ],
     },

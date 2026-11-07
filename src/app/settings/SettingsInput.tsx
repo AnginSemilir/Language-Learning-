@@ -43,10 +43,17 @@ export default function SettingsInput({
   useEffect(() => setValue(setting !== undefined ? setting : ""), [setting]);
 
   useEffect(() => {
-    if (touched) {
-      setSetting(settingsKey, debounced);
+    if (!touched) return;
+    // A number field that is empty (or holds no number) while being retyped
+    // is not saved: an empty interval or retention would wreck scheduling.
+    if (
+      inputType === "number" &&
+      (debounced === "" || !Number.isFinite(Number(debounced)))
+    ) {
+      return;
     }
-  }, [touched, setting, debounced, settingsKey]);
+    setSetting(settingsKey, debounced);
+  }, [touched, setting, debounced, settingsKey, inputType]);
 
   switch (inputType) {
     case "text":
@@ -119,6 +126,10 @@ export default function SettingsInput({
             onChange={(e) => {
               setTouched(true);
               setValue(e);
+            }}
+            onBlur={() => {
+              // Left empty: show the saved value again.
+              if (value === "") setValue(setting !== undefined ? setting : "");
             }}
           />
         </div>

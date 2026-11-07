@@ -44,6 +44,8 @@ export function useSearchNote(filter: string): NoteWithPreview[] {
   );
 
   useEffect(() => {
+    // Results for an earlier query that finish late must not replace these.
+    let cancelled = false;
     async function enrich(notes: Note<NoteType>[]) {
       const decks = await Promise.all(
         notes.map(async (note) => {
@@ -55,11 +57,15 @@ export function useSearchNote(filter: string): NoteWithPreview[] {
           ];
         })
       );
+      if (cancelled) return;
       setFilteredNotes(
         notes.map((note, i) => ({ ...note, breadcrumb: decks[i] }))
       );
     }
     enrich(notes ?? []);
+    return () => {
+      cancelled = true;
+    };
   }, [notes]);
 
   return filteredNotes;

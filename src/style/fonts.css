@@ -17,7 +17,26 @@
     format("truetype");
 }
 
+/* Poppins (OFL, fonts/Poppins-OFL.txt) for headings, scores and the games:
+   two weights, Latin only, about 10 kB each. */
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/Poppins-Medium.woff) format("woff");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url(/fonts/Poppins-Bold.woff) format("woff");
+}
+
 :root {
+  --font-display: "Poppins", var(--font-sans);
   --font-serif: "Noto Serif", ui-serif, Georgia, Cambria, "Times New Roman",
     Times, serif;
   --font-sans:

@@ -1,4 +1,5 @@
 import { Deck } from "@/logic/deck/deck";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import DeckPreview from "./DeckPreview";
@@ -19,21 +20,25 @@ function DeckTable({ deckList, isReady }: DeckTableProps) {
   const [t] = useTranslation();
 
   const navigate = useNavigate();
+  // Sorted copy (the list from the database is not changed), so the number
+  // keys open the decks in the order they're shown.
+  const sorted = useMemo(() => {
+    if (!deckList) return undefined;
+    return [...deckList].sort((a, b) => a.name.localeCompare(b.name));
+  }, [deckList]);
   useHotkeys(
-    deckList
+    sorted
       ?.slice(0, 9)
       .map((d, i) => [(i + 1).toString(), () => navigate(`/deck/${d.id}`)]) ??
       []
   );
 
-  return isReady && deckList ? (
-    deckList.length !== 0 ? (
+  return isReady && sorted ? (
+    sorted.length !== 0 ? (
       <div className={BASE}>
-        {deckList
-          .sort((a: Deck, b: Deck) => a.name.localeCompare(b.name))
-          .map((deck, index) => (
-            <DeckPreview key={deck.id} deck={deck} i={index} />
-          ))}
+        {sorted.map((deck, index) => (
+          <DeckPreview key={deck.id} deck={deck} i={index} />
+        ))}
       </div>
     ) : (
       <EmptyNotice icon={IconCards} title={t("home.no-decks-found")} />
