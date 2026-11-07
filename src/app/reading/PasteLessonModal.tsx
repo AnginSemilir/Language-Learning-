@@ -1,6 +1,8 @@
-// Add a text to read: paste it (Lector's PasteImportModal form, rebuilt with
-// Skola's components) or import a file — .txt, .md, subtitles (.srt, .vtt) or
-// an EPUB book, whose chapters become separate lessons.
+// Add a text to read: from a link to an article (only its headline and story
+// are kept), pasted (Lector's PasteImportModal form, rebuilt with Skola's
+// components; a whole web page copied in a browser is cut down to its story
+// too), or from a file — .txt, .md, subtitles (.srt, .vtt) or an EPUB book,
+// whose chapters become separate lessons.
 import {
   Button,
   Modal,
@@ -11,10 +13,15 @@ import {
   Textarea,
 } from "@/components/ui";
 import { type ImportedText, readTextFile } from "@/lector/import/textFiles";
+import {
+  ArticleError,
+  articleFromHtml,
+  fetchArticle,
+} from "@/lector/import/webArticle";
 import { id as pack } from "@/lector/languages/id/manifest";
 import { countTypedWords } from "@/lector/languages/tokenizer";
-import { IconClipboardText, IconFileText } from "@tabler/icons-react";
-import { useState } from "react";
+import { IconClipboardText, IconFileText, IconLink } from "@tabler/icons-react";
+import { type ClipboardEvent, useState } from "react";
 
 interface PasteLessonModalProps {
   opened: boolean;
@@ -30,7 +37,13 @@ export default function PasteLessonModal({
   onClose,
   onSave,
 }: PasteLessonModalProps) {
-  const [tab, setTab] = useState("paste");
+  const [tab, setTab] = useState("link");
+  const [url, setUrl] = useState("");
+  const [article, setArticle] = useState<ImportedText | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+  /** All of a pasted web page, when only its story was kept. */
+  const [pastedAll, setPastedAll] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
@@ -41,6 +54,10 @@ export default function PasteLessonModal({
   const words = content.trim() ? countTypedWords(content, pack) : 0;
 
   const reset = () => {
+    setUrl("");
+    setArticle(null);
+    setLinkError(null);
+    setPastedAll(null);
     setTitle("");
     setAuthor("");
     setContent("");
@@ -48,6 +65,37 @@ export default function PasteLessonModal({
     setFileName("");
     setFileError(null);
   };
+
+  const getArticle = async () => {
+    setArticle(null);
+    setLinkError(null);
+    setFetching(true);
+    try {
+      setArticle(await fetchArticle(url));
+    } catch (e) {
+      setLinkError(
+        e instanceof ArticleError ? e.message : "The page couldn't be read."
+      );
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  // A whole web page copied in a browser (some sites, like Kompas, can't be
+  // fetched by link): keep only its headline and story.
+  const pasteWebPage = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const html = e.clipboardData.getData("text/html");
+    if (!html || content.trim()) return;
+    const found = articleFromHtml(html);
+    if (!found) return;
+    e.preventDefault();
+    setPastedAll(e.clipboardData.getData("text/plain"));
+    setContent(found.content);
+    if (!title.trim()) setTitle(found.title);
+    if (!author.trim() && found.author) setAuthor(found.author);
+  };
+
+  const articleWords = article ? countTypedWords(article.content, pack) : 0;
 
   const pickFile = async (file: File | undefined) => {
     setFileLessons(null);
@@ -82,6 +130,10 @@ export default function PasteLessonModal({
     >
       <Tabs value={tab} onChange={setTab} variant="pills">
         <Tabs.List>
+          <Tabs.Tab value="link">
+            <IconLink size={16} />
+            <span>Link</span>
+          </Tabs.Tab>
           <Tabs.Tab value="paste">
             <IconClipboardText size={16} />
             <span>Paste</span>
@@ -91,6 +143,71 @@ export default function PasteLessonModal({
             <span>File</span>
           </Tabs.Tab>
         </Tabs.List>
+
+        <Tabs.Panel value="link">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (url.trim() && !fetching) getArticle();
+            }}
+          >
+            <Stack gap="md">
+              <TextInput
+                id="link-url"
+                label="Link to an article"
+                type="url"
+                inputMode="url"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.currentTarget.value);
+                  setArticle(null);
+                  setLinkError(null);
+                }}
+                placeholder="https://"
+                error={linkError}
+              />
+              {article ? (
+                <>
+                  <div className="add-text__article">
+                    <Text size="sm" weight="medium">
+                      “{article.title}”
+                    </Text>
+                    <Text size="sm" variant="dimmed">
+                      {article.author ? `${article.author} · ` : ""}
+                      {articleWords} words
+                    </Text>
+                    <Text size="sm" className="add-text__excerpt">
+                      {article.content.split("\n\n")[0]}
+                    </Text>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      onSave([article]);
+                      reset();
+                    }}
+                  >
+                    Add and read
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={!url.trim() || fetching}
+                >
+                  {fetching ? "Getting the article…" : "Get article"}
+                </Button>
+              )}
+              {!linkError && (
+                <Text size="xs" variant="dimmed">
+                  Only the headline and the story are kept. Pages are fetched
+                  through Jina Reader (r.jina.ai).
+                </Text>
+              )}
+            </Stack>
+          </form>
+        </Tabs.Panel>
 
         <Tabs.Panel value="paste">
           <form
@@ -128,14 +245,30 @@ export default function PasteLessonModal({
                 description={
                   words
                     ? `${words} words`
-                    : "Paste an article, story or song lyrics."
+                    : "Paste an article, story or song lyrics, or a whole web page you copied."
                 }
                 value={content}
                 onChange={(e) => setContent(e.currentTarget.value)}
+                onPaste={pasteWebPage}
                 minRows={8}
                 maxRows={16}
                 required
               />
+              {pastedAll !== null && (
+                <Text size="sm" variant="dimmed">
+                  Kept only the headline and story of the copied page.{" "}
+                  <button
+                    type="button"
+                    className="add-text__undo"
+                    onClick={() => {
+                      setContent(pastedAll);
+                      setPastedAll(null);
+                    }}
+                  >
+                    Use everything I pasted
+                  </button>
+                </Text>
+              )}
               <Button
                 type="submit"
                 variant="primary"
