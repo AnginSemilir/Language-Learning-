@@ -4,6 +4,7 @@ import { Stack } from "@/components/ui/Stack";
 import { Text } from "@/components/ui/Text";
 import { DICTIONARY_LINKS } from "@/lector/dictionaryLinks";
 import type { SettingsValues } from "@/logic/settings/Settings";
+import ExplainSettings from "./ExplainSettings";
 import Section from "./Section";
 import SettingsInput from "./SettingsInput";
 
@@ -67,6 +68,7 @@ export default function DictionarySettingsView() {
           />
         ))}
       </Section>
+      <ExplainSettings />
     </Stack>
   );
 }

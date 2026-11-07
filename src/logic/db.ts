@@ -1,3 +1,4 @@
+import type { Explanation } from "@/lector/explain";
 import type {
   ActivityRow,
   ClozeSentence,
@@ -34,6 +35,8 @@ export class Database extends Dexie {
   clozeWords!: Table<ClozeWord>;
   /** The user's choices to group a word form with its root, or not. */
   wordLinks!: Table<WordLink>;
+  /** Claude's explanations of words and cards, so each is paid for once. */
+  explanations!: Table<Explanation>;
 
   constructor() {
     super("skola_db", { addons: [dexieCloud], cache: "immutable" });
@@ -80,6 +83,9 @@ export class Database extends Dexie {
     });
     this.version(27).stores({
       clozeWords: "id, nextReview",
+    });
+    this.version(28).stores({
+      explanations: "id, createdAt",
     });
     // Opened below, after sync is configured.
   }
