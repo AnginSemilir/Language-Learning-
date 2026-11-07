@@ -3,7 +3,7 @@
 // headwords the same way the reader groups them (dibeli with beli, rumahnya
 // with rumah), so "top 1,000" means 1,000 distinct words.
 
-export const BANDS = [1000, 2000, 5000] as const;
+export const BANDS = [1000, 2000, 5000, 10000] as const;
 export type Band = (typeof BANDS)[number];
 
 export interface RankedWord {

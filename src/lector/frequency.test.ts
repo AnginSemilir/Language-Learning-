@@ -16,7 +16,7 @@ describe("rankHeadwords", () => {
     ]);
   });
 
-  it("has at least 5,000 distinct words in the shipped list", () => {
+  it("has at least 10,000 distinct words in the shipped list", () => {
     const data = JSON.parse(
       readFileSync(`${__dirname}/../../public/data/dictionary-id.json`, "utf8")
     );
@@ -25,7 +25,15 @@ describe("rankHeadwords", () => {
     );
     const lex = createLemmatizer(data);
     const ranked = rankHeadwords(freq.words, (w) => lex.lemma(w));
-    expect(ranked.length).toBeGreaterThanOrEqual(5000);
+    expect(ranked.length).toBeGreaterThanOrEqual(10000);
+    // Single letters, English and short abbreviations are left out.
+    const words = new Set(freq.words);
+    for (const junk of ["a", "x", "to", "you", "we", "but", "rp", "yg"]) {
+      expect(words.has(junk)).toBe(false);
+    }
+    for (const word of ["si", "para", "api", "cemburu"]) {
+      expect(words.has(word)).toBe(true);
+    }
     expect(ranked.slice(0, 5).map((r) => r.headword)).toEqual([
       "yang",
       "dan",

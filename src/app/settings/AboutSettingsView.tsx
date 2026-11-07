@@ -47,7 +47,9 @@ export default function AboutSettingsView() {
       <ul>
         <li>
           Dictionary: English Wiktionary via kaikki.org (CC BY-SA), as packaged
-          by Lector.
+          by Lector, with Wiktionary's Malay entries for words Indonesian shares
+          with Malay, and Wordnet Bahasa by Francis Bond et al. (MIT) with
+          Princeton WordNet 3.0 for words Wiktionary lacks.
         </li>
         <li>Word frequencies: wordfreq (data CC BY-SA 4.0).</li>
         <li>

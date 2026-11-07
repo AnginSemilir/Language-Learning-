@@ -33,6 +33,12 @@ export interface GrammarData {
   n: Record<string, string>;
   /** words whose only dictionary sense is a proper name */
   p: string[];
+  /**
+   * More words, for lookup only (scripts/build-dictionary-extra.py):
+   * headword → [pos, gloss, source], source "m" for Wiktionary's Malay
+   * entries, "w" for Wordnet Bahasa, "s" for everyday spoken words.
+   */
+  x?: Record<string, [string, string, string][]>;
 }
 
 export interface Lemmatizer {

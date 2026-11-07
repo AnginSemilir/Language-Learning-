@@ -5,7 +5,7 @@ import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { notify } from "@/components/Notification";
 import { Button, Group, Text, TextInput } from "@/components/ui";
 import { deleteVocab } from "@/lector/data-layer";
-import { loadGrammar } from "@/lector/dictionary";
+import { loadGrammar, meaningsOf } from "@/lector/dictionary";
 import { getKnownWords } from "@/lector/knownWords";
 import type { GrammarData } from "@/lector/lemma";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -20,8 +20,8 @@ import "./reading.css";
 const AUTO_MARK_KEY = "kartu-mark-known";
 
 function firstGloss(data: GrammarData | null, word: string) {
-  const sense = data?.e[word]?.[0];
-  return sense ? sense[1].split(/[;:(]/)[0].trim() : "";
+  const sense = data ? meaningsOf(data, word)[0] : undefined;
+  return sense ? sense.gloss.split(/[;:(]/)[0].trim() : "";
 }
 
 export default function KnownWordsView() {
