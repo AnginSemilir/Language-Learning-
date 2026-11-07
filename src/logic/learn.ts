@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { schedulableModel, useGlobalScheduler } from "./card/CardScheduler";
 import { Card } from "./card/card";
 import { useCardsWith } from "./card/hooks/useCardsWith";
+import { knownSchedule } from "./card/known";
 import { updateCardModel } from "./card/updateCardModel";
 import {
   type DailyLimits,
@@ -48,6 +49,10 @@ export type LearnController = {
   showAnswer: () => void;
 
   answerCard: (rating: Rating) => void;
+  /** Sends the current card as far ahead as the maximum interval allows. */
+  markKnown: () => void;
+  /** Days a card marked known stays away (the maximum interval). */
+  knownDays: number;
   requestNextCard: () => void;
 
   /** Whether there's an answer in this session that "Back" can take back. */
@@ -314,6 +319,33 @@ export function useLearning(
     [currentCard, currentCardRepeatInfo, timeCriticalCards, statistics]
   );
 
+  //Marking the current card known: due again after the maximum interval
+  const markKnown = useCallback(() => {
+    if (!currentCard || !currentCardRepeatInfo) {
+      throw new Error("Card or cardModelInfo is missing");
+    }
+    const known = knownSchedule(
+      currentCardRepeatInfo[Rating.Easy],
+      new Date(Date.now()),
+      scheduler.p.maximum_interval
+    );
+    // Unlike an answer, this changes a card that isn't due too ("learn all").
+    const saved = updateCardModel(currentCard, known.card, known.review_log);
+    setUndoStack((stack) => [
+      ...stack.slice(-(MAX_UNDO - 1)),
+      { card: currentCard, saved, requeued: false, statistics },
+    ]);
+    setStatistics((ds) => ({
+      ...ds,
+      ratingsList: [...ds.ratingsList, Rating.Easy],
+      cards: {
+        ...ds.cards,
+        [currentCard.model.state]: ds.cards[currentCard.model.state] + 1,
+      },
+    }));
+    setShowingAnswer(false);
+  }, [currentCard, currentCardRepeatInfo, scheduler, statistics]);
+
   //Puts a card back at the front of the list it was taken from
   const requeueFront = useCallback((card: Card<NoteType>) => {
     const state = card.model.state;
@@ -371,6 +403,8 @@ export function useLearning(
     showAnswer: setShowingAnswer.bind(null, true),
 
     answerCard: answer,
+    markKnown,
+    knownDays: scheduler.p.maximum_interval,
     requestNextCard: setRequestedNextCard.bind(null, true),
 
     canUndo: undoStack.length > 0 && !isFinished,

@@ -65,6 +65,19 @@ export function useLearnSession({
     [controller, cardShowsMastery]
   );
 
+  const markKnown = useCallback(() => {
+    try {
+      controller.markKnown();
+      controller.requestNextCard();
+      setCurrentRating(Rating.Easy);
+      setTimeout(() => setCurrentRating(null), 150);
+      setSelectedPrompt(null);
+    } catch (error) {
+      genericFail();
+      console.log(error);
+    }
+  }, [controller]);
+
   const togglePrompt = useCallback(
     (prompt: CognitivePrompt) => {
       if (selectedPrompt === prompt) {
@@ -86,6 +99,7 @@ export function useLearnSession({
     selectedPrompt,
     showPrompts: cardShowsMastery(),
     answerCard,
+    markKnown,
     togglePrompt,
     closeQuickAdd,
   };

@@ -83,9 +83,12 @@
   }
 }
 
-/* "Explain" under the answer: Claude's explanation of the card. */
-.learn-view__explain {
+/* Under the card: Known (it stays away for the maximum interval) and, with
+   the answer, Explain (Claude's explanation of the card). */
+.learn-view__card-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: var(--spacing-xs) var(--spacing-md);
   margin-top: var(--spacing-xs);
 }

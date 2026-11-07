@@ -13,6 +13,7 @@ import FinishedLearningView from "../FinishedLearningView/FinishedLearningView";
 import LearnViewCurrentCardStateIndicator from "../LearnViewCurrentCardStateIndicator/LearnViewCurrentCardStateIndicator";
 import CognitivePromptConnector from "./CognitivePromptConnector";
 import ExplainCard from "./ExplainCard";
+import KnownButton from "./KnownButton";
 import "./LearnView.css";
 import LearnViewDailyProgress from "./LearnViewDailyProgress";
 import LearnViewFooter from "./LearnViewFooter";
@@ -37,6 +38,7 @@ function LearnView() {
     selectedPrompt,
     showPrompts,
     answerCard,
+    markKnown,
     togglePrompt,
     closeQuickAdd,
   } = useLearnSession({
@@ -92,13 +94,18 @@ function LearnView() {
                   cardContent
                 )}
             </Paper>
-            {controller.showingAnswer &&
-              typeof controller.currentCard?.note === "string" && (
-                <ExplainCard
-                  noteId={controller.currentCard.note}
-                  content={cardContent}
-                />
-              )}
+            {controller.currentCard && (
+              <div className={`${BASE}__card-actions`}>
+                <KnownButton days={controller.knownDays} onKnown={markKnown} />
+                {controller.showingAnswer &&
+                  typeof controller.currentCard.note === "string" && (
+                    <ExplainCard
+                      noteId={controller.currentCard.note}
+                      content={cardContent}
+                    />
+                  )}
+              </div>
+            )}
             {showCognitivePrompts && controller.showingAnswer && (
               <>
                 {showPrompts && (

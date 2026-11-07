@@ -51,16 +51,14 @@ export default function ExplainCard({ noteId, content }: ExplainCardProps) {
   if (!card) return null;
   return (
     <>
-      <div className="learn-view__explain">
-        <Button
-          variant="ghost"
-          size="sm"
-          leftSection={<IconSparkles size={16} />}
-          onClick={explain}
-        >
-          Explain
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        leftSection={<IconSparkles size={16} />}
+        onClick={explain}
+      >
+        Explain
+      </Button>
       <Modal
         opened={open}
         onClose={() => setAsked(null)}
