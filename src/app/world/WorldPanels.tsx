@@ -32,6 +32,16 @@ interface Chip {
 
 const STUDY_FIRST = "Study today, and today's finds go into your collection.";
 
+/** When something can be seen on the island, if not at every hour. */
+const WHEN: Record<string, string> = {
+  "layang-layang": "by day",
+  pelangi: "by day",
+  cendrawasih: "by day",
+  nelayan: "at dusk",
+  "pasar-malam": "after dark",
+  "bintang-jatuh": "tonight",
+};
+
 /** Hari ini: the weather, what's on, who's visiting. */
 export function TodayPanel({
   day,
@@ -68,7 +78,7 @@ export function TodayPanel({
       art: <DiscoveryArt id={artFor(id, event.word)} />,
       word: event.word,
       meaning: event.meaning,
-      note: id === "nelayan" || id === "pasar-malam" ? "after dark" : undefined,
+      note: WHEN[id],
     });
   }
   for (const id of day.visitors) {
@@ -79,7 +89,7 @@ export function TodayPanel({
       art: <DiscoveryArt id={id} />,
       word: visitor.word,
       meaning: visitor.meaning,
-      note: id === "bintang-jatuh" ? "tonight" : undefined,
+      note: WHEN[id],
     });
   }
   if (day.bottle) {

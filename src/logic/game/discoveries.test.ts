@@ -164,6 +164,28 @@ describe("discover", () => {
     expect(tomorrow.studied).toBe(false);
   });
 
+  it("brings no visitors in a storm, and no shooting star in the rain", () => {
+    const journey = replay(history(200, 120));
+    const star = VISITORS.find((v) => v.id === "bintang-jatuh");
+    const dates = journey.filter((d) => d.level >= 5).map((d) => d.date);
+    const rainyStar = dates.filter(
+      (date) =>
+        weatherFor(date) === "hujan" &&
+        chance(`${date}|bintang-jatuh`) < (star?.odds ?? 0)
+    );
+    const storms = dates.filter((date) => weatherFor(date) === "badai");
+    expect(rainyStar.length).toBeGreaterThan(0);
+    expect(storms.length).toBeGreaterThan(0);
+    for (const today of rainyStar) {
+      const { day } = discover({ journey, today, island });
+      expect(day.visitors).not.toContain("bintang-jatuh");
+    }
+    for (const today of storms) {
+      const { day } = discover({ journey, today, island });
+      expect(day.visitors).toEqual([]);
+    }
+  });
+
   it("celebrates the 100th study day", () => {
     const journey = replay(history(100, 10));
     const { found } = discover({ journey, today: "2026-04-10", island });

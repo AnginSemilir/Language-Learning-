@@ -592,9 +592,10 @@ function luck(date: string, level: number) {
   const calm = weather !== "badai";
   const visitors: string[] = [];
   for (const v of VISITORS) {
-    if (calm && level >= v.from && chance(`${date}|${v.id}`) < v.odds) {
-      visitors.push(v.id);
-    }
+    if (!calm || level < v.from) continue;
+    // A shooting star can't be seen through the rain.
+    if (v.id === "bintang-jatuh" && weather === "hujan") continue;
+    if (chance(`${date}|${v.id}`) < v.odds) visitors.push(v.id);
   }
   const bottle = calm && level >= 2 && chance(`${date}|botol`) < BOTTLE_ODDS;
   return { weather, visitors, bottle };
