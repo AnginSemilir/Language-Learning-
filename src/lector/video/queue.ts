@@ -5,7 +5,7 @@
 
 import { useSyncExternalStore } from "react";
 import { saveVideoLesson } from "../data-layer";
-import { type GeminiError, transcribeVideo } from "./gemini";
+import { type GeminiError, type Progress, transcribeVideo } from "./gemini";
 import { makeScenes } from "./scenes";
 import type { VideoInfo } from "./youtube";
 
@@ -21,6 +21,8 @@ export interface VideoJob {
   cutOff?: boolean;
   /** Which try this is, when the first didn't work. */
   attempt?: { number: number; of: number };
+  /** How far Gemini has got. */
+  progress?: Progress;
 }
 
 let jobs: VideoJob[] = [];
@@ -41,9 +43,50 @@ function update(id: string, change: Partial<VideoJob>) {
   set(jobs.map((j) => (j.video.id === id ? { ...j, ...change } : j)));
 }
 
+// The screen stays on while a video is being written down: a phone that
+// goes to sleep drops the connection to Gemini.
+let wakeLock: { release(): Promise<void> } | null = null;
+
+async function keepAwake() {
+  if (wakeLock || document.visibilityState !== "visible") return;
+  try {
+    const lock = await (
+      navigator as Navigator & {
+        wakeLock?: {
+          request(type: "screen"): Promise<{ release(): Promise<void> }>;
+        };
+      }
+    ).wakeLock?.request("screen");
+    wakeLock = lock ?? null;
+  } catch {
+    // Not allowed (battery saver) or not supported: carry on without.
+  }
+}
+
+function onVisible() {
+  // The lock goes when the page is hidden; take it again on return.
+  if (document.visibilityState === "visible") {
+    wakeLock = null;
+    keepAwake();
+  }
+}
+
+function stayAwake(on: boolean) {
+  if (typeof document === "undefined") return;
+  if (on) {
+    keepAwake();
+    document.addEventListener("visibilitychange", onVisible);
+  } else {
+    document.removeEventListener("visibilitychange", onVisible);
+    wakeLock?.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+
 async function run() {
   if (running) return;
   running = true;
+  stayAwake(true);
   try {
     for (;;) {
       const job = jobs.find((j) => j.status === "waiting");
@@ -56,6 +99,8 @@ async function run() {
       try {
         const result = await transcribe(id, {
           onRetry: (number, of) => update(id, { attempt: { number, of } }),
+          onProgress: (progress) =>
+            update(id, { progress, attempt: undefined }),
         });
         const lessonId = await saveVideoLesson({
           title: job.video.title,
@@ -82,6 +127,7 @@ async function run() {
     }
   } finally {
     running = false;
+    stayAwake(false);
   }
 }
 

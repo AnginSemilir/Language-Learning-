@@ -10,7 +10,7 @@
 // can be copied and pasted instead (./subtitles.ts).
 
 import type { Cue } from "./subtitles";
-import { parseTime } from "./subtitles";
+import { formatTime, parseTime } from "./subtitles";
 
 /** Always Google's latest Flash model. */
 export const GEMINI_MODEL = "gemini-flash-latest";
@@ -94,30 +94,45 @@ const SCHEMA = {
 /** Frames a second looked at in a lighter request: the words are what matter. */
 const LIGHT_FPS = 0.2;
 
-/**
- * The request for one video. A light one samples a frame every 5 seconds
- * instead of every second, which takes a long video's tokens under the free
- * tier's limit per minute.
- */
-export function transcriptionRequest(videoId: string, { light = false } = {}) {
+export interface RequestOptions {
+  /**
+   * A frame every 5 seconds instead of every second, which takes a long
+   * video's tokens under the free tier's limit per minute.
+   */
+  light?: boolean;
+  /** Seconds into the video to start from, carrying on after a break. */
+  from?: number;
+  /** Thinking a little rather than a lot, which is much quicker. */
+  quick?: boolean;
+}
+
+/** The request for one video, or for the rest of it from a time. */
+export function transcriptionRequest(
+  videoId: string,
+  { light = false, from = 0, quick = true }: RequestOptions = {}
+) {
+  const metadata = {
+    ...(light ? { fps: LIGHT_FPS } : {}),
+    ...(from > 0 ? { startOffset: `${Math.floor(from)}s` } : {}),
+  };
   const video = {
     fileData: { fileUri: `https://www.youtube.com/watch?v=${videoId}` },
-    ...(light ? { videoMetadata: { fps: LIGHT_FPS } } : {}),
+    ...(Object.keys(metadata).length > 0 ? { videoMetadata: metadata } : {}),
   };
+  const ask =
+    from > 0
+      ? `Write the subtitles for the rest of this video, from ${formatTime(from)} on. Give the times from the start of the whole video.`
+      : "Write the subtitles for this video.";
   return {
     systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
-    contents: [
-      {
-        role: "user",
-        parts: [video, { text: "Write the subtitles for this video." }],
-      },
-    ],
+    contents: [{ role: "user", parts: [video, { text: ask }] }],
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: SCHEMA,
       // The words matter, not the picture: fewer tokens per frame.
       mediaResolution: "MEDIA_RESOLUTION_LOW",
       maxOutputTokens: 65536,
+      ...(quick ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
     },
   };
 }
@@ -182,8 +197,8 @@ export function cuesFromSentences(sentences: Sentence[]): Cue[] {
   return cues.sort((a, b) => a.start - b.start);
 }
 
-/** What Google said to each try, shortened, for the end of a message. */
-function said(failures: string[]) {
+/** What happened at each try, shortened, for the end of a message. */
+function details(failures: string[]) {
   const each: { text: string; times: number }[] = [];
   for (const failure of failures) {
     const flat = failure.replace(/\s+/g, " ").trim();
@@ -195,7 +210,7 @@ function said(failures: string[]) {
   const parts = each.map(({ text, times }) =>
     times > 1 ? `${text} (${times} times)` : text
   );
-  return `(Google said ${parts.join("; then ")})`;
+  return `(Details: ${parts.join("; then ")})`;
 }
 
 interface GeminiResponse {
@@ -207,10 +222,19 @@ interface GeminiResponse {
   promptFeedback?: { blockReason?: string };
 }
 
-/** The error for the last try, with what Google said to every try. */
+/** What a broken connection is recorded as. */
+const BROKE = "the connection broke";
+
+/** The error for the last try, with what happened at every try. */
 export function errorFor(status: number, failures: string[]): GeminiError {
   const last = failures[failures.length - 1] ?? "";
   const message = last.replace(/^\d+: /, "");
+  if (status === 0) {
+    return new GeminiError(
+      `The connection to Gemini kept breaking. Keep the app open while it works and try again. ${details(failures)}`,
+      "offline"
+    );
+  }
   if (status === 400 && /api key/i.test(message)) {
     return new GeminiError(
       "Google didn't accept the Gemini API key. Check it in Settings → Dictionary.",
@@ -219,25 +243,25 @@ export function errorFor(status: number, failures: string[]): GeminiError {
   }
   if (status === 401 || status === 403) {
     return new GeminiError(
-      `This Gemini API key can't be used for this. ${said(failures)}`,
+      `This Gemini API key can't be used for this. ${details(failures)}`,
       "key"
     );
   }
   if (status === 429) {
     return new GeminiError(
-      `Gemini's free limit stopped this: try again in a minute, or tomorrow if today's limit is used. ${said(failures)}`,
+      `Gemini's free limit stopped this: try again in a minute, or tomorrow if today's limit is used. ${details(failures)}`,
       "busy"
     );
   }
   if (status >= 500) {
     return new GeminiError(
-      `Gemini couldn't do it just now, even after trying again. Try again in a few minutes. ${said(failures)}`,
+      `Gemini couldn't do it just now, even after trying again. Try again in a few minutes. ${details(failures)}`,
       "busy"
     );
   }
   if (/video|youtube|file_?uri|private|unavailable/i.test(message)) {
     return new GeminiError(
-      `Gemini couldn't watch this video. It has to be public. ${said(failures)}`,
+      `Gemini couldn't watch this video. It has to be public. ${details(failures)}`,
       "video"
     );
   }
@@ -249,21 +273,118 @@ export function errorFor(status: number, failures: string[]): GeminiError {
 
 /** Whether another try (later, lighter or with the other model) may work. */
 export function worthRetrying(status: number) {
-  return status === 429 || status >= 500;
+  return status === 0 || status === 429 || status >= 500;
 }
 
-/** What's tried, in order, while Gemini is overloaded or over a limit. */
+/** What's tried, in order, while Gemini is overloaded, over a limit or cut off. */
 export const ATTEMPTS = [
   { model: GEMINI_MODEL, light: false, wait: 0 },
   { model: GEMINI_MODEL, light: true, wait: 3000 },
   { model: GEMINI_FALLBACK_MODEL, light: true, wait: 5000 },
 ];
 
+/** The most times a long video is carried on from where the answer stopped. */
+const MAX_PARTS = 8;
+
+/** Gemini's answer, as far as it came. */
+interface Answer {
+  text: string;
+  finishReason?: string;
+  blockReason?: string;
+  /** The connection broke before the answer was finished. */
+  dropped: boolean;
+}
+
+/**
+ * An answer as it streams in (server-sent events, so the connection never
+ * sits silent while a long video is written down), or a plain JSON one.
+ */
+export async function readAnswer(
+  response: Response,
+  onText?: (text: string) => void
+): Promise<Answer> {
+  const answer: Answer = { text: "", dropped: false };
+  const take = (data: GeminiResponse) => {
+    const candidate = data.candidates?.[0];
+    for (const part of candidate?.content?.parts ?? []) {
+      if (!part.thought) answer.text += part.text ?? "";
+    }
+    answer.finishReason = candidate?.finishReason ?? answer.finishReason;
+    answer.blockReason = data.promptFeedback?.blockReason ?? answer.blockReason;
+  };
+  const handle = (event: string) => {
+    const data = event
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim())
+      .join("");
+    if (!data) return;
+    try {
+      take(JSON.parse(data));
+    } catch {
+      // A broken event: the rest still counts.
+    }
+  };
+  if (!response.body) return { ...answer, dropped: true };
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let events = false;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      if (!events && /^data:/m.test(buffer)) events = true;
+      if (!events) continue;
+      const complete = buffer.split(/\r?\n\r?\n/);
+      buffer = complete.pop() ?? "";
+      for (const event of complete) handle(event);
+      onText?.(answer.text);
+    }
+  } catch {
+    return { ...answer, dropped: true };
+  }
+  if (events) {
+    handle(buffer);
+  } else {
+    try {
+      const data = JSON.parse(buffer);
+      for (const item of Array.isArray(data) ? data : [data]) take(item);
+    } catch {
+      return { ...answer, dropped: true };
+    }
+  }
+  onText?.(answer.text);
+  return answer;
+}
+
 export interface Transcription {
   cues: Cue[];
   language: string;
-  /** The answer stopped before the end of the video. */
+  /** The subtitles stop before the end of the video. */
   cutOff: boolean;
+}
+
+export interface Progress {
+  /** Seconds of the video written down so far. */
+  upTo: number;
+  sentences: number;
+}
+
+interface Options {
+  signal?: AbortSignal;
+  fetchApi?: typeof fetch;
+  /** Before each try after the first: which it is, of how many. */
+  onRetry?: (attempt: number, of: number) => void;
+  /** As the subtitles come in. */
+  onProgress?: (progress: Progress) => void;
+  sleep?: (ms: number) => Promise<unknown>;
+}
+
+/** Times written from the start of a part rather than of the video. */
+function fromPartStart(first: number, from: number) {
+  return first < (from <= 60 ? from / 2 : from - 30);
 }
 
 /** Subtitles for a public YouTube video, by Gemini, with English. */
@@ -273,14 +394,9 @@ export async function transcribeVideo(
     signal,
     fetchApi = fetch,
     onRetry,
+    onProgress,
     sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)),
-  }: {
-    signal?: AbortSignal;
-    fetchApi?: typeof fetch;
-    /** Before each try after the first: which it is, of how many. */
-    onRetry?: (attempt: number, of: number) => void;
-    sleep?: (ms: number) => Promise<unknown>;
-  } = {}
+  }: Options = {}
 ): Promise<Transcription> {
   const key = getGeminiKey();
   if (!key) {
@@ -289,87 +405,184 @@ export async function transcribeVideo(
       "key"
     );
   }
-  // What Google said to each try that failed, for the message at the end.
+  // What happened at each try that failed, for the message at the end.
   const failures: string[] = [];
-  let status = 0;
-  let body: GeminiResponse | null = null;
+  // Settings a model turned down are left out from then on.
   let light = true;
-  for (let i = 0; i < ATTEMPTS.length; i++) {
-    const attempt = ATTEMPTS[i];
-    if (i > 0) {
-      onRetry?.(i + 1, ATTEMPTS.length);
-      await sleep(attempt.wait);
-    }
+  let quick = true;
+  let clips = true;
+
+  /** One request; a broken connection is status 0. */
+  const ask = async (
+    model: string,
+    request: ReturnType<typeof transcriptionRequest>,
+    onText: (text: string) => void
+  ) => {
     let response: Response;
     try {
       response = await fetchApi(
-        `${ENDPOINT}/${attempt.model}:generateContent`,
+        `${ENDPOINT}/${model}:streamGenerateContent?alt=sse`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-goog-api-key": key,
           },
-          body: JSON.stringify(
-            transcriptionRequest(videoId, { light: light && attempt.light })
-          ),
+          body: JSON.stringify(request),
           signal,
         }
       );
     } catch (e) {
       if (signal?.aborted) throw e;
-      throw new GeminiError(
-        "Couldn't reach Gemini. Are you online?",
-        "offline"
+      return { status: 0, message: BROKE };
+    }
+    if (!response.ok) {
+      const body = (await response
+        .json()
+        .catch(() => null)) as GeminiResponse | null;
+      return { status: response.status, message: body?.error?.message ?? "" };
+    }
+    const answer = await readAnswer(response, onText);
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    return { status: response.status, message: "", answer };
+  };
+
+  /** The subtitles from `from` on, as far as one answer gets. */
+  const part = async (from: number, onText: (text: string) => void) => {
+    let status = 0;
+    for (let i = 0; i < ATTEMPTS.length; ) {
+      const attempt = ATTEMPTS[i];
+      const options = { light: light && attempt.light, from, quick };
+      const result = await ask(
+        attempt.model,
+        transcriptionRequest(videoId, options),
+        onText
       );
+      status = result.status;
+      if (result.answer) {
+        const { answer } = result;
+        if (!answer.text.trim() && answer.blockReason) {
+          throw new GeminiError(
+            `Gemini wouldn't write subtitles for this video (${answer.blockReason}).`,
+            "other"
+          );
+        }
+        let read: ReturnType<typeof readTranscription> | null = null;
+        try {
+          read = readTranscription(answer.text);
+        } catch {
+          read = null;
+        }
+        if (read && (read.sentences.length > 0 || !answer.dropped)) {
+          return {
+            ...read,
+            complete:
+              !answer.dropped &&
+              !read.cutOff &&
+              answer.finishReason !== "MAX_TOKENS",
+          };
+        }
+        status = 0;
+        failures.push(answer.dropped ? BROKE : "an empty answer");
+      } else {
+        failures.push(status ? `${status}: ${result.message}` : result.message);
+        // Settings a model won't take: the same try again without them.
+        if (status === 400 && quick && /thinking/i.test(result.message)) {
+          quick = false;
+          continue;
+        }
+        if (status === 400 && /metadata|fps|offset/i.test(result.message)) {
+          if (from > 0) {
+            clips = false;
+            throw errorFor(status, failures);
+          }
+          if (options.light) {
+            light = false;
+            continue;
+          }
+        }
+        if (!worthRetrying(status)) throw errorFor(status, failures);
+      }
+      i++;
+      if (i < ATTEMPTS.length) {
+        onRetry?.(i + 1, ATTEMPTS.length);
+        await sleep(ATTEMPTS[i].wait);
+      }
     }
-    status = response.status;
-    body = await response.json().catch(() => null);
-    if (response.ok) break;
-    const message = body?.error?.message ?? "";
-    failures.push(message ? `${status}: ${message}` : String(status));
-    // A model that won't take the lighter request gets the usual one.
-    if (status === 400 && attempt.light && /metadata|fps/i.test(message)) {
-      light = false;
-      continue;
-    }
-    if (!worthRetrying(status)) break;
-  }
-  if (status < 200 || status >= 300) {
     throw errorFor(status, failures);
+  };
+
+  const cues: Cue[] = [];
+  let language = "";
+  let cutOff = false;
+  let from = 0;
+  const reached = () => {
+    const last = cues[cues.length - 1];
+    return last ? (last.end ?? last.start) : 0;
+  };
+  for (let round = 0; ; round++) {
+    // Progress as the answer streams in: the sentences so far and the time
+    // of the last one.
+    const onText = (text: string) => {
+      const starts = [...text.matchAll(/"start"\s*:\s*"([^"]+)"/g)];
+      const time = parseTime(starts[starts.length - 1]?.[1] ?? "");
+      if (Number.isNaN(time)) return;
+      onProgress?.({
+        upTo: from > 0 && fromPartStart(time, from) ? time + from : time,
+        sentences: cues.length + starts.length,
+      });
+    };
+    let result: Awaited<ReturnType<typeof part>>;
+    try {
+      result = await part(from, onText);
+    } catch (e) {
+      // What's written down so far is kept.
+      if (cues.length > 0 && !signal?.aborted) {
+        cutOff = true;
+        break;
+      }
+      throw e;
+    }
+    if (round === 0) {
+      language = result.language.toLowerCase();
+      if (language && !/^(id|in|ind)\b/.test(language)) {
+        throw new GeminiError(
+          `This video seems to be in another language (${result.language}), not Indonesian.`,
+          "language"
+        );
+      }
+    }
+    let found = cuesFromSentences(result.sentences);
+    if (from > 0 && found.length > 0 && fromPartStart(found[0].start, from)) {
+      found = found.map((c) => ({
+        ...c,
+        start: c.start + from,
+        end: c.end === undefined ? undefined : c.end + from,
+      }));
+    }
+    // A part may start by repeating the sentence the last one ended with.
+    const after = cues.length > 0 ? reached() - 0.5 : Number.NEGATIVE_INFINITY;
+    const recent = new Set(cues.slice(-2).map((c) => c.text.toLowerCase()));
+    while (found.length > 0 && recent.has(found[0].text.toLowerCase())) {
+      found.shift();
+    }
+    cues.push(...found.filter((c) => c.start >= after));
+    if (cues.length > 0)
+      onProgress?.({ upTo: reached(), sentences: cues.length });
+    if (result.complete) break;
+    // Cut off or disconnected: carry on from the last sentence.
+    const next = reached();
+    if (!clips || round >= MAX_PARTS - 1 || next < from + 2) {
+      cutOff = true;
+      break;
+    }
+    from = next;
   }
-  const candidate = body?.candidates?.[0];
-  if (!candidate) {
-    const reason = body?.promptFeedback?.blockReason;
-    throw new GeminiError(
-      reason
-        ? `Gemini wouldn't write subtitles for this video (${reason}).`
-        : "Gemini didn't answer. Try again.",
-      "other"
-    );
-  }
-  const json = (candidate.content?.parts ?? [])
-    .filter((p) => !p.thought)
-    .map((p) => p.text ?? "")
-    .join("");
-  const read = readTranscription(json);
-  const cues = cuesFromSentences(read.sentences);
-  const language = read.language.toLowerCase();
   if (cues.length === 0) {
     throw new GeminiError(
       "Gemini heard nobody speaking in this video.",
       "video"
     );
   }
-  if (language && !/^(id|in|ind)\b/.test(language)) {
-    throw new GeminiError(
-      `This video seems to be in another language (${read.language}), not Indonesian.`,
-      "language"
-    );
-  }
-  return {
-    cues,
-    language,
-    cutOff: read.cutOff || candidate.finishReason === "MAX_TOKENS",
-  };
+  return { cues, language, cutOff };
 }
