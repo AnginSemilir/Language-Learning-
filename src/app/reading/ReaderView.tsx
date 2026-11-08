@@ -65,7 +65,7 @@ import { sceneMarkdown } from "@/lector/video/scenes";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useGlobalScheduler } from "@/logic/card/CardScheduler";
 import { useFamiliarRange } from "@/logic/card/known";
-import { markNoteKnown } from "@/logic/card/markKnown";
+import { knownWordCard, markNoteKnown } from "@/logic/card/markKnown";
 import { db } from "@/logic/db";
 import { useTopLevelDecks } from "@/logic/deck/hooks/useTopLevelDecks";
 import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
@@ -492,9 +492,24 @@ export default function ReaderView() {
     }
     if (state === "known") incrementDailyStat("wordsMarkedKnown");
     // Its flashcard goes the same way: familiar comes back once for a
-    // check, known doesn't come back.
-    if ((state === "known" || state === "familiar") && panel.card) {
+    // check. Known: a card never reviewed (added, then found to be known) is
+    // deleted; one already studied is kept, marked known, never to come back.
+    if (state === "familiar" && panel.card) {
       await markNoteKnown(panel.card.noteId, scheduler, familiarRange, state);
+    }
+    if (state === "known" && panel.card) {
+      const done = await knownWordCard(
+        panel.card.noteId,
+        scheduler,
+        familiarRange
+      );
+      if (done === "deleted") {
+        notify(
+          "Card removed",
+          `“${panel.card.front}” is known, so its new flashcard was deleted.`,
+          "info"
+        );
+      }
     }
     if (state === "known" || state === "familiar" || state === "ignored") {
       closePanel();

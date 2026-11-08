@@ -213,3 +213,13 @@
   margin: var(--spacing-xs) 0 0;
   color: var(--theme-neutral-600);
 }
+
+.scene-player__cc {
+  min-width: 44px;
+  font-weight: 600;
+}
+
+.scene-player__cc[aria-pressed="false"] {
+  text-decoration: line-through;
+  opacity: 0.7;
+}

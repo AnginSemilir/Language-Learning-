@@ -62,6 +62,8 @@ export const NoteTableItem = memo(
       switch (columnKey) {
         case "name":
           return note.sortField;
+        case "learned":
+          return noteWithDeckName.learned?.label ?? "";
         case "creationDate":
           return note.creationDate.toLocaleDateString();
         case "noteType":
@@ -125,7 +127,8 @@ export const NoteTableItem = memo(
       prevProps.isOpened === nextProps.isOpened &&
       prevProps.selecting === nextProps.selecting &&
       prevProps.visibleColumns === nextProps.visibleColumns &&
-      prevNote.deckName === nextNote.deckName
+      prevNote.deckName === nextNote.deckName &&
+      prevNote.learned?.label === nextNote.learned?.label
     );
   }
 );

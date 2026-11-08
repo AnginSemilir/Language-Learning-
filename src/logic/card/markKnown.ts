@@ -5,6 +5,7 @@
 import { type FSRS, Rating, State } from "fsrs.js";
 import { db } from "../db";
 import { invalidateDeckStatsCache } from "../deck/deckStatsCacheManager";
+import { deleteNote } from "../note/deleteNote";
 import type { NoteType } from "../note/note";
 import { schedulableModel } from "./CardScheduler";
 import type { Card, KnownLevel } from "./card";
@@ -74,4 +75,33 @@ export async function markNoteKnown(
 ) {
   const cards = await db.cards.where("note").equals(noteId).toArray();
   return markCardsKnown(cards, scheduler, range, level);
+}
+
+/** Cards never reviewed: made, then not studied yet. */
+export function neverReviewed(cards: Card<NoteType>[]) {
+  return (
+    cards.length > 0 &&
+    cards.every((c) => c.model.state === State.New && c.model.reps === 0)
+  );
+}
+
+/**
+ * A word marked known in the reader: its card goes too if it was never
+ * reviewed (added, then found to be known); a card already studied is kept,
+ * marked known, so its history stays. Says which was done.
+ */
+export async function knownWordCard(
+  noteId: string,
+  scheduler: FSRS,
+  range: FamiliarRange
+): Promise<"deleted" | "marked" | "none"> {
+  const cards = await db.cards.where("note").equals(noteId).toArray();
+  const note = await db.notes.get(noteId);
+  if (!note || cards.length === 0) return "none";
+  if (neverReviewed(cards)) {
+    await deleteNote(note);
+    return "deleted";
+  }
+  await markCardsKnown(cards, scheduler, range, "known");
+  return "marked";
 }

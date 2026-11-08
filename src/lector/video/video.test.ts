@@ -450,7 +450,7 @@ describe("Gemini", () => {
       onRetry: (n, of) => retries.push(`${n}/${of}`),
     });
     expect(result.cues).toHaveLength(1);
-    expect(retries).toEqual(["2/3"]);
+    expect(retries).toEqual(["2/4"]);
     expect(calls[0].url).toContain("/gemini-flash-latest:");
     expect(calls[1].body.contents[0].parts[0]).toHaveProperty("videoMetadata");
   });
@@ -459,6 +459,7 @@ describe("Gemini", () => {
     setGeminiKey("AIza-test");
     const { calls, fetchApi } = answers(
       [429, { error: { message: "Quota exceeded, limit: 0" } }],
+      [503, { error: { message: "The model is overloaded." } }],
       [503, { error: { message: "The model is overloaded." } }],
       [500, { error: { message: "Internal error encountered." } }]
     );
@@ -469,11 +470,12 @@ describe("Gemini", () => {
     expect(calls.map((c) => c.url.match(/models\/([^:]+)/)?.[1])).toEqual([
       "gemini-flash-latest",
       "gemini-flash-latest",
+      "gemini-3.5-flash",
       "gemini-flash-lite-latest",
     ]);
     expect(error).toMatchObject({ problem: "busy" });
     expect(error.message).toContain(
-      "(Details: 429: Quota exceeded, limit: 0; then 503: The model is overloaded.; then 500: Internal error encountered.)"
+      "(Details: 429: Quota exceeded, limit: 0; then 503: The model is overloaded. (2 times); then 500: Internal error encountered.)"
     );
   });
 
@@ -496,12 +498,12 @@ describe("Gemini", () => {
       503,
       { error: { message: "Overloaded." } },
     ];
-    const { fetchApi } = answers(busy, busy, busy);
+    const { fetchApi } = answers(busy, busy, busy, busy);
     const error = await transcribeVideo("dQw4w9WgXcQ", {
       fetchApi,
       sleep: async () => {},
     }).catch((e) => e);
-    expect(error.message).toContain("(Details: 503: Overloaded. (3 times))");
+    expect(error.message).toContain("(Details: 503: Overloaded. (4 times))");
   });
 
   it("reads an answer as it streams in, with its progress", async () => {
@@ -589,6 +591,7 @@ describe("Gemini", () => {
       ),
       busy,
       busy,
+      busy,
       busy
     );
     const result = await transcribeVideo("dQw4w9WgXcQ", {
@@ -607,7 +610,7 @@ describe("Gemini", () => {
       sleep: async () => {},
     });
     expect(result.cues).toHaveLength(1);
-    const bad = answers("broken", "broken", "broken");
+    const bad = answers("broken", "broken", "broken", "broken");
     await expect(
       transcribeVideo("dQw4w9WgXcQ", {
         fetchApi: bad.fetchApi,
@@ -638,6 +641,49 @@ describe("Gemini", () => {
     });
     expect(calls[1].body.generationConfig).not.toHaveProperty("thinkingConfig");
     expect(retries).toEqual([]);
+  });
+
+  it("moves straight to the next model when one is out for the day", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      [
+        429,
+        {
+          error: {
+            message:
+              "Quota exceeded for metric: generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash, description: Generate content requests per day limit exceeded on Free Tier.",
+          },
+        },
+      ],
+      [200, ANSWER]
+    );
+    const waits: number[] = [];
+    await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async (ms) => waits.push(ms),
+    });
+    expect(calls.map((c) => c.url.match(/models\/([^:]+)/)?.[1])).toEqual([
+      "gemini-flash-latest",
+      "gemini-3.5-flash",
+    ]);
+    expect(waits).toEqual([]);
+  });
+
+  it("starts with the quicker model when chosen, and skips a retired one", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      [404, { error: { message: "This model is no longer available." } }],
+      [200, ANSWER]
+    );
+    await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      model: "fast",
+      sleep: async () => {},
+    });
+    expect(calls.map((c) => c.url.match(/models\/([^:]+)/)?.[1])).toEqual([
+      "gemini-3.5-flash",
+      "gemini-flash-latest",
+    ]);
   });
 
   it("doesn't try again when the video is the problem", async () => {
