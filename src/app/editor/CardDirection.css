@@ -1,0 +1,20 @@
+.card-direction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.card-direction__hint {
+  color: var(--theme-neutral-600);
+}
+
+.card-direction__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  background: var(--theme-neutral-100);
+}

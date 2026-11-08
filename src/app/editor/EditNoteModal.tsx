@@ -1,10 +1,10 @@
 import { Modal } from "@/components/ui/Modal";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import { getAdapter } from "@/logic/NoteTypeAdapter";
 import { useDeckOf } from "@/logic/deck/hooks/useDeckOf";
 import { NoteType } from "@/logic/note/note";
-import { useMemo, useState } from "react";
 import { Note } from "../../logic/note/note";
+import CardDirection from "./CardDirection";
+import LiveNoteEditor, { useLiveNote } from "./LiveNoteEditor";
 import "./EditNoteModal.css";
 
 const BASE = "edit-note-modal";
@@ -21,21 +21,9 @@ export default function EditNoteModal({
   setClose,
 }: EditNoteModalProps) {
   const [deck] = useDeckOf(note);
-  const [requestedFinish, setRequestedFinish] = useState(false);
+  const live = useLiveNote(note);
 
   const isMobile = useMediaQuery("(max-width: 50em)");
-
-  const CardEditor = useMemo(() => {
-    return deck
-      ? getAdapter(note).editor({
-          note,
-          deck,
-          mode: "edit",
-          requestedFinish,
-          setRequestedFinish,
-        })
-      : null;
-  }, [note, deck]);
 
   return (
     <Modal
@@ -45,7 +33,14 @@ export default function EditNoteModal({
       onClose={setClose}
     >
       <div className={BASE}>
-        <div className={`${BASE}__content`}>{CardEditor}</div>
+        <div className={`${BASE}__content`}>
+          {opened && (
+            <>
+              <CardDirection note={live} />
+              <LiveNoteEditor note={note} deck={deck} />
+            </>
+          )}
+        </div>
       </div>
     </Modal>
   );
