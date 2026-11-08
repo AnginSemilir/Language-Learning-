@@ -7,6 +7,7 @@
 
 import Explanation from "@/app/explain/Explanation";
 import GenerateCardButton from "@/app/explain/GenerateCardButton";
+import GoogleTranslateButton from "@/app/explain/GoogleTranslateButton";
 import {
   Button,
   Group,
@@ -584,14 +585,24 @@ export default function WordPanel({
                   onChange={(e) => setTranslation(e.currentTarget.value)}
                   required
                 />
-                <GenerateCardButton
-                  read={() => ({
-                    front: phraseFront ?? data.word,
-                    back: translation,
-                  })}
-                  sentence={phrase?.sentence ?? data.sentence}
-                  onGenerated={(card) => setTranslation(card.back)}
-                />
+                <div className="card-helpers">
+                  <GenerateCardButton
+                    read={() => ({
+                      front: phraseFront ?? data.word,
+                      back: translation,
+                    })}
+                    sentence={phrase?.sentence ?? data.sentence}
+                    onGenerated={(card) => setTranslation(card.back)}
+                  />
+                  <GoogleTranslateButton
+                    read={() => ({
+                      text: phraseFront ?? data.word,
+                      from: "id",
+                      to: "en",
+                    })}
+                    onTranslated={setTranslation}
+                  />
+                </div>
                 {decks.length > 0 && (
                   <Select
                     label="Deck"

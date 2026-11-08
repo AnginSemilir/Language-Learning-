@@ -1,6 +1,12 @@
 import NoteEditor, { useNoteEditor } from "@/app/editor/NoteEditor/NoteEditor";
 import GenerateCardButton from "@/app/explain/GenerateCardButton";
-import { fillEditors, readEditors } from "@/app/explain/editorCard";
+import GoogleTranslateButton from "@/app/explain/GoogleTranslateButton";
+import {
+  editorToTranslate,
+  fillEditors,
+  fillTranslation,
+  readEditors,
+} from "@/app/explain/editorCard";
 import { Stack } from "@/components/ui/Stack";
 import { Text } from "@/components/ui/Text";
 import { EditMode } from "@/logic/NoteTypeAdapter";
@@ -105,11 +111,19 @@ function DoubleSidedCardEditor({
   return (
     <Stack gap="xl">
       {mode === "new" && (
-        <GenerateCardButton
-          hint="Type the word in Indonesian or English, and Claude fills in the rest with an example."
-          read={() => readEditors(editor1, editor2)}
-          onGenerated={(card) => fillEditors(editor1, editor2, card)}
-        />
+        <div className="card-helpers">
+          <GenerateCardButton
+            hint="Type the word in Indonesian or English, and Claude fills in the rest with an example."
+            read={() => readEditors(editor1, editor2)}
+            onGenerated={(card) => fillEditors(editor1, editor2, card)}
+          />
+          <GoogleTranslateButton
+            read={() => editorToTranslate(editor1, editor2)}
+            onTranslated={(text, to) =>
+              fillTranslation(editor1, editor2, text, to)
+            }
+          />
+        </div>
       )}
       <Stack gap="xs">
         <Text size="sm" weight="semibold">

@@ -61,6 +61,14 @@ talked to its server were rewritten to use the browser database
   picked out the same way. Lessons are split into pages you swipe through. Tap a word to hear
   it, see its dictionary entry, mark how well you know it, or add it as a
   flashcard. Words already in your flashcards are highlighted as "learning".
+- **Google Translate in the app.** Next to Generate with AI when making a
+  card (in Read's word panel and in New card), **Google Translate** fills in
+  the translation; for a single word Google's other meanings can be tapped
+  instead. In New card, an English word typed on the back is translated into
+  Indonesian for the front. It uses the free web address Google Translate's
+  browser tools use (translate.googleapis.com), from your own browser: no key,
+  but it isn't an official API, so Google may pause it now and then (Generate
+  with AI still works).
 - **Mark the rest as known.** Turning the page offers to mark every word on it
   you didn't look up or rate as known (you can leave words out, or have it
   happen without asking). Names and numbers are skipped. Known words are
