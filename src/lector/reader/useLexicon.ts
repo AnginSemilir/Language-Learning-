@@ -7,16 +7,18 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { loadGrammar } from "../dictionary";
 import { type CardMatch, getUserCardIndex } from "../flashcards";
+import { cardWordLevels } from "../knownWords";
 import { id as pack } from "../languages/id/manifest";
 import {
+  type GrammarData,
   type Lemmatizer,
   findNames,
   fold,
   isNameToken,
   phraseKey,
 } from "../lemma";
-import type { WordState } from "../types";
-import type { SavedPhrases } from "./ReaderArticle";
+import { STATE_RANK, type WordState } from "../types";
+import type { KnownPhrases, SavedPhrases } from "./ReaderArticle";
 import { phraseInSet } from "./phrase";
 import { splitWords } from "./utils";
 
@@ -38,6 +40,11 @@ export interface ReaderLexicon {
   cardForPhrase: (text: string) => CardMatch | undefined;
   /** Phrases on the user's cards, to underline in the text. */
   savedPhrases: SavedPhrases;
+  /**
+   * Fixed phrases (tanggung jawab) that flashcards count as known or
+   * familiar: their words are shown so where the phrase appears.
+   */
+  knownPhrases: KnownPhrases;
   isName: (word: string) => boolean;
 }
 
@@ -50,6 +57,7 @@ export function textBlocks(content: string) {
 
 export function useLexicon(content: string | undefined): ReaderLexicon {
   const [lex, setLex] = useState<Lemmatizer | null>(null);
+  const [grammarData, setGrammarData] = useState<GrammarData | null>(null);
   const [error, setError] = useState(false);
   // Live, so a card that matures in review counts as known straight away.
   const cardRows = useLiveQuery(() => getUserCardIndex(), []);
@@ -66,7 +74,10 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
 
   useEffect(() => {
     loadGrammar()
-      .then((g) => setLex(g.lex))
+      .then((g) => {
+        setLex(g.lex);
+        setGrammarData(g.data);
+      })
       .catch(() => setError(true));
   }, []);
 
@@ -129,6 +140,28 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     [phraseCards]
   );
 
+  // Words the flashcards count as known or familiar, those on cards with
+  // several words too (fixed phrases like "tanggung jawab" stay whole).
+  const wordLevels = useMemo(
+    () =>
+      cardWordLevels(
+        cards,
+        lex && grammarData ? { data: grammarData, lex } : null
+      ),
+    [cards, lex, grammarData]
+  );
+
+  const knownPhrases = useMemo(() => {
+    const levels = new Map<string, "known" | "familiar">();
+    let maxWords = 0;
+    for (const [key, { level }] of wordLevels) {
+      if (!key.includes(" ")) continue;
+      levels.set(key, level);
+      maxWords = Math.max(maxWords, key.split(" ").length);
+    }
+    return { levels, maxWords };
+  }, [wordLevels]);
+
   const names = useMemo(
     () =>
       lex && content ? findNames(textBlocks(content), lex) : new Set<string>(),
@@ -168,15 +201,22 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
       // spelling recorded on another entry, is the fallback.
       const explicit =
         known.get(headword) ?? known.get(surface) ?? formStates.get(surface);
-      const card = cardIndex.get(surface) ?? cardIndex.get(headword);
-      // A word learned through flashcards is known, whatever level it was
-      // given while reading (unless the reader said to ignore it).
-      if (card?.mature && explicit !== "ignored") return "known";
-      if (explicit) return explicit;
-      if (card) return "level2";
+      if (explicit === "ignored") return "ignored";
+      // Known or familiar through flashcards counts, whatever level the word
+      // was given while reading; the further along of the two is shown.
+      const fromCards =
+        wordLevels.get(headword)?.level ?? wordLevels.get(surface)?.level;
+      const best =
+        explicit && fromCards
+          ? STATE_RANK[explicit] >= STATE_RANK[fromCards]
+            ? explicit
+            : fromCards
+          : (explicit ?? fromCards);
+      if (best) return best;
+      if (cardIndex.get(surface) ?? cardIndex.get(headword)) return "level2";
       return "new";
     },
-    [names, headwordOf, known, formStates, cardIndex]
+    [names, headwordOf, known, formStates, cardIndex, wordLevels]
   );
 
   // A card for the word itself, its headword, or (for the panel only) a
@@ -202,6 +242,7 @@ export function useLexicon(content: string | undefined): ReaderLexicon {
     cardFor,
     cardForPhrase,
     savedPhrases,
+    knownPhrases,
     isName,
   };
 }

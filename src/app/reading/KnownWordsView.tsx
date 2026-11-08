@@ -1,9 +1,15 @@
-// Known words: marked known while reading, or learned through flashcards
-// (mature cards). Coverage of the most frequent words at the top; search,
-// unmark, or copy the list below.
+// Known and familiar words, from reading and flashcards together (see
+// knownWords.ts). Coverage of the most frequent words at the top; the two
+// lists below, to search, unmark or copy.
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import { notify } from "@/components/Notification";
-import { Button, Group, Text, TextInput } from "@/components/ui";
+import {
+  Button,
+  Group,
+  SegmentedControl,
+  Text,
+  TextInput,
+} from "@/components/ui";
 import { deleteVocab } from "@/lector/data-layer";
 import {
   type LookupOptions,
@@ -13,6 +19,7 @@ import {
 import { getKnownWords } from "@/lector/knownWords";
 import type { GrammarData } from "@/lector/lemma";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import type { KnownLevel } from "@/logic/card/card";
 import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
 import { IconCopy, IconX } from "@tabler/icons-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -37,6 +44,7 @@ export default function KnownWordsView() {
   const dictionary = useDictionaryChoice();
   useDocumentTitle("Known words");
   const [query, setQuery] = useState("");
+  const [level, setLevel] = useState<KnownLevel>("known");
   const [data, setData] = useState<GrammarData | null>(null);
   const [autoMark, setAutoMark] = useState(() => {
     try {
@@ -54,18 +62,30 @@ export default function KnownWordsView() {
       .catch(() => {});
   }, []);
 
+  const counts = useMemo(() => {
+    let k = 0;
+    let f = 0;
+    for (const v of known ?? []) {
+      if (v.level === "known") k++;
+      else f++;
+    }
+    return { known: k, familiar: f };
+  }, [known]);
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (known ?? []).filter(
-      (v) => !q || v.text.includes(q) || v.forms.some((f) => f.includes(q))
+      (v) =>
+        v.level === level &&
+        (!q || v.text.includes(q) || v.forms.some((f) => f.includes(q)))
     );
-  }, [known, query]);
+  }, [known, query, level]);
 
   const copy = async () => {
-    const text = (known ?? []).map((v) => v.text).join("\n");
+    const list = (known ?? []).filter((v) => v.level === level);
     try {
-      await navigator.clipboard.writeText(text);
-      notify("Copied", `${known?.length ?? 0} words copied.`, "success", 1500);
+      await navigator.clipboard.writeText(list.map((v) => v.text).join("\n"));
+      notify("Copied", `${list.length} words copied.`, "success", 1500);
     } catch {
       notify("Not copied", "Your browser blocked the clipboard.", "error");
     }
@@ -84,15 +104,33 @@ export default function KnownWordsView() {
       <div className="library-view">
         <div>
           <h1 className="reading-view__title">
-            {known?.length ?? 0} known words
+            {`${counts.known.toLocaleString()} known, ${counts.familiar.toLocaleString()} familiar`}
           </h1>
           <Text size="sm">
-            Words you marked known while reading, plus flashcard words you've
-            learned (reviewed with a gap of 21 days or more). Passive forms
+            From reading and flashcards together. Known words don't come back;
+            familiar ones are probably known and get checked again: a familiar
+            flashcard comes back once in a few months, and right makes it known.
+            Flashcards you've learned (reviewed with a gap of 21 days or more)
+            count as familiar. A card with several words counts each word, but
+            fixed phrases like <em>tanggung jawab</em> stay whole. Passive forms
             count with their base word (<em>dibeli</em> with <em>beli</em>).
           </Text>
         </div>
         <KnownCoverage coverage={coverage} error={error} />
+        <SegmentedControl
+          value={level}
+          onChange={(v) => setLevel(v as KnownLevel)}
+          data={[
+            {
+              value: "known",
+              label: `Known (${counts.known.toLocaleString()})`,
+            },
+            {
+              value: "familiar",
+              label: `Familiar (${counts.familiar.toLocaleString()})`,
+            },
+          ]}
+        />
         <Group gap="sm" justify="space-between" wrap="wrap">
           <TextInput
             id="known-search"
@@ -104,7 +142,7 @@ export default function KnownWordsView() {
             variant="default"
             leftSection={<IconCopy size={16} />}
             onClick={copy}
-            disabled={!known?.length}
+            disabled={!rows.length}
           >
             Copy list
           </Button>
@@ -127,9 +165,11 @@ export default function KnownWordsView() {
         </label>
         {rows.length === 0 ? (
           <Text>
-            {known?.length
+            {query.trim()
               ? "No matches."
-              : "Nothing yet. While reading, turn the page and choose “Mark known” to add the words you didn't need to look up."}
+              : level === "known"
+                ? "Nothing yet. While reading, turn the page and choose “Mark known” to add the words you didn't need to look up."
+                : "Nothing yet. Words you mark Familiar while reading, and flashcards you mark Familiar or have learned, show here."}
           </Text>
         ) : (
           <ul className="known-words__list">

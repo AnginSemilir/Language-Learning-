@@ -1,38 +1,59 @@
-// "Known" under a card: it won't come up again until the maximum interval
-// (Settings → Learning) has passed. K does the same from the keyboard.
+// Under a card: Familiar (F) sends it away to come back once, in one to six
+// months, for a check; Known (K) sends it away for good.
 import { notify } from "@/components/Notification";
 import { Button } from "@/components/ui/Button";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
-import { describeDays } from "@/logic/card/known";
-import { IconCheck } from "@tabler/icons-react";
+import type { KnownLevel } from "@/logic/card/card";
+import {
+  type FamiliarRange,
+  describeDays,
+  describeRange,
+} from "@/logic/card/known";
+import { IconCheck, IconChecks } from "@tabler/icons-react";
 
-interface KnownButtonProps {
-  /** How long a known card stays away: the maximum interval. */
-  days: number;
-  onKnown: () => void;
+interface KnownButtonsProps {
+  range: FamiliarRange;
+  /** Returns for how many days the card went away. */
+  onMark: (level: KnownLevel) => number | null;
 }
 
-export default function KnownButton({ days, onKnown }: KnownButtonProps) {
-  const away = describeDays(days);
-  const known = () => {
-    onKnown();
+export default function KnownButtons({ range, onMark }: KnownButtonsProps) {
+  const mark = (level: KnownLevel) => {
+    const days = onMark(level);
+    if (days === null) return;
     notify(
-      "Marked known",
-      `It comes back in ${away}. Change that with Maximum interval in Settings → Learning.`,
+      level === "known" ? "Known" : "Familiar",
+      level === "known"
+        ? "This card won't come back."
+        : `It comes back once for a check, in about ${describeDays(days)}. Get it right then and it's known.`,
       "info",
       2500
     );
   };
-  useHotkeys([["k", known]]);
+  useHotkeys([
+    ["f", () => mark("familiar")],
+    ["k", () => mark("known")],
+  ]);
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      leftSection={<IconCheck size={16} />}
-      onClick={known}
-      title={`Don't show this card for ${away} (K)`}
-    >
-      Known
-    </Button>
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        leftSection={<IconCheck size={16} />}
+        onClick={() => mark("familiar")}
+        title={`Probably known: it comes back once in ${describeRange(range)} for a check (F)`}
+      >
+        Familiar
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        leftSection={<IconChecks size={16} />}
+        onClick={() => mark("known")}
+        title="Known: it doesn't come back (K)"
+      >
+        Known
+      </Button>
+    </>
   );
 }

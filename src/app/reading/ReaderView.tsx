@@ -58,6 +58,9 @@ import { splitWords } from "@/lector/reader/utils";
 import { speak } from "@/lector/tts";
 import type { Lesson, WordState } from "@/lector/types";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import { useGlobalScheduler } from "@/logic/card/CardScheduler";
+import { useFamiliarRange } from "@/logic/card/known";
+import { markNoteKnown } from "@/logic/card/markKnown";
 import { db } from "@/logic/db";
 import { useTopLevelDecks } from "@/logic/deck/hooks/useTopLevelDecks";
 import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
@@ -180,6 +183,8 @@ export default function ReaderView() {
   // ── Word panel ──────────────────────────────────────────────────────────
 
   const dictionary = useDictionaryChoice();
+  const scheduler = useGlobalScheduler();
+  const familiarRange = useFamiliarRange(scheduler.p.maximum_interval);
   const onWordClick = useCallback(
     async (
       word: string,
@@ -455,7 +460,14 @@ export default function ReaderView() {
       incrementDailyStat("newWordsSaved");
     }
     if (state === "known") incrementDailyStat("wordsMarkedKnown");
-    if (state === "known" || state === "ignored") closePanel();
+    // Its flashcard goes the same way: familiar comes back once for a
+    // check, known doesn't come back.
+    if ((state === "known" || state === "familiar") && panel.card) {
+      await markNoteKnown(panel.card.noteId, scheduler, familiarRange, state);
+    }
+    if (state === "known" || state === "familiar" || state === "ignored") {
+      closePanel();
+    }
   };
 
   const addPhraseCard = async (
@@ -708,6 +720,7 @@ export default function ReaderView() {
                       stateOf={lexicon.stateOf}
                       activeWord={activeWord}
                       savedPhrases={lexicon.savedPhrases}
+                      knownPhrases={lexicon.knownPhrases}
                       onWordClick={onWordClick}
                       onActivateWord={setActiveWord}
                     />
@@ -726,6 +739,7 @@ export default function ReaderView() {
                   stateOf={lexicon.stateOf}
                   activeWord={activeWord}
                   savedPhrases={lexicon.savedPhrases}
+                  knownPhrases={lexicon.knownPhrases}
                   onWordClick={onWordClick}
                   onActivateWord={setActiveWord}
                 />

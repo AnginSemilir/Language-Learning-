@@ -39,6 +39,9 @@ export interface SettingsValues {
   "#learn_buryReviewSiblings": boolean;
   "#learn_sort": "creationDate" | "dueDate";
   "#learn_enableHardAndEasy": boolean;
+  /** A card marked familiar comes back once, between these many days later. */
+  "#learn_familiarMinDays": number;
+  "#learn_familiarMaxDays": number;
   "#newDayStartHour": number;
   "#globalScheduler_maximumInterval": number;
   "#globalScheduler_requestRetention": number;

@@ -11,6 +11,7 @@ import Dexie, { Table } from "dexie";
 import dexieCloud from "dexie-cloud-addon";
 import "dexie-export-import";
 import { Card } from "./card/card";
+import { bringBackFirstKnown } from "./card/firstKnown";
 import { Deck } from "./deck/deck";
 import { NoteType } from "./note/note";
 import { Note } from "./note/note";
@@ -87,6 +88,19 @@ export class Database extends Dexie {
     this.version(28).stores({
       explanations: "id, createdAt",
     });
+    // Known first sent a card away for 100 years. Those cards are familiar
+    // now: they come back once, in one to six months, for a check.
+    this.version(29)
+      .stores({})
+      .upgrade(async (tx) => {
+        const now = new Date();
+        await tx
+          .table("cards")
+          .toCollection()
+          .modify((card: Card<NoteType>) => {
+            bringBackFirstKnown(card, now);
+          });
+      });
     // Opened below, after sync is configured.
   }
 }

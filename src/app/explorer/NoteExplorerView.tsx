@@ -1,11 +1,15 @@
+import MarkKnownModal from "@/app/flashcards/MarkKnownModal";
 import { AppHeaderContent } from "@/app/shell/Header/Header";
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
+import { Button, Text } from "@/components/ui";
 import { useDebouncedState } from "@/lib/hooks/useDebouncedState";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
+import { db } from "@/logic/db";
 import { useDecks } from "@/logic/deck/hooks/useDecks";
 import { getNote } from "@/logic/note/getNote";
 import { useNotesWith } from "@/logic/note/hooks/useNotesWith";
 import { NoteSortFunction, NoteSorts } from "@/logic/note/sort";
+import { IconCheck } from "@tabler/icons-react";
 import { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -88,6 +92,7 @@ function NoteExplorerView() {
     [deckId, filter, sort]
   );
 
+  const [knownModalOpened, setKnownModalOpened] = useState(false);
   const [editNoteModalOpened, setEditNoteModalOpened] =
     useState<boolean>(false);
 
@@ -158,6 +163,26 @@ function NoteExplorerView() {
         onFilterChange={setFilter}
       />
 
+      {selectedNoteIds.size > 0 && (
+        <div className={`${BASE}__selection`}>
+          <Text size="sm">
+            {`${selectedNoteIds.size.toLocaleString()} note${selectedNoteIds.size === 1 ? "" : "s"} selected`}
+          </Text>
+          <Text size="xs" className={`${BASE}__selection-hint`}>
+            Shift-click to select a run, Ctrl/⌘-click to add one, Ctrl/⌘+A for
+            all shown.
+          </Text>
+          <Button
+            size="sm"
+            variant="default"
+            leftSection={<IconCheck size={16} />}
+            onClick={() => setKnownModalOpened(true)}
+          >
+            Mark familiar or known
+          </Button>
+        </div>
+      )}
+
       <div className={`${BASE}__container`}>
         <section
           className={`${BASE}__table-section`}
@@ -188,6 +213,20 @@ function NoteExplorerView() {
           <EditNoteView note={openedNote} setOpenedNote={setOpenedNote} />
         </section>
       </div>
+
+      {knownModalOpened && (
+        <MarkKnownModal
+          opened={knownModalOpened}
+          setOpened={setKnownModalOpened}
+          what={`the ${selectedNoteIds.size.toLocaleString()} selected note${selectedNoteIds.size === 1 ? "" : "s"}`}
+          loadCards={() =>
+            db.cards
+              .where("note")
+              .anyOf([...selectedNoteIds])
+              .toArray()
+          }
+        />
+      )}
 
       {openedNote && (
         <EditNoteModal

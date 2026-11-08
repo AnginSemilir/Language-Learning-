@@ -104,6 +104,13 @@
   font-weight: inherit;
   padding: 0;
 }
+/* Familiar: probably known, so read like a known word, with a faint line
+   under it to tell the two apart. */
+.word-cell--familiar {
+  font-weight: inherit;
+  padding: 0;
+  box-shadow: inset 0 -2px 0 var(--w-l4-bd);
+}
 .word-cell--ignored {
   font-weight: inherit;
   padding: 0;

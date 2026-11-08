@@ -28,6 +28,7 @@ import {
   IconArrowRight,
   IconCards,
   IconCheck,
+  IconChecks,
   IconExternalLink,
   IconEyeOff,
   IconSparkles,
@@ -498,9 +499,19 @@ export default function WordPanel({
                   ))}
                   <Button
                     size="sm"
-                    variant={data.state === "known" ? "primary" : "default"}
+                    variant={data.state === "familiar" ? "primary" : "default"}
                     leftSection={<IconCheck size={16} />}
+                    onClick={() => onSetState("familiar")}
+                    title="Probably known. Its flashcard, if it has one, comes back once in a few months for a check."
+                  >
+                    Familiar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={data.state === "known" ? "primary" : "default"}
+                    leftSection={<IconChecks size={16} />}
                     onClick={() => onSetState("known")}
+                    title="Known. Its flashcard, if it has one, doesn't come back."
                   >
                     Known
                   </Button>

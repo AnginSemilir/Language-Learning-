@@ -4,6 +4,7 @@ import {
   type GrowthStage,
   growthStage,
 } from "@/components/GrowthIcon/GrowthIcon";
+import type { KnownLevel } from "@/logic/card/card";
 import { Card as Model } from "fsrs.js";
 import { State } from "fsrs.js";
 import "./LearnViewCurrentCardStateIndicator.css";
@@ -12,6 +13,8 @@ const BASE = "learn-view-current-card-state-indicator";
 
 interface LearnViewCurrentCardStateIndicatorProps {
   currentCardModel: Model | undefined;
+  /** Familiar: this review is its check, and right makes it known. */
+  known?: KnownLevel;
 }
 
 const COLOURS: Record<string, string> = {
@@ -46,6 +49,7 @@ function Indicator({
  */
 export default function LearnViewCurrentCardStateIndicator({
   currentCardModel,
+  known,
 }: LearnViewCurrentCardStateIndicatorProps) {
   if (currentCardModel === undefined) return null;
   const stage = growthStage(currentCardModel);
@@ -59,6 +63,15 @@ export default function LearnViewCurrentCardStateIndicator({
     return <Indicator color="orange" stage={stage} text="Learning" />;
   }
   if (currentCardModel.due <= new Date(Date.now())) {
+    if (known === "familiar") {
+      return (
+        <Indicator
+          color="sky"
+          stage={stage}
+          text="Familiar check: right makes it known"
+        />
+      );
+    }
     return <Indicator color="sky" stage={stage} text="Review" />;
   }
   return <Indicator color="neutral" stage={stage} text="Already learned" />;

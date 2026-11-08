@@ -1,4 +1,5 @@
-// How many of the top 1,000 / 2,000 / 5,000 / 10,000 Indonesian words you know.
+// How many of the top 1,000 / 2,000 / 5,000 / 10,000 Indonesian words you know
+// or are familiar with.
 // Each row opens the list of those words by frequency.
 import { Progress, Text } from "@/components/ui";
 import { BANDS } from "@/lector/frequency";
@@ -26,9 +27,10 @@ export default function KnownCoverage({
   }
   return (
     <div className="known-coverage">
-      {(coverage ?? BANDS.map((band) => ({ band, known: 0 }))).map(
-        ({ band, known }) => {
-          const pct = Math.round((known / band) * 100);
+      {(coverage ?? BANDS.map((band) => ({ band, known: 0, familiar: 0 }))).map(
+        ({ band, known, familiar }) => {
+          const either = known + familiar;
+          const pct = Math.round((either / band) * 100);
           return (
             <button
               key={band}
@@ -42,7 +44,7 @@ export default function KnownCoverage({
                 {`Top ${band.toLocaleString()} words`}
               </span>
               <span className="known-coverage__value">
-                {coverage ? formatPercent(known, band) : "…"}
+                {coverage ? formatPercent(either, band) : "…"}
               </span>
               <IconChevronRight size={16} className="known-coverage__chevron" />
               <Progress
@@ -51,7 +53,9 @@ export default function KnownCoverage({
               />
               <span className="known-coverage__detail">
                 {coverage
-                  ? `${known.toLocaleString()} of ${band.toLocaleString()} known`
+                  ? familiar
+                    ? `${known.toLocaleString()} known and ${familiar.toLocaleString()} familiar, of ${band.toLocaleString()}`
+                    : `${known.toLocaleString()} of ${band.toLocaleString()} known`
                   : "Loading…"}
               </span>
             </button>

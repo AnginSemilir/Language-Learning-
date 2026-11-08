@@ -3,9 +3,16 @@ import { Rating, SchedulingInfo, State } from "fsrs.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { schedulableModel, useGlobalScheduler } from "./card/CardScheduler";
 import { Card } from "./card/card";
+import type { KnownLevel } from "./card/card";
 import { useCardsWith } from "./card/hooks/useCardsWith";
-import { knownSchedule } from "./card/known";
-import { updateCardModel } from "./card/updateCardModel";
+import {
+  type FamiliarRange,
+  KNOWN_DAYS,
+  daysFor,
+  knownSchedule,
+  useFamiliarRange,
+} from "./card/known";
+import { setCardLevel, updateCardModel } from "./card/updateCardModel";
 import {
   type DailyLimits,
   type NewReviewOrder,
@@ -48,11 +55,12 @@ export type LearnController = {
   showingAnswer: boolean;
   showAnswer: () => void;
 
-  answerCard: (rating: Rating) => void;
-  /** Sends the current card as far ahead as the maximum interval allows. */
-  markKnown: () => void;
-  /** Days a card marked known stays away (the maximum interval). */
-  knownDays: number;
+  /** Returns "known" when a familiar card was got right and is now known. */
+  answerCard: (rating: Rating) => "known" | undefined;
+  /** Marks the current card familiar or known; returns for how many days. */
+  markKnown: (level: KnownLevel) => number;
+  /** How long a familiar card stays away (Settings → Learning). */
+  familiarRange: FamiliarRange;
   requestNextCard: () => void;
 
   /** Whether there's an answer in this session that "Back" can take back. */
@@ -90,6 +98,7 @@ export function useLearning(
   );
 
   const scheduler = useGlobalScheduler();
+  const familiarRange = useFamiliarRange(scheduler.p.maximum_interval);
 
   //Time critical cards are cards that are due today / should be done within this learning session (5-10 min interval). timeCriticalCards should be sorted by due date
   const [timeCriticalCards, setTimeCriticalCards] = useState<Card<NoteType>[]>(
@@ -261,9 +270,11 @@ export function useLearning(
 
   //Answering the current card with the given rating
   const answer = useCallback(
-    (rating: Rating) => {
+    (rating: Rating): "known" | undefined => {
+      let outcome: "known" | undefined;
       if (currentCard && currentCardRepeatInfo) {
         let saved: Promise<void> | null = null;
+        let next = currentCardRepeatInfo[rating];
         //Don't update the card if it is already learned and not due for a review
         if (
           !(
@@ -271,14 +282,31 @@ export function useLearning(
             currentCard.model.due.getTime() >= Date.now()
           )
         ) {
-          saved = updateCardModel(
-            currentCard,
-            currentCardRepeatInfo[rating].card,
-            currentCardRepeatInfo[rating].review_log
-          );
+          if (currentCard.known === "familiar") {
+            // The check of a familiar card: got right, it's known and
+            // doesn't come back; Again, it's learned again like any card.
+            if (rating === Rating.Again) {
+              saved = updateCardModel(
+                currentCard,
+                next.card,
+                next.review_log,
+                null
+              );
+            } else {
+              next = knownSchedule(next, new Date(Date.now()), KNOWN_DAYS);
+              saved = updateCardModel(
+                currentCard,
+                next.card,
+                next.review_log,
+                "known"
+              );
+              outcome = "known";
+            }
+          } else {
+            saved = updateCardModel(currentCard, next.card, next.review_log);
+          }
         }
-        const requeued =
-          currentCardRepeatInfo[rating].card.scheduled_days === 0;
+        const requeued = next.card.scheduled_days === 0;
         setUndoStack((stack) => [
           ...stack.slice(-(MAX_UNDO - 1)),
           { card: currentCard, saved, requeued, statistics },
@@ -286,7 +314,7 @@ export function useLearning(
         if (requeued) {
           // The copy shown again later keeps the answer just saved in its
           // history; the next answer appends to it rather than replacing it.
-          const log = currentCardRepeatInfo[rating].review_log;
+          const log = next.review_log;
           const history = saved
             ? [...currentCard.history, log]
             : currentCard.history;
@@ -295,8 +323,13 @@ export function useLearning(
               ...tcCards,
               {
                 ...currentCard,
-                model: currentCardRepeatInfo[rating].card,
+                model: next.card,
                 history,
+                // A familiar card answered Again is an ordinary card now.
+                known:
+                  saved && currentCard.known === "familiar"
+                    ? undefined
+                    : currentCard.known,
               },
             ].sort((a, b) => a.model.due.getTime() - b.model.due.getTime())
           );
@@ -315,36 +348,48 @@ export function useLearning(
         throw new Error("Card or cardModelInfo is missing");
       }
       setShowingAnswer(false);
+      return outcome;
     },
     [currentCard, currentCardRepeatInfo, timeCriticalCards, statistics]
   );
 
-  //Marking the current card known: due again after the maximum interval
-  const markKnown = useCallback(() => {
-    if (!currentCard || !currentCardRepeatInfo) {
-      throw new Error("Card or cardModelInfo is missing");
-    }
-    const known = knownSchedule(
-      currentCardRepeatInfo[Rating.Easy],
-      new Date(Date.now()),
-      scheduler.p.maximum_interval
-    );
-    // Unlike an answer, this changes a card that isn't due too ("learn all").
-    const saved = updateCardModel(currentCard, known.card, known.review_log);
-    setUndoStack((stack) => [
-      ...stack.slice(-(MAX_UNDO - 1)),
-      { card: currentCard, saved, requeued: false, statistics },
-    ]);
-    setStatistics((ds) => ({
-      ...ds,
-      ratingsList: [...ds.ratingsList, Rating.Easy],
-      cards: {
-        ...ds.cards,
-        [currentCard.model.state]: ds.cards[currentCard.model.state] + 1,
-      },
-    }));
-    setShowingAnswer(false);
-  }, [currentCard, currentCardRepeatInfo, scheduler, statistics]);
+  //Marking the current card familiar (back once in a while, for a check) or
+  //known (it doesn't come back)
+  const markKnown = useCallback(
+    (level: KnownLevel) => {
+      if (!currentCard || !currentCardRepeatInfo) {
+        throw new Error("Card or cardModelInfo is missing");
+      }
+      const days = daysFor(level, familiarRange);
+      const marked = knownSchedule(
+        currentCardRepeatInfo[Rating.Easy],
+        new Date(Date.now()),
+        days
+      );
+      // Unlike an answer, this changes a card that isn't due too ("learn all").
+      const saved = updateCardModel(
+        currentCard,
+        marked.card,
+        marked.review_log,
+        level
+      );
+      setUndoStack((stack) => [
+        ...stack.slice(-(MAX_UNDO - 1)),
+        { card: currentCard, saved, requeued: false, statistics },
+      ]);
+      setStatistics((ds) => ({
+        ...ds,
+        ratingsList: [...ds.ratingsList, Rating.Easy],
+        cards: {
+          ...ds.cards,
+          [currentCard.model.state]: ds.cards[currentCard.model.state] + 1,
+        },
+      }));
+      setShowingAnswer(false);
+      return days;
+    },
+    [currentCard, currentCardRepeatInfo, familiarRange, statistics]
+  );
 
   //Puts a card back at the front of the list it was taken from
   const requeueFront = useCallback((card: Card<NoteType>) => {
@@ -376,6 +421,8 @@ export function useLearning(
         model: card.model,
         history: card.history,
       });
+      // Familiar or known as it was, or neither.
+      await setCardLevel(card.id, card.known);
       await invalidateDeckStatsCacheForCard(card.id);
     }
     if (entry.requeued) {
@@ -404,7 +451,7 @@ export function useLearning(
 
     answerCard: answer,
     markKnown,
-    knownDays: scheduler.p.maximum_interval,
+    familiarRange,
     requestNextCard: setRequestedNextCard.bind(null, true),
 
     canUndo: undoStack.length > 0 && !isFinished,

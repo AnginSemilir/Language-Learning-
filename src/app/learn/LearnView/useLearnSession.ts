@@ -1,5 +1,7 @@
+import { notify } from "@/components/Notification";
 import { genericFail } from "@/components/Notification/Notification";
 import { CardSorts } from "@/logic/card/CardSorting";
+import type { KnownLevel } from "@/logic/card/card";
 import { getCardsOf } from "@/logic/card/getCardsOf";
 import { CognitivePrompt } from "@/logic/cognitivePrompts";
 import { Deck } from "@/logic/deck/deck";
@@ -51,8 +53,16 @@ export function useLearnSession({
   const answerCard = useCallback(
     async (rating: Rating) => {
       try {
-        controller.answerCard(rating);
+        const outcome = controller.answerCard(rating);
         controller.requestNextCard();
+        if (outcome === "known") {
+          notify(
+            "Known",
+            "You got this familiar card right, so it's known now: it won't come back.",
+            "success",
+            2500
+          );
+        }
         setCurrentRating(rating);
         setTimeout(() => setCurrentRating(null), 150);
 
@@ -65,18 +75,24 @@ export function useLearnSession({
     [controller, cardShowsMastery]
   );
 
-  const markKnown = useCallback(() => {
-    try {
-      controller.markKnown();
-      controller.requestNextCard();
-      setCurrentRating(Rating.Easy);
-      setTimeout(() => setCurrentRating(null), 150);
-      setSelectedPrompt(null);
-    } catch (error) {
-      genericFail();
-      console.log(error);
-    }
-  }, [controller]);
+  /** Returns for how many days the card went away, or null if it failed. */
+  const markKnown = useCallback(
+    (level: KnownLevel): number | null => {
+      try {
+        const days = controller.markKnown(level);
+        controller.requestNextCard();
+        setCurrentRating(Rating.Easy);
+        setTimeout(() => setCurrentRating(null), 150);
+        setSelectedPrompt(null);
+        return days;
+      } catch (error) {
+        genericFail();
+        console.log(error);
+        return null;
+      }
+    },
+    [controller]
+  );
 
   const togglePrompt = useCallback(
     (prompt: CognitivePrompt) => {

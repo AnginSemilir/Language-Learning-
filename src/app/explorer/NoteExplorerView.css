@@ -54,3 +54,18 @@
     display: none;
   }
 }
+
+/* The selected notes, and what can be done to them all. */
+.note-explorer-view__selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-bottom: 1px solid var(--theme-neutral-200);
+}
+
+.note-explorer-view__selection-hint {
+  flex: 1;
+  color: var(--theme-neutral-500);
+}

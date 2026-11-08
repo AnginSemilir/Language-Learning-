@@ -28,7 +28,15 @@ export interface CardSkeleton {
   deck: string;
   creationDate: Date;
   customOrder?: number;
+  /**
+   * Familiar: marked as probably known, it comes back once in one to six
+   * months, and an answer other than Again makes it known. Known: it
+   * doesn't come back.
+   */
+  known?: KnownLevel;
 }
+
+export type KnownLevel = "familiar" | "known";
 
 export interface Card<T extends NoteType> extends CardSkeleton {
   content: Content<T>;
