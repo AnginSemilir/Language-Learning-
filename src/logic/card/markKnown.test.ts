@@ -9,7 +9,7 @@ vi.mock("../deck/deckStatsCacheManager", () => ({
 import type { NoteType } from "../note/note";
 import type { Card } from "./card";
 import { KNOWN_DAYS, familiarRange } from "./known";
-import { knownUpdates } from "./markKnown";
+import { knownUpdates, neverReviewed } from "./markKnown";
 
 const now = new Date("2026-11-08T09:00:00Z");
 const DAY = 86400000;
@@ -106,6 +106,17 @@ describe("knownUpdates", () => {
     const later = new Date(update.model.due);
     const good = scheduler.repeat(update.model as Model, later)[Rating.Good];
     expect(good.card.scheduled_days).toBeGreaterThan(30);
+  });
+});
+
+describe("neverReviewed", () => {
+  it("is a card made and not studied yet", () => {
+    expect(neverReviewed([card("a"), card("b")])).toBe(true);
+    expect(neverReviewed([card("a"), reviewing("b", 3)])).toBe(false);
+    expect(neverReviewed([])).toBe(false);
+    const learning = new Model();
+    Object.assign(learning, { state: State.Learning, reps: 1 });
+    expect(neverReviewed([card("a", learning)])).toBe(false);
   });
 });
 

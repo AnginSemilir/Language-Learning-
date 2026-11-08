@@ -12,13 +12,39 @@
 import type { Cue } from "./subtitles";
 import { formatTime, parseTime } from "./subtitles";
 
-/** Always Google's latest Flash model. */
-export const GEMINI_MODEL = "gemini-flash-latest";
-/** Tried when the Flash model is overloaded or out of free quota. */
-export const GEMINI_FALLBACK_MODEL = "gemini-flash-lite-latest";
+/**
+ * The models used: Google's newest Flash (best, but slow and only about 20
+ * requests a day free), Gemini 3.5 Flash (a few times quicker, its own
+ * limit) and Flash-Lite, the last resort.
+ */
+export const GEMINI_MODELS = {
+  best: "gemini-flash-latest",
+  fast: "gemini-3.5-flash",
+  lite: "gemini-flash-lite-latest",
+};
 export const GEMINI_NAME = "Gemini";
 
+/** Which model to use first; the others are used when it can't. */
+export type GeminiModelChoice = "best" | "fast";
+
 const KEY_STORAGE = "kartu.geminiKey";
+const MODEL_STORAGE = "kartu.geminiModel";
+
+export function getModelChoice(): GeminiModelChoice {
+  try {
+    return localStorage.getItem(MODEL_STORAGE) === "fast" ? "fast" : "best";
+  } catch {
+    return "best";
+  }
+}
+
+export function setModelChoice(choice: GeminiModelChoice) {
+  try {
+    localStorage.setItem(MODEL_STORAGE, choice);
+  } catch {
+    // A convenience only.
+  }
+}
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export function getGeminiKey(): string {
@@ -276,12 +302,23 @@ export function worthRetrying(status: number) {
   return status === 0 || status === 429 || status >= 500;
 }
 
-/** What's tried, in order, while Gemini is overloaded, over a limit or cut off. */
-export const ATTEMPTS = [
-  { model: GEMINI_MODEL, light: false, wait: 0 },
-  { model: GEMINI_MODEL, light: true, wait: 3000 },
-  { model: GEMINI_FALLBACK_MODEL, light: true, wait: 5000 },
-];
+/**
+ * What's tried, in order, while Gemini is overloaded, over a limit or cut
+ * off: the chosen model, the same lighter, the other Flash, then Flash-Lite.
+ */
+export function attemptsFor(choice: GeminiModelChoice) {
+  const { best, fast, lite } = GEMINI_MODELS;
+  const [first, second] = choice === "fast" ? [fast, best] : [best, fast];
+  return [
+    { model: first, light: false, wait: 0 },
+    { model: first, light: true, wait: 3000 },
+    { model: second, light: true, wait: 3000 },
+    { model: lite, light: true, wait: 5000 },
+  ];
+}
+
+/** A model's free requests for the day are used up. */
+const DAILY_LIMIT = /per ?day/i;
 
 /** The most times a long video is carried on from where the answer stopped. */
 const MAX_PARTS = 8;
@@ -379,6 +416,8 @@ interface Options {
   onRetry?: (attempt: number, of: number) => void;
   /** As the subtitles come in. */
   onProgress?: (progress: Progress) => void;
+  /** The model to try first (Settings → Dictionary). */
+  model?: GeminiModelChoice;
   sleep?: (ms: number) => Promise<unknown>;
 }
 
@@ -395,6 +434,7 @@ export async function transcribeVideo(
     fetchApi = fetch,
     onRetry,
     onProgress,
+    model = getModelChoice(),
     sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)),
   }: Options = {}
 ): Promise<Transcription> {
@@ -411,6 +451,14 @@ export async function transcribeVideo(
   let light = true;
   let quick = true;
   let clips = true;
+  const attempts = attemptsFor(model);
+  // Models that can't be used today (daily limit) or at all (retired).
+  const skipped = new Set<string>();
+  const nextUsable = (from: number) => {
+    let i = from;
+    while (i < attempts.length && skipped.has(attempts[i].model)) i++;
+    return i;
+  };
 
   /** One request; a broken connection is status 0. */
   const ask = async (
@@ -450,8 +498,8 @@ export async function transcribeVideo(
   /** The subtitles from `from` on, as far as one answer gets. */
   const part = async (from: number, onText: (text: string) => void) => {
     let status = 0;
-    for (let i = 0; i < ATTEMPTS.length; ) {
-      const attempt = ATTEMPTS[i];
+    for (let i = nextUsable(0); i < attempts.length; ) {
+      const attempt = attempts[i];
       const options = { light: light && attempt.light, from, quick };
       const result = await ask(
         attempt.model,
@@ -501,12 +549,22 @@ export async function transcribeVideo(
             continue;
           }
         }
+        // Out for today, or retired: straight on to the next model.
+        if (
+          status === 404 ||
+          (status === 429 && DAILY_LIMIT.test(result.message))
+        ) {
+          skipped.add(attempt.model);
+          i = nextUsable(i + 1);
+          if (i < attempts.length) onRetry?.(i + 1, attempts.length);
+          continue;
+        }
         if (!worthRetrying(status)) throw errorFor(status, failures);
       }
-      i++;
-      if (i < ATTEMPTS.length) {
-        onRetry?.(i + 1, ATTEMPTS.length);
-        await sleep(ATTEMPTS[i].wait);
+      i = nextUsable(i + 1);
+      if (i < attempts.length) {
+        onRetry?.(i + 1, attempts.length);
+        await sleep(attempts[i].wait);
       }
     }
     throw errorFor(status, failures);

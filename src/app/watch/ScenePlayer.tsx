@@ -28,6 +28,7 @@ const LEAD = 0.25;
 const TAIL = 0.35;
 const SPEEDS = [1, 0.75, 0.5];
 const AUTO_PAUSE_KEY = "kartu.video.autoPause";
+const CAPTIONS_KEY = "kartu.video.captions";
 
 export interface PlayerControls {
   pause(): void;
@@ -41,6 +42,41 @@ function getAutoPause() {
     return localStorage.getItem(AUTO_PAUSE_KEY) !== "off";
   } catch {
     return true;
+  }
+}
+
+/** YouTube's own subtitles on the video: off unless chosen (the words are below). */
+function getCaptions() {
+  try {
+    return localStorage.getItem(CAPTIONS_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+function saveCaptions(on: boolean) {
+  try {
+    localStorage.setItem(CAPTIONS_KEY, on ? "on" : "off");
+  } catch {
+    // A convenience only.
+  }
+}
+
+/**
+ * Shows YouTube's subtitles in Indonesian, or hides them (YouTube may show
+ * them by itself, in English, from the viewer's own YouTube settings).
+ */
+function applyCaptions(player: YouTubePlayer, on: boolean) {
+  try {
+    if (on) {
+      player.loadModule?.("captions");
+      player.setOption?.("captions", "track", { languageCode: "id" });
+    } else {
+      player.setOption?.("captions", "track", {});
+      player.unloadModule?.("captions");
+    }
+  } catch {
+    // An older player without these: its own CC button still works.
   }
 }
 
@@ -89,10 +125,11 @@ export default function ScenePlayer({
   const [error, setError] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [autoPause, setAutoPause] = useState(getAutoPause);
+  const [captions, setCaptions] = useState(getCaptions);
 
   // What the ticking timer reads.
-  const live = useRef({ scenes, index, autoPause, onSceneChange });
-  live.current = { scenes, index, autoPause, onSceneChange };
+  const live = useRef({ scenes, index, autoPause, onSceneChange, captions });
+  live.current = { scenes, index, autoPause, onSceneChange, captions };
   /** Where to stop: the end of the scene being played. */
   const stopAt = useRef<number | null>(null);
   const lastTime = useRef(0);
@@ -120,6 +157,9 @@ export default function ScenePlayer({
             ),
             playsinline: 1,
             rel: 0,
+            // Subtitles, if shown, in Indonesian.
+            cc_lang_pref: "id",
+            cc_load_policy: live.current.captions ? 1 : 0,
             iv_load_policy: 3,
             enablejsapi: 1,
             origin: window.location.origin,
@@ -133,6 +173,8 @@ export default function ScenePlayer({
             onStateChange: ({ data, target }) => {
               setPlaying(data === PlayerState.PLAYING);
               if (data !== PlayerState.PLAYING) return;
+              // The subtitles load as the video starts: set them as chosen.
+              applyCaptions(target, live.current.captions);
               // Played from YouTube's own controls: stop at this scene's end.
               const { scenes, index, autoPause } = live.current;
               const current = scenes[index];
@@ -207,10 +249,17 @@ export default function ScenePlayer({
     if (scene) playFrom(scene.start - LEAD);
   };
 
+  /**
+   * Back a few seconds. Going back into the scene before shows its words,
+   * which then follow the video back to this scene, where it stops.
+   */
   const back = (seconds: number) => {
     const p = player.current;
-    if (!p) return;
-    playFrom(p.getCurrentTime() - seconds);
+    if (!p || !scene) return;
+    const time = Math.max(0, p.getCurrentTime() - seconds);
+    playFrom(time, scene.end);
+    const at = sceneAt(scenes, time);
+    if (at < index) onSceneChange(at);
   };
 
   const toggle = () => {
@@ -310,6 +359,27 @@ export default function ScenePlayer({
           leftSection={<IconRepeat size={16} />}
         >
           Repeat
+        </Button>
+        <Button
+          variant={captions ? "default" : "ghost"}
+          size="sm"
+          onClick={() => {
+            const on = !captions;
+            setCaptions(on);
+            saveCaptions(on);
+            if (player.current) applyCaptions(player.current, on);
+          }}
+          disabled={!ready}
+          aria-pressed={captions}
+          aria-label="Subtitles on the video"
+          title={
+            captions
+              ? "Hide the video's subtitles"
+              : "Show the video's subtitles"
+          }
+          className="scene-player__cc"
+        >
+          CC
         </Button>
         <Button
           variant="ghost"

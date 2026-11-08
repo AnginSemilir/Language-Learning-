@@ -2,24 +2,25 @@
 // ones you know. Tap a word to mark it known, or tap a known word to unmark it
 // (words known through flashcards stay known while the card is mature).
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
-import { Button, SegmentedControl, Text } from "@/components/ui";
+import { Button, SegmentedControl, Text, TextInput } from "@/components/ui";
 import { deleteVocab, markHeadwordsKnown } from "@/lector/data-layer";
 import {
   type LookupOptions,
   loadGrammar,
   meaningsOf,
 } from "@/lector/dictionary";
-import type { GrammarData } from "@/lector/lemma";
+import { type GrammarData, fold } from "@/lector/lemma";
 import type { DisplayState } from "@/lector/reader/useLexicon";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
 import { useDictionaryChoice } from "@/logic/settings/dictionaryOptions";
 import {
+  IconSearch,
   IconSortAscendingNumbers,
   IconSortDescendingNumbers,
 } from "@tabler/icons-react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppHeaderContent } from "../shell/Header/Header";
 import { formatPercent } from "./KnownCoverage";
@@ -82,6 +83,9 @@ export default function FrequencyListView() {
   const [filter, setFilter] = useState<Filter>("all");
   const [rarestFirst, setRarestFirst] = useState(false);
   const [shown, setShown] = useState(PAGE);
+  const [search, setSearch] = useState("");
+  // Typing stays quick: the list catches up a moment later.
+  const query = useDeferredValue(search.trim());
   const [data, setData] = useState<GrammarData | null>(null);
   const explicitKnown = useLiveQuery(
     async () =>
@@ -102,6 +106,17 @@ export default function FrequencyListView() {
   const { stateOf } = lexicon;
   const rows = useMemo(() => {
     const top = (ranked ?? []).slice(0, band);
+    // A search finds the Indonesian (any of its forms), or the English.
+    const word = fold(query);
+    const english = query.toLowerCase();
+    const matches = (r: (typeof top)[number]) =>
+      !query ||
+      r.headword.includes(word) ||
+      r.forms.some((f) => f.includes(word)) ||
+      (english.length >= 2 &&
+        gloss(data, r.headword, dictionary.lookup)
+          .toLowerCase()
+          .includes(english));
     const filtered = top
       .map((r) => ({ ...r, state: stateOf(r.headword) }))
       .filter((r) =>
@@ -110,9 +125,19 @@ export default function FrequencyListView() {
           : filter === "known"
             ? isKnownish(r.state)
             : !isKnownish(r.state)
-      );
+      )
+      .filter(matches);
     return rarestFirst ? filtered.reverse() : filtered;
-  }, [ranked, band, stateOf, filter, rarestFirst]);
+  }, [
+    ranked,
+    band,
+    stateOf,
+    filter,
+    rarestFirst,
+    query,
+    data,
+    dictionary.lookup,
+  ]);
 
   const bandCoverage = coverage?.find((c) => c.band === band);
   const known = bandCoverage && bandCoverage.known + bandCoverage.familiar;
@@ -152,6 +177,19 @@ export default function FrequencyListView() {
             it known, or tap a known word to unmark it.
           </Text>
         </div>
+        <TextInput
+          type="search"
+          aria-label="Search the words"
+          placeholder="Search in Indonesian or English"
+          leftSection={<IconSearch size={16} />}
+          value={search}
+          onChange={(e) => {
+            setSearch(e.currentTarget.value);
+            setShown(PAGE);
+          }}
+          autoComplete="off"
+          spellCheck={false}
+        />
         <div className="frequency-list__controls">
           <SegmentedControl
             value={filter}
@@ -186,6 +224,9 @@ export default function FrequencyListView() {
         </div>
         {error && <Text>The word list could not be loaded.</Text>}
         {!ranked && !error && <Text>Loading…</Text>}
+        {ranked && query && rows.length === 0 && (
+          <Text size="sm">{`No word in the top ${band.toLocaleString()} matches “${query}”.`}</Text>
+        )}
         <ul className="frequency-list">
           {rows.slice(0, shown).map((r) => {
             const viaCardOnly =

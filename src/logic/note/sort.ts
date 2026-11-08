@@ -3,6 +3,7 @@ import { Card } from "@/logic/card/card";
 import { getDeck } from "@/logic/deck/getDeck";
 import { NoteType } from "@/logic/note/note";
 import { Note } from "@/logic/note/note";
+import type { NoteLevel } from "./learned";
 
 export type NoteSortFunction = (sortOrder: 1 | -1) => (...args: any) => number;
 
@@ -28,6 +29,10 @@ export const NoteSorts: Record<any, NoteSortFunction> = {
     },
   byType: (sortOrder: 1 | -1) => (a: Card<NoteType>, b: Card<NoteType>) =>
     a.content.type.localeCompare(b.content.type) * sortOrder,
+  byLearned:
+    (sortOrder: 1 | -1) =>
+    (a: NoteWithComparableDeckName, b: NoteWithComparableDeckName) =>
+      ((a.learned?.rank ?? -1) - (b.learned?.rank ?? -1)) * sortOrder,
   byDeckName:
     (sortOrder: 1 | -1) =>
     (a: NoteWithComparableDeckName, b: NoteWithComparableDeckName) => {
@@ -39,6 +44,8 @@ export const NoteSorts: Record<any, NoteSortFunction> = {
 
 export interface NoteWithComparableDeckName extends Note<NoteType> {
   deckName: string;
+  /** How far its cards are learned (Manage Cards' Learned column). */
+  learned?: NoteLevel;
 }
 
 export async function getNotesWithComparableDeckName(

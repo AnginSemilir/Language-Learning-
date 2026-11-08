@@ -1,5 +1,6 @@
 import { Menu, MenuItem } from "@/components/ui/Menu";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { noteLevels } from "@/logic/note/learned";
 import { Note, NoteType } from "@/logic/note/note";
 import {
   NoteSortFunction,
@@ -8,6 +9,7 @@ import {
   getNotesWithComparableDeckName,
 } from "@/logic/note/sort";
 import { IconDots } from "@tabler/icons-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import NoteTableHeadItem from "./NoteTableHeadItem";
@@ -68,6 +70,12 @@ function NoteTable({
       visible: true,
     },
     {
+      key: "learned",
+      name: "Learned",
+      sortFunction: NoteSorts.byLearned,
+      visible: true,
+    },
+    {
       key: "creationDate",
       name: "Creation Date",
       sortFunction: NoteSorts.byCreationDate,
@@ -87,12 +95,22 @@ function NoteTable({
     },
   ]);
 
+  // Live: marking cards known or reviewing them updates the column.
+  const levels = useLiveQuery(
+    () => noteLevels(noteSet.map((n) => n.id)),
+    [noteSet]
+  );
+
   useEffect(() => {
     getNotesWithComparableDeckName(noteSet).then((notes) => {
-      const sorted = notes.sort(sort[0](sort[1] ? 1 : -1));
+      const withLevels = notes.map((n) => ({
+        ...n,
+        learned: levels?.get(n.id),
+      }));
+      const sorted = withLevels.sort(sort[0](sort[1] ? 1 : -1));
       setNotesWithDeckNames(sorted);
     });
-  }, [noteSet, sort]);
+  }, [noteSet, sort, levels]);
 
   const noteTypeLabels: Record<NoteType, string> = {
     [NoteType.Basic]: t("note.type.normal"),

@@ -12,6 +12,10 @@ export interface YouTubePlayer {
   getPlayerState(): number;
   setPlaybackRate(rate: number): void;
   destroy(): void;
+  /** The player's subtitles: loaded (shown) or unloaded (hidden). */
+  loadModule?(name: "captions"): void;
+  unloadModule?(name: "captions"): void;
+  setOption?(module: "captions", option: string, value: unknown): void;
 }
 
 export const PlayerState = {
