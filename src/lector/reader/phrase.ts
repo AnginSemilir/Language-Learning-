@@ -62,6 +62,28 @@ export function phraseInSet(
   return undefined;
 }
 
+const MIN_STEM = pack.morphology?.minStem ?? 3;
+
+/**
+ * The phrase without the ending on its last word (pelat besinya → pelat
+ * besi), when `isForm` agrees the word is that stem with a clitic; else
+ * undefined. A phrase's card is for the bare words.
+ */
+export function withoutClitic(
+  text: string,
+  isForm: (word: string, stem: string) => boolean
+): string | undefined {
+  const words = text.split(" ");
+  const last = words[words.length - 1] ?? "";
+  for (const clitic of CLITICS) {
+    if (!last.toLowerCase().endsWith(clitic)) continue;
+    const stem = last.slice(0, -clitic.length);
+    if (stem.length < MIN_STEM || !isForm(last, stem)) continue;
+    return [...words.slice(0, -1), stem].join(" ");
+  }
+  return undefined;
+}
+
 /** What a phrase doesn't reach across: a sentence end, a line break, a dash, brackets or quotes. */
 const BREAK = /[.!?;:…\n()[\]{}"“”«»–—-]/;
 

@@ -10,6 +10,7 @@ import {
   phraseRuns,
   phraseText,
   selectedPhrase,
+  withoutClitic,
 } from "./phrase";
 import { splitWords } from "./utils";
 
@@ -146,5 +147,28 @@ describe("phraseInSet", () => {
     expect(phraseInSet(keys, "bulan madulah")).toBe("bulan madu");
     expect(phraseInSet(keys, "bulan")).toBeUndefined();
     expect(phraseInSet(new Set(["orang"]), "orang ku")).toBeUndefined();
+  });
+});
+
+describe("withoutClitic", () => {
+  const forms: Record<string, string> = {
+    besinya: "besi",
+    madunya: "madu",
+    bukuku: "buku",
+  };
+  const isForm = (word: string, stem: string) =>
+    forms[word.toLowerCase()] === stem.toLowerCase();
+
+  it("drops the ending of the last word when it's a form of the stem", () => {
+    expect(withoutClitic("pelat besinya", isForm)).toBe("pelat besi");
+    expect(withoutClitic("bulan madunya", isForm)).toBe("bulan madu");
+    expect(withoutClitic("Buku bukuku", isForm)).toBe("Buku buku");
+  });
+
+  it("leaves words that only end like a clitic", () => {
+    // "tanya" isn't "ta" + nya; "dahulu" doesn't end in a clitic.
+    expect(withoutClitic("bertanya", isForm)).toBeUndefined();
+    expect(withoutClitic("dahulu kala", isForm)).toBeUndefined();
+    expect(withoutClitic("pelat besi", isForm)).toBeUndefined();
   });
 });
