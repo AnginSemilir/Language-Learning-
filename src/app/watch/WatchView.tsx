@@ -12,6 +12,7 @@ import {
   dismissVideoJob,
   useVideoJobs,
 } from "@/lector/video/queue";
+import { formatTime } from "@/lector/video/subtitles";
 import type { VideoInfo } from "@/lector/video/youtube";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { db } from "@/logic/db";
@@ -70,7 +71,11 @@ function elapsed(job: VideoJob, now: number) {
   if (job.attempt) {
     return `Gemini was busy, trying again (${job.attempt.number} of ${job.attempt.of})… ${seconds}s`;
   }
-  return `Gemini is writing the subtitles… ${seconds}s`;
+  if (job.progress) {
+    const { sentences, upTo } = job.progress;
+    return `Written up to ${formatTime(upTo)}: ${sentences} sentence${sentences === 1 ? "" : "s"}… ${seconds}s`;
+  }
+  return `Gemini is watching the video… ${seconds}s`;
 }
 
 function JobRow({ job, now }: { job: VideoJob; now: number }) {
@@ -190,6 +195,12 @@ export default function WatchView() {
         {shownJobs.length > 0 && (
           <section>
             <h2 className="watch-view__heading">Adding</h2>
+            {working && (
+              <Text size="sm" className="watch-view__note">
+                Keep the app open until it's done: Gemini takes a minute or two
+                for every 10 minutes of video. The screen stays on meanwhile.
+              </Text>
+            )}
             <div className="watch-view__list">
               {shownJobs.map((job) => (
                 <JobRow key={job.video.id} job={job} now={now} />

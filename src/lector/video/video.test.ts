@@ -315,7 +315,7 @@ describe("Gemini", () => {
       string,
       RequestInit,
     ];
-    expect(url).toContain(":generateContent");
+    expect(url).toContain(":streamGenerateContent?alt=sse");
     expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe(
       "AIza-test"
     );
@@ -362,19 +362,71 @@ describe("Gemini", () => {
     ],
   };
 
-  /** A fake API answering each call in turn, keeping what was asked. */
-  function answers(...replies: [number, unknown][]) {
+  /**
+   * A fake API answering each call in turn, keeping what was asked: a status
+   * and JSON body, a ready-made (streamed) response, or a broken connection.
+   */
+  function answers(...replies: ([number, unknown] | Response | "broken")[]) {
     const calls: {
       url: string;
       body: ReturnType<typeof transcriptionRequest>;
     }[] = [];
     const fetchApi = (async (url: string, init: RequestInit) => {
       calls.push({ url, body: JSON.parse(String(init.body)) });
-      const [status, body] = replies[calls.length - 1];
+      const reply = replies[calls.length - 1];
+      if (reply === "broken") throw new TypeError("Failed to fetch");
+      if (reply instanceof Response) return reply;
+      const [status, body] = reply;
       return Response.json(body, { status });
     }) as unknown as typeof fetch;
     return { calls, fetchApi };
   }
+
+  /** A streamed answer: the text in server-sent events, cut where told. */
+  function streamed(
+    pieces: string[],
+    {
+      finish = "STOP",
+      breaks = false,
+    }: { finish?: string; breaks?: boolean } = {}
+  ) {
+    const encoder = new TextEncoder();
+    const events = pieces.map(
+      (text, i) =>
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text }] },
+              ...(i === pieces.length - 1 && !breaks
+                ? { finishReason: finish }
+                : {}),
+            },
+          ],
+        })}\r\n\r\n`
+    );
+    // Split mid-event too, as a network does.
+    const all = events.join("");
+    const chunks = [all.slice(0, 37), all.slice(37, 120), all.slice(120)];
+    // Each piece is read before the connection breaks.
+    let next = 0;
+    return new Response(
+      new ReadableStream({
+        pull(controller) {
+          if (next < chunks.length) {
+            controller.enqueue(encoder.encode(chunks[next++]));
+          } else if (breaks) {
+            controller.error(new TypeError("network error"));
+          } else {
+            controller.close();
+          }
+        },
+      }),
+      { headers: { "Content-Type": "text/event-stream" } }
+    );
+  }
+
+  const sentence = (start: string, end: string, text: string) =>
+    JSON.stringify({ start, end, text, english: text });
 
   it("asks for fewer frames in a lighter request", () => {
     expect(
@@ -403,7 +455,7 @@ describe("Gemini", () => {
     expect(calls[1].body.contents[0].parts[0]).toHaveProperty("videoMetadata");
   });
 
-  it("falls back to Flash-Lite, then says what Google said each time", async () => {
+  it("falls back to Flash-Lite, then says what happened each time", async () => {
     setGeminiKey("AIza-test");
     const { calls, fetchApi } = answers(
       [429, { error: { message: "Quota exceeded, limit: 0" } }],
@@ -421,7 +473,7 @@ describe("Gemini", () => {
     ]);
     expect(error).toMatchObject({ problem: "busy" });
     expect(error.message).toContain(
-      "Google said 429: Quota exceeded, limit: 0; then 503: The model is overloaded.; then 500: Internal error encountered."
+      "(Details: 429: Quota exceeded, limit: 0; then 503: The model is overloaded.; then 500: Internal error encountered.)"
     );
   });
 
@@ -449,7 +501,143 @@ describe("Gemini", () => {
       fetchApi,
       sleep: async () => {},
     }).catch((e) => e);
-    expect(error.message).toContain("(Google said 503: Overloaded. (3 times))");
+    expect(error.message).toContain("(Details: 503: Overloaded. (3 times))");
+  });
+
+  it("reads an answer as it streams in, with its progress", async () => {
+    setGeminiKey("AIza-test");
+    const { fetchApi } = answers(
+      streamed([
+        `{"language":"id","sentences":[${sentence("0:01", "0:03", "Satu.")},`,
+        `${sentence("0:04", "0:06", "Dua.")},${sentence("0:07", "0:09", "Tiga.")}]}`,
+      ])
+    );
+    const progress: string[] = [];
+    const result = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      onProgress: (p) => progress.push(`${p.upTo}/${p.sentences}`),
+    });
+    expect(result.cues.map((c) => c.text)).toEqual(["Satu.", "Dua.", "Tiga."]);
+    expect(result.cutOff).toBe(false);
+    expect(progress.length).toBeGreaterThan(1);
+    expect(progress[progress.length - 1]).toBe("9/3");
+  });
+
+  it("carries on from where a broken connection stopped", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      streamed(
+        [
+          `{"language":"id","sentences":[${sentence("0:01", "0:20", "Satu.")},`,
+          `${sentence("0:21", "0:40", "Dua.")},{"start":"0:41","en`,
+        ],
+        { breaks: true }
+      ),
+      // The rest, with times from the start of the part.
+      streamed([
+        `{"language":"id","sentences":[${sentence("0:00", "0:02", "Dua.")},${sentence("0:03", "0:10", "Tiga.")}]}`,
+      ])
+    );
+    const result = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async () => {},
+    });
+    expect(calls[1].body.contents[0].parts[0]).toMatchObject({
+      videoMetadata: { startOffset: "40s" },
+    });
+    expect(result.cues.map((c) => [c.start, c.text])).toEqual([
+      [1, "Satu."],
+      [21, "Dua."],
+      [43, "Tiga."],
+    ]);
+    expect(result.cutOff).toBe(false);
+  });
+
+  it("carries on after a long answer is cut off, times kept as given", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      streamed(
+        [
+          `{"language":"id","sentences":[${sentence("1:00", "1:30", "Satu.")},{"start":"1:3`,
+        ],
+        { finish: "MAX_TOKENS" }
+      ),
+      streamed([
+        `{"language":"id","sentences":[${sentence("1:31", "1:40", "Dua.")}]}`,
+      ])
+    );
+    const result = await transcribeVideo("dQw4w9WgXcQ", { fetchApi });
+    expect(calls[1].body.contents[0].parts[0]).toMatchObject({
+      videoMetadata: { startOffset: "90s" },
+    });
+    expect(result.cues.map((c) => [c.start, c.text])).toEqual([
+      [60, "Satu."],
+      [91, "Dua."],
+    ]);
+  });
+
+  it("keeps what's written when the rest can't be had", async () => {
+    setGeminiKey("AIza-test");
+    const busy: [number, unknown] = [
+      503,
+      { error: { message: "Overloaded." } },
+    ];
+    const { fetchApi } = answers(
+      streamed(
+        [`{"language":"id","sentences":[${sentence("0:01", "0:30", "Satu.")},`],
+        { breaks: true }
+      ),
+      busy,
+      busy,
+      busy
+    );
+    const result = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async () => {},
+    });
+    expect(result.cues.map((c) => c.text)).toEqual(["Satu."]);
+    expect(result.cutOff).toBe(true);
+  });
+
+  it("tries again when the connection fails, and says so if it keeps failing", async () => {
+    setGeminiKey("AIza-test");
+    const ok = answers("broken", [200, ANSWER]);
+    const result = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi: ok.fetchApi,
+      sleep: async () => {},
+    });
+    expect(result.cues).toHaveLength(1);
+    const bad = answers("broken", "broken", "broken");
+    await expect(
+      transcribeVideo("dQw4w9WgXcQ", {
+        fetchApi: bad.fetchApi,
+        sleep: async () => {},
+      })
+    ).rejects.toMatchObject({ problem: "offline" });
+  });
+
+  it("asks for little thinking, and drops it if the model won't take it", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      [
+        400,
+        {
+          error: { message: "Thinking level is not supported for this model." },
+        },
+      ],
+      [200, ANSWER]
+    );
+    const retries: number[] = [];
+    await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async () => {},
+      onRetry: (n) => retries.push(n),
+    });
+    expect(calls[0].body.generationConfig).toMatchObject({
+      thinkingConfig: { thinkingLevel: "low" },
+    });
+    expect(calls[1].body.generationConfig).not.toHaveProperty("thinkingConfig");
+    expect(retries).toEqual([]);
   });
 
   it("doesn't try again when the video is the problem", async () => {

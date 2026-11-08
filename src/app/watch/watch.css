@@ -208,3 +208,8 @@
   margin: var(--spacing-xs) 0 0;
   padding-left: 1.25em;
 }
+
+.watch-view__note {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--theme-neutral-600);
+}
