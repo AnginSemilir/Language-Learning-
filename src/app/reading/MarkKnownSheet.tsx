@@ -11,6 +11,8 @@ export interface PageWord {
 interface MarkKnownSheetProps {
   words: PageWord[] | null;
   isLastPage: boolean;
+  /** What a page is called: a video's pages are its scenes. */
+  unit?: "page" | "scene";
   onConfirm: (words: PageWord[], always: boolean) => void;
   onSkip: () => void;
   onCancel: () => void;
@@ -19,6 +21,7 @@ interface MarkKnownSheetProps {
 export default function MarkKnownSheet({
   words,
   isLastPage,
+  unit = "page",
   onConfirm,
   onSkip,
   onCancel,
@@ -47,9 +50,7 @@ export default function MarkKnownSheet({
       {words && (
         <Stack gap="md">
           <Text size="sm">
-            These words on this page are new to you and you didn't look them up.
-            Tap any you don't actually know to leave them out. Names and numbers
-            are not included.
+            {`These words in this ${unit} are new to you and you didn't look them up. Tap any you don't actually know to leave them out. Names and numbers are not included.`}
           </Text>
           <div className="mark-known__words">
             {words.map((w) => {
@@ -81,7 +82,9 @@ export default function MarkKnownSheet({
           />
           <Group gap="sm" justify="space-between" wrap="wrap">
             <Button variant="ghost" onClick={onSkip}>
-              {isLastPage ? "Finish without marking" : "Next page, don't mark"}
+              {isLastPage
+                ? "Finish without marking"
+                : `Next ${unit}, don't mark`}
             </Button>
             <Button
               variant="primary"

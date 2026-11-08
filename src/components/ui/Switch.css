@@ -103,3 +103,7 @@
 .switch--disabled .switch__control-wrapper:hover .switch__track {
   background-color: var(--theme-neutral-200);
 }
+
+.switch__label {
+  cursor: pointer;
+}

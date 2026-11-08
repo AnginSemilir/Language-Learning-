@@ -14,6 +14,7 @@ import LibraryView from "@/app/reading/LibraryView";
 import ReaderView from "@/app/reading/ReaderView";
 import SettingsView from "@/app/settings/SettingsView";
 import StatsView from "@/app/statistics/StatsView";
+import WatchView from "@/app/watch/WatchView";
 import WorldView from "@/app/world/WorldView";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -95,6 +96,14 @@ const router = createHashRouter(
         },
         {
           path: "/read/:lessonId",
+          element: <ReaderView />,
+        },
+        {
+          path: "/watch",
+          element: <WatchView />,
+        },
+        {
+          path: "/watch/:lessonId",
           element: <ReaderView />,
         },
         {

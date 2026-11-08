@@ -65,6 +65,32 @@ talked to its server were rewritten to use the browser database
   you didn't look up or rate as known (you can leave words out, or have it
   happen without asking). Names and numbers are skipped. Known words are
   listed under Read → Known words.
+- **Watch.** Indonesian YouTube videos as lessons, a scene at a time, as in
+  LingQ. Paste a video's link; its subtitles are cut into scenes of a couple
+  of sentences, ending where a sentence ends (subtitles without punctuation
+  are cut at pauses, about every 10 seconds). Each scene plays in YouTube's
+  own player ([IFrame Player API](https://developers.google.com/youtube/iframe_api_reference))
+  and stops at its end, with its words underneath as in Read: tap a word for
+  its meaning or to make a flashcard, swipe to the next scene and mark the
+  words you didn't look up as known. Back 2 s, back 5 s, repeat the scene,
+  play/pause and speed (1×, 0.75×, 0.5×) sit under the video (keys: 2, 5, R,
+  space); with "Stop after each scene" off the video plays on and the words
+  follow it. After a video is added, the channel's latest videos are offered
+  to add with a tap ("More from this channel"; the channel's Videos page is
+  read through Jina Reader). The subtitles come from one of:
+  - **Gemini**, which watches a public YouTube link itself and writes down
+    what's said a sentence at a time, with its English (shown with "Show
+    English"). It uses your own Gemini API key from
+    [Google AI Studio](https://aistudio.google.com/apikey) (Settings →
+    Dictionary, kept on the device), free within Google's daily limits
+    (about 8 hours of YouTube video a day). Videos are added one after
+    another in the background.
+  - **YouTube's transcript**, copied from the video's "Show transcript" panel
+    and pasted (its own or its automatic Indonesian subtitles).
+  - **A subtitle file** (`.srt`/`.vtt`).
+
+  YouTube's captions can't be fetched by the app directly: YouTube now
+  requires a token from its bot check for them, so they're copied instead.
 - **Grammar-aware matching.** Only forms that are the same word share
   progress: *di-* passives with their base (*dibeli* → *beli*, *diberikan* →
   *berikan*, unless the dictionary shows a different meaning), clitics
@@ -115,9 +141,9 @@ talked to its server were rewritten to use the browser database
   leeches (forgotten 8 times or more) marked. Tap a hard card to edit it.
   Every chart has a table view.
 
-Not ported from Lector (they need its server): YouTube import, AI translation
-and tutor, managed text-to-speech (the browser's own Indonesian voice is used),
-Anki sync.
+Not ported from Lector (they need its server): its YouTube import (Watch
+works differently, see above), AI translation and tutor, managed
+text-to-speech (the browser's own Indonesian voice is used), Anki sync.
 
 ## Develop
 

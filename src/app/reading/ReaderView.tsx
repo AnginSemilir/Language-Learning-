@@ -7,6 +7,10 @@
 // stored per headword (membeli/dibeli → beli), moving forward offers to mark
 // the page's untouched words as known, as LingQ does, and several words next
 // to each other can be picked as one phrase to make a card ("bulan madu").
+//
+// A video lesson reads the same way, a scene at a time: the video plays above
+// the scene's words (../watch/ScenePlayer.tsx) and stops at its end; turning
+// the page plays the next scene.
 import { AppBreadcrumbs } from "@/components/AppBreadcrumbs";
 import EmptyNotice from "@/components/EmptyNotice";
 import { notify } from "@/components/Notification";
@@ -57,6 +61,7 @@ import { useLexicon } from "@/lector/reader/useLexicon";
 import { splitWords } from "@/lector/reader/utils";
 import { speak } from "@/lector/tts";
 import type { Lesson, WordState } from "@/lector/types";
+import { sceneMarkdown } from "@/lector/video/scenes";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useGlobalScheduler } from "@/logic/card/CardScheduler";
 import { useFamiliarRange } from "@/logic/card/known";
@@ -68,10 +73,12 @@ import {
   IconBook,
   IconChevronLeft,
   IconChevronRight,
+  IconLanguage,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppHeaderContent } from "../shell/Header/Header";
+import ScenePlayer, { type PlayerControls } from "../watch/ScenePlayer";
 import MarkKnownSheet, { type PageWord } from "./MarkKnownSheet";
 import WordPanel, {
   firstGloss,
@@ -82,6 +89,7 @@ import WordPanel, {
 import "./reading.css";
 
 const AUTO_MARK_KEY = "kartu-mark-known";
+const TRANSLATION_KEY = "kartu.video.english";
 const SWIPE_MIN_PX = 50;
 /** The most words a dictionary phrase offered for a tapped word has. */
 const DICTIONARY_PHRASE_WORDS = 5;
@@ -115,6 +123,22 @@ function getAutoMark() {
     return localStorage.getItem(AUTO_MARK_KEY) === "always";
   } catch {
     return false;
+  }
+}
+
+function getShowEnglish() {
+  try {
+    return localStorage.getItem(TRANSLATION_KEY) === "shown";
+  } catch {
+    return false;
+  }
+}
+
+function setShowEnglish(shown: boolean) {
+  try {
+    localStorage.setItem(TRANSLATION_KEY, shown ? "shown" : "hidden");
+  } catch {
+    // A convenience only.
   }
 }
 
@@ -162,10 +186,16 @@ export default function ReaderView() {
   const lexicon = useLexicon(lesson?.content);
   useDocumentTitle(lesson?.title ?? "Reading");
 
-  const pages = useMemo(
-    () => (lesson ? paginate(lesson.content) : [""]),
-    [lesson]
-  );
+  const video = lesson?.video;
+  const pages = useMemo(() => {
+    if (lesson?.video)
+      return lesson.video.scenes.map((s) => sceneMarkdown(s.text));
+    return lesson ? paginate(lesson.content) : [""];
+  }, [lesson]);
+  const player = useRef<PlayerControls | null>(null);
+  /** Changes when a page turn should play the scene. */
+  const [playToken, setPlayToken] = useState(0);
+  const [showEnglish, setEnglish] = useState(getShowEnglish);
   const isLastPage = page >= pages.length - 1;
 
   useEffect(() => {
@@ -192,6 +222,7 @@ export default function ReaderView() {
       place: WordPlace,
       { quiet = false } = {}
     ) => {
+      player.current?.pause();
       if (!quiet) speak(word);
       incrementDailyStat("dictionaryLookups");
       const block = blockWords(place.parts);
@@ -524,7 +555,9 @@ export default function ReaderView() {
     (index: number): PageWord[] => {
       const byHeadword = new Map<string, Set<string>>();
       // The title is on the first page too.
-      const text = `${index === 0 ? `${lesson?.title ?? ""}\n` : ""}${pages[index] ?? ""}`;
+      const title =
+        index === 0 && !lesson?.video ? `${lesson?.title ?? ""}\n` : "";
+      const text = `${title}${pages[index] ?? ""}`;
       for (const token of splitWords(text, pack)) {
         if (!token.isWord || token.text.length < 2) continue;
         if (lexicon.stateOf(token.text) !== "new") continue;
@@ -538,7 +571,7 @@ export default function ReaderView() {
         forms: [...forms],
       }));
     },
-    [pages, lexicon, lesson?.title]
+    [pages, lexicon, lesson?.title, lesson?.video]
   );
 
   const goTo = (index: number, dir: "next" | "prev") => {
@@ -546,7 +579,18 @@ export default function ReaderView() {
     setDirection(dir);
     setPage(index);
     if (lessonId) saveLessonPage(lessonId, index, pages.length);
+    if (video) setPlayToken((n) => n + 1);
     scrollToTop();
+  };
+
+  /** The video played on into another scene: its words follow, nothing is marked. */
+  const followVideo = (index: number) => {
+    if (index === page) return;
+    closePanel();
+    setPrompt(null);
+    setDirection(index > page ? "next" : "prev");
+    setPage(index);
+    if (lessonId) saveLessonPage(lessonId, index, pages.length);
   };
 
   const finishLesson = async (markedNow: number) => {
@@ -609,7 +653,8 @@ export default function ReaderView() {
     if (page > 0) goTo(page - 1, "prev");
   };
 
-  // Keyboard: ← and → turn pages when no dialog is open.
+  // Keyboard: ← and → turn pages when no dialog is open; in a video, space
+  // plays and pauses, R repeats the scene, 2 and 5 go back that many seconds.
   // biome-ignore lint/correctness/useExhaustiveDependencies: handlers read current state
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -618,6 +663,14 @@ export default function ReaderView() {
       if (target?.closest("input, textarea, select, [contenteditable]")) return;
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
+      if (!video || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === " " && !target?.closest("button, a, .word-cell")) {
+        e.preventDefault();
+        player.current?.toggle();
+      }
+      if (e.key === "r" || e.key === "R") player.current?.repeat();
+      if (e.key === "2") player.current?.back(2);
+      if (e.key === "5") player.current?.back(5);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -662,7 +715,9 @@ export default function ReaderView() {
       <AppHeaderContent>
         <AppBreadcrumbs
           segments={[
-            { label: "Read", path: "/read" },
+            video
+              ? { label: "Watch", path: "/watch" }
+              : { label: "Read", path: "/read" },
             { label: lesson?.title ?? "…" },
           ]}
         />
@@ -680,14 +735,21 @@ export default function ReaderView() {
             {finished.nextLessonId && (
               <Button
                 variant="primary"
-                onClick={() => navigate(`/read/${finished.nextLessonId}`)}
+                onClick={() =>
+                  navigate(
+                    `${video ? "/watch" : "/read"}/${finished.nextLessonId}`
+                  )
+                }
               >
-                Next lesson
+                {video ? "Next video" : "Next lesson"}
               </Button>
             )}
             <Button onClick={() => navigate("/read/known")}>Known words</Button>
-            <Button variant="ghost" onClick={() => navigate("/read")}>
-              Library
+            <Button
+              variant="ghost"
+              onClick={() => navigate(video ? "/watch" : "/read")}
+            >
+              {video ? "Videos" : "Library"}
             </Button>
             <Button
               variant="ghost"
@@ -696,7 +758,7 @@ export default function ReaderView() {
                 goTo(0, "prev");
               }}
             >
-              Read again
+              {video ? "Watch again" : "Read again"}
             </Button>
           </Group>
         </div>
@@ -711,7 +773,23 @@ export default function ReaderView() {
         >
           {lesson && (
             <>
-              {page === 0 && (
+              {video && (
+                <>
+                  <ScenePlayer
+                    videoId={video.id}
+                    scenes={video.scenes}
+                    index={Math.min(page, video.scenes.length - 1)}
+                    playToken={playToken}
+                    onSceneChange={followVideo}
+                    controls={player}
+                  />
+                  <h1 className="video-heading">{lesson.title}</h1>
+                  {video.channel && (
+                    <p className="video-channel">{video.channel}</p>
+                  )}
+                </>
+              )}
+              {page === 0 && !video && (
                 <>
                   <div lang="id">
                     <ReaderTitle
@@ -743,23 +821,46 @@ export default function ReaderView() {
                   onWordClick={onWordClick}
                   onActivateWord={setActiveWord}
                 />
+                {video?.scenes[page]?.translation && (
+                  <div className="scene-translation">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      leftSection={<IconLanguage size={16} />}
+                      onClick={() => {
+                        setEnglish(!showEnglish);
+                        setShowEnglish(!showEnglish);
+                      }}
+                      aria-expanded={showEnglish}
+                    >
+                      {showEnglish ? "Hide English" : "Show English"}
+                    </Button>
+                    {showEnglish && (
+                      <p className="scene-translation__text" lang="en">
+                        {video.scenes[page].translation}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
               <nav className="reading-view__pager" aria-label="Pages">
                 <Button
                   variant="default"
                   onClick={prev}
                   disabled={page === 0}
-                  aria-label="Previous page"
+                  aria-label={video ? "Previous scene" : "Previous page"}
                 >
                   <IconChevronLeft size={18} />
                 </Button>
                 <span className="reading-view__page-number">
-                  {page + 1} / {pages.length}
+                  {`${video ? "Scene " : ""}${page + 1} / ${pages.length}`}
                 </span>
                 <Button
                   variant="primary"
                   onClick={next}
-                  aria-label={isLastPage ? "Finish" : "Next page"}
+                  aria-label={
+                    isLastPage ? "Finish" : video ? "Next scene" : "Next page"
+                  }
                   rightSection={
                     isLastPage ? undefined : <IconChevronRight size={18} />
                   }
@@ -786,6 +887,7 @@ export default function ReaderView() {
       <MarkKnownSheet
         words={prompt}
         isLastPage={isLastPage}
+        unit={video ? "scene" : "page"}
         onCancel={() => setPrompt(null)}
         onSkip={() => {
           setPrompt(null);
