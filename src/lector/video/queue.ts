@@ -19,6 +19,8 @@ export interface VideoJob {
   problem?: GeminiError["problem"];
   /** Gemini stopped before the end of the video. */
   cutOff?: boolean;
+  /** Which try this is, when the first didn't work. */
+  attempt?: { number: number; of: number };
 }
 
 let jobs: VideoJob[] = [];
@@ -52,7 +54,9 @@ async function run() {
       };
       update(id, { status: "working", startedAt: Date.now() });
       try {
-        const result = await transcribe(id);
+        const result = await transcribe(id, {
+          onRetry: (number, of) => update(id, { attempt: { number, of } }),
+        });
         const lessonId = await saveVideoLesson({
           title: job.video.title,
           video: {
