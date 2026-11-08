@@ -96,7 +96,10 @@ function LearnView() {
             </Paper>
             {controller.currentCard && (
               <div className={`${BASE}__card-actions`}>
-                <KnownButton days={controller.knownDays} onKnown={markKnown} />
+                <KnownButton
+                  range={controller.knownRange}
+                  onKnown={markKnown}
+                />
                 {controller.showingAnswer &&
                   typeof controller.currentCard.note === "string" && (
                     <ExplainCard

@@ -105,6 +105,17 @@ export default function LearnSettingsView() {
           inputType="number"
         />
         <SettingsInput
+          label="Known cards come back after at least (days)"
+          description="A card marked known comes back for a check at a random time between these two numbers of days, so a batch marked together doesn't all come back on one day. 30 to 180 is one to six months."
+          settingsKey="#learn_knownMinDays"
+          inputType="number"
+        />
+        <SettingsInput
+          label="… and at most (days)"
+          settingsKey="#learn_knownMaxDays"
+          inputType="number"
+        />
+        <SettingsInput
           label={t("settings.learn.maximumInterval")}
           description={t("settings.learn.maximumIntervalDescription")}
           settingsKey="#globalScheduler_maximumInterval"

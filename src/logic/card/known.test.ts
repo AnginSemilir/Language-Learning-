@@ -1,6 +1,7 @@
 import { Card, FSRS, Rating, State } from "fsrs.js";
 import { describe, expect, it } from "vitest";
-import { describeDays, knownSchedule } from "./known";
+import { bringBackFirstKnown } from "./firstKnown";
+import { describeDays, describeRange, knownSchedule } from "./known";
 
 describe("knownSchedule", () => {
   const now = new Date("2026-11-07T12:00:00Z");
@@ -39,5 +40,38 @@ describe("describeDays", () => {
     expect(describeDays(365)).toBe("12 months");
     expect(describeDays(1095)).toBe("3 years");
     expect(describeDays(36500)).toBe("100 years");
+  });
+
+  it("says a range", () => {
+    expect(describeRange({ min: 30, max: 180 })).toBe("1–6 months");
+    expect(describeRange({ min: 10, max: 20 })).toBe("10–20 days");
+    expect(describeRange({ min: 90, max: 90 })).toBe("3 months");
+  });
+});
+
+describe("bringBackFirstKnown", () => {
+  const now = new Date("2026-11-08T12:00:00Z");
+  it("brings a card sent away for 100 years back into one to six months", () => {
+    const model = {
+      state: State.Review,
+      scheduled_days: 36500,
+      stability: 36500,
+      due: new Date("2126-10-14"),
+    };
+    expect(bringBackFirstKnown(model, now, () => 0.5)).toBe(true);
+    expect(model.scheduled_days).toBe(105);
+    expect(model.stability).toBe(105);
+    expect(model.due.getTime() - now.getTime()).toBe(105 * 86400000);
+  });
+
+  it("leaves other cards alone", () => {
+    const model = {
+      state: State.Review,
+      scheduled_days: 700,
+      stability: 700,
+      due: new Date("2028-10-01"),
+    };
+    expect(bringBackFirstKnown(model, now)).toBe(false);
+    expect(model.scheduled_days).toBe(700);
   });
 });

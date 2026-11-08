@@ -65,16 +65,19 @@ export function useLearnSession({
     [controller, cardShowsMastery]
   );
 
-  const markKnown = useCallback(() => {
+  /** Returns for how many days the card went away, or null if it failed. */
+  const markKnown = useCallback((): number | null => {
     try {
-      controller.markKnown();
+      const days = controller.markKnown();
       controller.requestNextCard();
       setCurrentRating(Rating.Easy);
       setTimeout(() => setCurrentRating(null), 150);
       setSelectedPrompt(null);
+      return days;
     } catch (error) {
       genericFail();
       console.log(error);
+      return null;
     }
   }, [controller]);
 

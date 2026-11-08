@@ -30,6 +30,9 @@ export const defaultSettings: SettingsValues = {
   "#learn_buryReviewSiblings": false,
   "#learn_sort": "creationDate",
   "#learn_enableHardAndEasy": true,
+  // Known cards come back for a check after 1 to 6 months, spread out.
+  "#learn_knownMinDays": 30,
+  "#learn_knownMaxDays": 180,
   "#newDayStartHour": 4,
   "#globalScheduler_maximumInterval": 36500,
   "#globalScheduler_requestRetention": 0.9,

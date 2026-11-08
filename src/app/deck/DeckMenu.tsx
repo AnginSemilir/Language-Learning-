@@ -1,7 +1,9 @@
+import MarkKnownModal from "@/app/flashcards/MarkKnownModal";
 import ImportModal from "@/app/settings/importexport/ImportModal";
 import DangerousConfirmModal from "@/components/DangerousConfirmModal";
 import { IconButton, Kbd, Menu, MenuItem } from "@/components/ui";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
+import { getCardsOf } from "@/logic/card/getCardsOf";
 import { Deck } from "@/logic/deck/deck";
 import { deleteDeck } from "@/logic/deck/deleteDeck";
 import { useSetting } from "@/logic/settings/hooks/useSetting";
@@ -9,6 +11,7 @@ import { useShowShortcutHints } from "@/logic/settings/hooks/useShowShortcutHint
 import {
   IconArrowsExchange,
   IconCards,
+  IconCheck,
   IconCode,
   IconCursorText,
   IconDots,
@@ -45,6 +48,7 @@ function DeckMenu({
   const [renameModalOpened, setRenameModalOpened] = useState<boolean>(false);
   const [importModalOpened, setImportModalOpened] = useState<boolean>(false);
   const [debugModalOpened, setDebugModalOpened] = useState<boolean>(false);
+  const [knownModalOpened, setKnownModalOpened] = useState<boolean>(false);
 
   const [hasOpenedRename, setHasOpenedRename] = useState(false);
   const [hasOpenedMove, setHasOpenedMove] = useState(false);
@@ -166,6 +170,12 @@ function DeckMenu({
         >
           {t("deck.menu.import-cards")}
         </MenuItem>
+        <MenuItem
+          leftSection={<IconCheck />}
+          onClick={() => setKnownModalOpened(true)}
+        >
+          Mark cards known…
+        </MenuItem>
         {developerMode ? (
           <MenuItem
             leftSection={<IconCode />}
@@ -232,6 +242,14 @@ function DeckMenu({
               deck={deck}
               opened={debugModalOpened}
               setOpened={setDebugModalOpened}
+            />
+          )}
+          {knownModalOpened && (
+            <MarkKnownModal
+              opened={knownModalOpened}
+              setOpened={setKnownModalOpened}
+              what={`the ${deck.name} deck`}
+              loadCards={async () => (await getCardsOf(deck)) ?? []}
             />
           )}
           {hasOpenedImport && (
