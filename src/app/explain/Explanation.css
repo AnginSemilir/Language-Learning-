@@ -88,3 +88,33 @@
 .generate-card__error {
   color: var(--theme-neutral-700);
 }
+
+/* Generate with AI and Google Translate side by side. */
+.card-helpers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-xs) var(--spacing-sm);
+}
+
+.google-translate__alternatives {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.google-translate__word {
+  border: 1px solid var(--theme-neutral-300);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  padding: 1px 8px;
+  cursor: pointer;
+}
+
+.google-translate__word:hover {
+  background: var(--theme-neutral-100);
+}
