@@ -343,8 +343,125 @@ describe("Gemini", () => {
     await expect(
       transcribeVideo("dQw4w9WgXcQ", {
         fetchApi: answer(429, "Resource has been exhausted"),
+        sleep: async () => {},
       })
     ).rejects.toMatchObject({ problem: "busy" });
+  });
+
+  const ANSWER = {
+    candidates: [
+      {
+        content: {
+          parts: [
+            {
+              text: '{"language":"id","sentences":[{"start":"0:00","end":"0:02","text":"Halo.","english":"Hello."}]}',
+            },
+          ],
+        },
+      },
+    ],
+  };
+
+  /** A fake API answering each call in turn, keeping what was asked. */
+  function answers(...replies: [number, unknown][]) {
+    const calls: {
+      url: string;
+      body: ReturnType<typeof transcriptionRequest>;
+    }[] = [];
+    const fetchApi = (async (url: string, init: RequestInit) => {
+      calls.push({ url, body: JSON.parse(String(init.body)) });
+      const [status, body] = replies[calls.length - 1];
+      return Response.json(body, { status });
+    }) as unknown as typeof fetch;
+    return { calls, fetchApi };
+  }
+
+  it("asks for fewer frames in a lighter request", () => {
+    expect(
+      transcriptionRequest("dQw4w9WgXcQ", { light: true }).contents[0].parts[0]
+    ).toEqual({
+      fileData: { fileUri: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+      videoMetadata: { fps: 0.2 },
+    });
+  });
+
+  it("tries again, lighter, when Gemini is overloaded", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      [503, { error: { message: "The model is overloaded." } }],
+      [200, ANSWER]
+    );
+    const retries: string[] = [];
+    const result = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async () => {},
+      onRetry: (n, of) => retries.push(`${n}/${of}`),
+    });
+    expect(result.cues).toHaveLength(1);
+    expect(retries).toEqual(["2/3"]);
+    expect(calls[0].url).toContain("/gemini-flash-latest:");
+    expect(calls[1].body.contents[0].parts[0]).toHaveProperty("videoMetadata");
+  });
+
+  it("falls back to Flash-Lite, then says what Google said each time", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      [429, { error: { message: "Quota exceeded, limit: 0" } }],
+      [503, { error: { message: "The model is overloaded." } }],
+      [500, { error: { message: "Internal error encountered." } }]
+    );
+    const error = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async () => {},
+    }).catch((e) => e);
+    expect(calls.map((c) => c.url.match(/models\/([^:]+)/)?.[1])).toEqual([
+      "gemini-flash-latest",
+      "gemini-flash-latest",
+      "gemini-flash-lite-latest",
+    ]);
+    expect(error).toMatchObject({ problem: "busy" });
+    expect(error.message).toContain(
+      "Google said 429: Quota exceeded, limit: 0; then 503: The model is overloaded.; then 500: Internal error encountered."
+    );
+  });
+
+  it("drops the lighter request if the model won't take it", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers(
+      [503, { error: { message: "The model is overloaded." } }],
+      [400, { error: { message: 'Unknown name "videoMetadata"' } }],
+      [200, ANSWER]
+    );
+    await transcribeVideo("dQw4w9WgXcQ", { fetchApi, sleep: async () => {} });
+    expect(calls[2].body.contents[0].parts[0]).not.toHaveProperty(
+      "videoMetadata"
+    );
+  });
+
+  it("says a message repeated once", async () => {
+    setGeminiKey("AIza-test");
+    const busy: [number, unknown] = [
+      503,
+      { error: { message: "Overloaded." } },
+    ];
+    const { fetchApi } = answers(busy, busy, busy);
+    const error = await transcribeVideo("dQw4w9WgXcQ", {
+      fetchApi,
+      sleep: async () => {},
+    }).catch((e) => e);
+    expect(error.message).toContain("(Google said 503: Overloaded. (3 times))");
+  });
+
+  it("doesn't try again when the video is the problem", async () => {
+    setGeminiKey("AIza-test");
+    const { calls, fetchApi } = answers([
+      400,
+      { error: { message: "The YouTube video is private." } },
+    ]);
+    await expect(
+      transcribeVideo("dQw4w9WgXcQ", { fetchApi, sleep: async () => {} })
+    ).rejects.toMatchObject({ problem: "video" });
+    expect(calls).toHaveLength(1);
   });
 
   it("turns down a video in another language", async () => {

@@ -14,6 +14,8 @@ import { parseTime } from "./subtitles";
 
 /** Always Google's latest Flash model. */
 export const GEMINI_MODEL = "gemini-flash-latest";
+/** Tried when the Flash model is overloaded or out of free quota. */
+export const GEMINI_FALLBACK_MODEL = "gemini-flash-lite-latest";
 export const GEMINI_NAME = "Gemini";
 
 const KEY_STORAGE = "kartu.geminiKey";
@@ -89,21 +91,25 @@ const SCHEMA = {
   propertyOrdering: ["language", "sentences"],
 };
 
-/** The request for one video. */
-export function transcriptionRequest(videoId: string) {
+/** Frames a second looked at in a lighter request: the words are what matter. */
+const LIGHT_FPS = 0.2;
+
+/**
+ * The request for one video. A light one samples a frame every 5 seconds
+ * instead of every second, which takes a long video's tokens under the free
+ * tier's limit per minute.
+ */
+export function transcriptionRequest(videoId: string, { light = false } = {}) {
+  const video = {
+    fileData: { fileUri: `https://www.youtube.com/watch?v=${videoId}` },
+    ...(light ? { videoMetadata: { fps: LIGHT_FPS } } : {}),
+  };
   return {
     systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
     contents: [
       {
         role: "user",
-        parts: [
-          {
-            fileData: {
-              fileUri: `https://www.youtube.com/watch?v=${videoId}`,
-            },
-          },
-          { text: "Write the subtitles for this video." },
-        ],
+        parts: [video, { text: "Write the subtitles for this video." }],
       },
     ],
     generationConfig: {
@@ -176,7 +182,35 @@ export function cuesFromSentences(sentences: Sentence[]): Cue[] {
   return cues.sort((a, b) => a.start - b.start);
 }
 
-function errorFor(status: number, message: string): GeminiError {
+/** What Google said to each try, shortened, for the end of a message. */
+function said(failures: string[]) {
+  const each: { text: string; times: number }[] = [];
+  for (const failure of failures) {
+    const flat = failure.replace(/\s+/g, " ").trim();
+    const text = flat.length > 200 ? `${flat.slice(0, 200)}…` : flat;
+    const last = each[each.length - 1];
+    if (last?.text === text) last.times++;
+    else each.push({ text, times: 1 });
+  }
+  const parts = each.map(({ text, times }) =>
+    times > 1 ? `${text} (${times} times)` : text
+  );
+  return `(Google said ${parts.join("; then ")})`;
+}
+
+interface GeminiResponse {
+  error?: { message?: string };
+  candidates?: {
+    finishReason?: string;
+    content?: { parts?: { text?: string; thought?: boolean }[] };
+  }[];
+  promptFeedback?: { blockReason?: string };
+}
+
+/** The error for the last try, with what Google said to every try. */
+export function errorFor(status: number, failures: string[]): GeminiError {
+  const last = failures[failures.length - 1] ?? "";
+  const message = last.replace(/^\d+: /, "");
   if (status === 400 && /api key/i.test(message)) {
     return new GeminiError(
       "Google didn't accept the Gemini API key. Check it in Settings → Dictionary.",
@@ -185,30 +219,45 @@ function errorFor(status: number, message: string): GeminiError {
   }
   if (status === 401 || status === 403) {
     return new GeminiError(
-      `This Gemini API key can't be used for this: ${message}`,
+      `This Gemini API key can't be used for this. ${said(failures)}`,
       "key"
     );
   }
   if (status === 429) {
     return new GeminiError(
-      "Gemini's free limit is used up for now. Try again in a minute, or tomorrow if today's limit is used.",
+      `Gemini's free limit stopped this: try again in a minute, or tomorrow if today's limit is used. ${said(failures)}`,
       "busy"
     );
   }
   if (status >= 500) {
     return new GeminiError(
-      "Gemini is busy right now. Try again in a moment.",
+      `Gemini couldn't do it just now, even after trying again. Try again in a few minutes. ${said(failures)}`,
       "busy"
     );
   }
   if (/video|youtube|file_?uri|private|unavailable/i.test(message)) {
     return new GeminiError(
-      `Gemini couldn't watch this video. It has to be public. (${message})`,
+      `Gemini couldn't watch this video. It has to be public. ${said(failures)}`,
       "video"
     );
   }
-  return new GeminiError(message || `Gemini answered ${status}.`, "other");
+  return new GeminiError(
+    message ? `Gemini: ${message}` : `Gemini answered ${status}.`,
+    "other"
+  );
 }
+
+/** Whether another try (later, lighter or with the other model) may work. */
+export function worthRetrying(status: number) {
+  return status === 429 || status >= 500;
+}
+
+/** What's tried, in order, while Gemini is overloaded or over a limit. */
+export const ATTEMPTS = [
+  { model: GEMINI_MODEL, light: false, wait: 0 },
+  { model: GEMINI_MODEL, light: true, wait: 3000 },
+  { model: GEMINI_FALLBACK_MODEL, light: true, wait: 5000 },
+];
 
 export interface Transcription {
   cues: Cue[];
@@ -223,7 +272,15 @@ export async function transcribeVideo(
   {
     signal,
     fetchApi = fetch,
-  }: { signal?: AbortSignal; fetchApi?: typeof fetch } = {}
+    onRetry,
+    sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)),
+  }: {
+    signal?: AbortSignal;
+    fetchApi?: typeof fetch;
+    /** Before each try after the first: which it is, of how many. */
+    onRetry?: (attempt: number, of: number) => void;
+    sleep?: (ms: number) => Promise<unknown>;
+  } = {}
 ): Promise<Transcription> {
   const key = getGeminiKey();
   if (!key) {
@@ -232,21 +289,54 @@ export async function transcribeVideo(
       "key"
     );
   }
-  let response: Response;
-  try {
-    response = await fetchApi(`${ENDPOINT}/${GEMINI_MODEL}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify(transcriptionRequest(videoId)),
-      signal,
-    });
-  } catch (e) {
-    if (signal?.aborted) throw e;
-    throw new GeminiError("Couldn't reach Gemini. Are you online?", "offline");
+  // What Google said to each try that failed, for the message at the end.
+  const failures: string[] = [];
+  let status = 0;
+  let body: GeminiResponse | null = null;
+  let light = true;
+  for (let i = 0; i < ATTEMPTS.length; i++) {
+    const attempt = ATTEMPTS[i];
+    if (i > 0) {
+      onRetry?.(i + 1, ATTEMPTS.length);
+      await sleep(attempt.wait);
+    }
+    let response: Response;
+    try {
+      response = await fetchApi(
+        `${ENDPOINT}/${attempt.model}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key,
+          },
+          body: JSON.stringify(
+            transcriptionRequest(videoId, { light: light && attempt.light })
+          ),
+          signal,
+        }
+      );
+    } catch (e) {
+      if (signal?.aborted) throw e;
+      throw new GeminiError(
+        "Couldn't reach Gemini. Are you online?",
+        "offline"
+      );
+    }
+    status = response.status;
+    body = await response.json().catch(() => null);
+    if (response.ok) break;
+    const message = body?.error?.message ?? "";
+    failures.push(message ? `${status}: ${message}` : String(status));
+    // A model that won't take the lighter request gets the usual one.
+    if (status === 400 && attempt.light && /metadata|fps/i.test(message)) {
+      light = false;
+      continue;
+    }
+    if (!worthRetrying(status)) break;
   }
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw errorFor(response.status, body?.error?.message ?? "");
+  if (status < 200 || status >= 300) {
+    throw errorFor(status, failures);
   }
   const candidate = body?.candidates?.[0];
   if (!candidate) {
@@ -259,8 +349,8 @@ export async function transcribeVideo(
     );
   }
   const json = (candidate.content?.parts ?? [])
-    .filter((p: { thought?: boolean }) => !p.thought)
-    .map((p: { text?: string }) => p.text ?? "")
+    .filter((p) => !p.thought)
+    .map((p) => p.text ?? "")
     .join("");
   const read = readTranscription(json);
   const cues = cuesFromSentences(read.sentences);

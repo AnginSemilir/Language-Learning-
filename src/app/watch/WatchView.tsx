@@ -67,6 +67,9 @@ function elapsed(job: VideoJob, now: number) {
   if (job.status === "waiting") return "waiting its turn";
   if (job.status !== "working" || !job.startedAt) return "";
   const seconds = Math.round((now - job.startedAt) / 1000);
+  if (job.attempt) {
+    return `Gemini was busy, trying again (${job.attempt.number} of ${job.attempt.of})… ${seconds}s`;
+  }
   return `Gemini is writing the subtitles… ${seconds}s`;
 }
 
