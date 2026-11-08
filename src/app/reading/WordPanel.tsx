@@ -62,6 +62,8 @@ export interface PhrasePanelData {
   card: CardMatch | undefined;
   /** Each word's first meaning, when the phrase isn't in the dictionary. */
   glosses?: { word: string; gloss: string }[];
+  /** The phrase without its last word's ending (pelat besinya → pelat besi). */
+  withoutEnding?: string;
 }
 
 /** Growing the tapped word into a phrase. */
@@ -87,7 +89,12 @@ interface WordPanelProps {
   onClose: () => void;
   onSetState: (state: WordState) => void;
   onSetGrouping: (mode: "separate" | "group") => void;
-  onAddCard: (translation: string, deckId: string | null) => Promise<void>;
+  /** `front`: the card's word or phrase, when it isn't what was tapped. */
+  onAddCard: (
+    translation: string,
+    deckId: string | null,
+    front?: string
+  ) => Promise<void>;
 }
 
 const LEVELS: { state: WordState; label: string }[] = [
@@ -302,6 +309,18 @@ export default function WordPanel({
   const grouped = !!data && data.headword !== surface;
   const related = !!data && !grouped && data.root !== surface;
   const card = phrase ? phrase.card : data?.card;
+  // A phrase's card is for the bare words (pelat besi), unless the ending is kept.
+  const [keepEnding, setKeepEnding] = useState(false);
+  useEffect(() => setKeepEnding(false), [phrase?.text]);
+  const phraseFront = phrase
+    ? phrase.withoutEnding && !keepEnding
+      ? phrase.withoutEnding
+      : phrase.text
+    : undefined;
+  const lastWord = phrase?.text.split(" ").pop() ?? "";
+  const ending = phrase?.withoutEnding
+    ? lastWord.slice((phrase.withoutEnding.split(" ").pop() ?? "").length)
+    : "";
   const explainButton = !explaining && (
     <Button
       variant="ghost"
@@ -533,13 +552,31 @@ export default function WordPanel({
                 e.preventDefault();
                 setSaving(true);
                 try {
-                  await onAddCard(translation, deckId);
+                  await onAddCard(translation, deckId, phraseFront);
                 } finally {
                   setSaving(false);
                 }
               }}
             >
               <Stack gap="sm">
+                {phrase?.withoutEnding && (
+                  <div className="word-panel__grouping">
+                    <Text size="sm">
+                      {"Card: "}
+                      <strong lang="id">{phraseFront}</strong>
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      type="button"
+                      onClick={() => setKeepEnding(!keepEnding)}
+                    >
+                      {keepEnding
+                        ? `Without “-${ending}”`
+                        : `Keep “${lastWord}”`}
+                    </Button>
+                  </div>
+                )}
                 <TextInput
                   id="word-panel-translation"
                   label="Translation for the card"
@@ -549,7 +586,7 @@ export default function WordPanel({
                 />
                 <GenerateCardButton
                   read={() => ({
-                    front: phrase?.text ?? data.word,
+                    front: phraseFront ?? data.word,
                     back: translation,
                   })}
                   sentence={phrase?.sentence ?? data.sentence}

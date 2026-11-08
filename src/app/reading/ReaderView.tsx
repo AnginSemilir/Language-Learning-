@@ -55,6 +55,7 @@ import {
   phraseInSet,
   phraseText,
   selectedPhrase,
+  withoutClitic,
   wordCellAt,
 } from "@/lector/reader/phrase";
 import { useLexicon } from "@/lector/reader/useLexicon";
@@ -319,12 +320,24 @@ export default function ReaderView() {
         sentence: picked.sentence,
         entry: "loading",
         card: lexicon.cardForPhrase(text),
+        // "pelat besinya": the card is for "pelat besi".
+        withoutEnding: withoutClitic(
+          text,
+          (word, stem) => lexicon.headwordOf(word) === fold(stem)
+        ),
       });
       const update = (change: Partial<PhrasePanelData>) =>
         setPhrase((p) => (p && p.text === text ? { ...p, ...change } : p));
       try {
         const entry = await lookupPhrase(text, dictionary.lookup);
-        update({ entry });
+        const info = entry?.lemmaInfo;
+        update({
+          entry,
+          // "bulan madunya" is in the dictionary as a form of "bulan madu".
+          ...(info && CLITIC_FORM.test(info.label)
+            ? { withoutEnding: info.stem }
+            : {}),
+        });
         if (entry) return;
         const words = picked.block.words.slice(range.from, range.to + 1);
         const glosses = await Promise.all(
@@ -519,16 +532,15 @@ export default function ReaderView() {
   const addPhraseCard = async (
     shown: PhrasePanelData,
     translation: string,
-    deckId: string | null
+    deckId: string | null,
+    chosen?: string
   ) => {
     const first = shown.text.split(" ")[0];
-    // "bulan madunya" makes a card for "bulan madu".
-    const info =
-      typeof shown.entry === "object" ? shown.entry.lemmaInfo : undefined;
-    const front =
-      info && CLITIC_FORM.test(info.label)
-        ? info.stem
-        : cardFront(shown.text, lexicon.isName(first));
+    // The panel's choice: the bare words (pelat besi) unless the ending is kept.
+    const front = cardFront(
+      chosen ?? shown.withoutEnding ?? shown.text,
+      lexicon.isName(first)
+    );
     const { deckName } = await addWordAsCard({
       word: front,
       translation,
@@ -539,8 +551,12 @@ export default function ReaderView() {
     closePanel();
   };
 
-  const addCard = async (translation: string, deckId: string | null) => {
-    if (phrase) return addPhraseCard(phrase, translation, deckId);
+  const addCard = async (
+    translation: string,
+    deckId: string | null,
+    front?: string
+  ) => {
+    if (phrase) return addPhraseCard(phrase, translation, deckId, front);
     if (!panel) return;
     const { noteId, deckName } = await addWordAsCard({
       word: panel.word,
