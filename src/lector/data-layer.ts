@@ -8,7 +8,13 @@ import { id as pack } from "./languages/id/manifest";
 import { emptyDailyStats } from "./lib/dailyStats";
 import { dateStringInTimeZone } from "./lib/dates";
 import { foldWord } from "./lib/languages";
-import type { DailyStats, Lesson, VocabEntry, WordState } from "./types";
+import type {
+  DailyStats,
+  Lesson,
+  LessonVideo,
+  VocabEntry,
+  WordState,
+} from "./types";
 
 export type { ClozeMasteryLevel } from "./types";
 
@@ -330,6 +336,25 @@ export async function saveLessons(
   }));
   await db.lessons.bulkAdd(lessons);
   return lessons.map((l) => l.id);
+}
+
+/** A video lesson: its scenes are its pages; its text is what's said. */
+export async function saveVideoLesson(input: {
+  title: string;
+  video: LessonVideo;
+}): Promise<string> {
+  const id = uuidv4();
+  await db.lessons.add({
+    id,
+    title: input.title,
+    author: input.video.channel,
+    collection: input.video.channel,
+    content: input.video.scenes.map((s) => s.text).join("\n\n"),
+    source: "video",
+    createdAt: new Date(),
+    video: input.video,
+  });
+  return id;
 }
 
 export function deleteLesson(id: string) {

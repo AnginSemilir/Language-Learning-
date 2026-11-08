@@ -5,6 +5,7 @@ import { Text } from "@/components/ui/Text";
 import { DICTIONARY_LINKS } from "@/lector/dictionaryLinks";
 import type { SettingsValues } from "@/logic/settings/Settings";
 import ExplainSettings from "./ExplainSettings";
+import GeminiSettings from "./GeminiSettings";
 import Section from "./Section";
 import SettingsInput from "./SettingsInput";
 
@@ -69,6 +70,7 @@ export default function DictionarySettingsView() {
         ))}
       </Section>
       <ExplainSettings />
+      <GeminiSettings />
     </Stack>
   );
 }

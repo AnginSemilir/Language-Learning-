@@ -12,6 +12,7 @@ import {
   IconDeviceGamepad2,
   IconHome,
   IconMoon,
+  IconMovie,
   IconPencil,
   IconSettings,
   IconSun,
@@ -128,6 +129,13 @@ function Sidebar({ menuOpened, menuHandlers }: SidebarProps) {
               label="Read"
               path="/read"
               icon={<IconBook />}
+              collapsed={minimalMode}
+              onClick={close}
+            />
+            <NavItem
+              label="Watch"
+              path="/watch"
+              icon={<IconMovie />}
               collapsed={minimalMode}
               onClick={close}
             />

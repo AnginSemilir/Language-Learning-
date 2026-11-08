@@ -44,7 +44,11 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(function Switch(
 
   const labelContent = (label || description) && (
     <div className={`${BASE}__label-wrapper`}>
-      {label && <span className={`${BASE}__label`}>{label}</span>}
+      {label && (
+        <label htmlFor={inputId} className={`${BASE}__label`}>
+          {label}
+        </label>
+      )}
       {description && <InputDescription>{description}</InputDescription>}
     </div>
   );

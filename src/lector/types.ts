@@ -135,7 +135,7 @@ export interface Lesson {
   title: string;
   author?: string;
   content: string;
-  source: "starter" | "paste";
+  source: "starter" | "paste" | "video";
   /** Order within the starter course. */
   sortOrder?: number;
   createdAt: Date;
@@ -146,6 +146,31 @@ export interface Lesson {
   finishedAt?: Date;
   /** Book or series the lesson belongs to (EPUB chapters share one). */
   collection?: string;
+  /** A video lesson: the video, and its subtitles cut into scenes. */
+  video?: LessonVideo;
+}
+
+/** A few sentences of a video, read and played as one page. */
+export interface VideoScene {
+  /** Seconds into the video. */
+  start: number;
+  end: number;
+  /** What's said, as subtitles have it. */
+  text: string;
+  /** Its English, when the subtitles came with one. */
+  translation?: string;
+}
+
+export interface LessonVideo {
+  provider: "youtube";
+  /** The YouTube video id (watch?v=…). */
+  id: string;
+  /** The channel, for "More from this channel". */
+  channel?: string;
+  channelUrl?: string;
+  /** Where the subtitles came from. */
+  subtitles: "gemini" | "file" | "transcript";
+  scenes: VideoScene[];
 }
 
 /**
