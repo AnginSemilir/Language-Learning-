@@ -1,10 +1,10 @@
 import { Text } from "@/components/ui/Text";
-import { getAdapter } from "@/logic/NoteTypeAdapter";
 import { NoteTypeLabels } from "@/logic/card/card";
 import { useDeckOf } from "@/logic/deck/hooks/useDeckOf";
 import { Note, NoteType } from "@/logic/note/note";
-import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import CardDirection from "./CardDirection";
+import LiveNoteEditor, { useLiveNote } from "./LiveNoteEditor";
 import "./EditNoteView.css";
 import NoteMenu from "./NoteMenu";
 
@@ -43,18 +43,7 @@ function NoteView({
 }) {
   const [t] = useTranslation();
   const [deck] = useDeckOf(note);
-
-  const NoteEditor = useMemo(() => {
-    return deck ? (
-      getAdapter(note).editor({
-        note,
-        deck,
-        mode: "edit",
-      })
-    ) : (
-      <div />
-    );
-  }, [note, deck]);
+  const live = useLiveNote(note);
 
   return (
     <div className={BASE}>
@@ -63,13 +52,16 @@ function NoteView({
           <Text size="xs" weight="semibold">
             {t("note.edit.title")}{" "}
             <Text variant="dimmed" size="xs" weight="semibold">
-              ({NoteTypeLabels[note.content.type]})
+              ({NoteTypeLabels[live.content.type]})
             </Text>
           </Text>
         </div>
         <NoteMenu note={note} withEdit={false} />
       </div>
-      <div className={`${BASE}__content`}>{NoteEditor}</div>
+      <div className={`${BASE}__content`}>
+        <CardDirection note={live} />
+        <LiveNoteEditor note={note} deck={deck} />
+      </div>
       {/*<LinkedNotesSection
         linkedNotes={note.linkedNotes}
         onSelectNote={
