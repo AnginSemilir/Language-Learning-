@@ -9,7 +9,7 @@ import { useDecks } from "@/logic/deck/hooks/useDecks";
 import { getNote } from "@/logic/note/getNote";
 import { useNotesWith } from "@/logic/note/hooks/useNotesWith";
 import { NoteSortFunction, NoteSorts } from "@/logic/note/sort";
-import { IconCheck } from "@tabler/icons-react";
+import { IconCheck, IconListCheck } from "@tabler/icons-react";
 import { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -93,6 +93,8 @@ function NoteExplorerView() {
   );
 
   const [knownModalOpened, setKnownModalOpened] = useState(false);
+  // Select mode: a tap ticks a card instead of opening it (phones too).
+  const [selecting, setSelecting] = useState(false);
   const [editNoteModalOpened, setEditNoteModalOpened] =
     useState<boolean>(false);
 
@@ -110,6 +112,9 @@ function NoteExplorerView() {
     setOpenedNote,
     handleNoteClick,
     handleKeyDown,
+    clearSelection,
+    toggleNote,
+    selectAll,
     setRowRef,
   } = useNoteSelection({ notes });
 
@@ -163,25 +168,50 @@ function NoteExplorerView() {
         onFilterChange={setFilter}
       />
 
-      {selectedNoteIds.size > 0 && (
-        <div className={`${BASE}__selection`}>
-          <Text size="sm">
-            {`${selectedNoteIds.size.toLocaleString()} note${selectedNoteIds.size === 1 ? "" : "s"} selected`}
-          </Text>
+      <div className={`${BASE}__selection`}>
+        <Button
+          size="sm"
+          variant={selecting ? "primary" : "default"}
+          leftSection={<IconListCheck size={16} />}
+          onClick={() => {
+            clearSelection();
+            setSelecting((on) => !on);
+          }}
+        >
+          {selecting ? "Done" : "Select"}
+        </Button>
+        {selecting || selectedNoteIds.size > 1 ? (
+          <>
+            <Text size="sm">
+              {`${selectedNoteIds.size.toLocaleString()} selected`}
+            </Text>
+            {selecting && (
+              <Button size="sm" variant="ghost" onClick={selectAll}>
+                {`Select all ${(notes?.length ?? 0).toLocaleString()} shown`}
+              </Button>
+            )}
+            {selecting && selectedNoteIds.size > 0 && (
+              <Button size="sm" variant="ghost" onClick={clearSelection}>
+                Clear
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="default"
+              leftSection={<IconCheck size={16} />}
+              disabled={selectedNoteIds.size === 0}
+              onClick={() => setKnownModalOpened(true)}
+            >
+              Mark familiar or known
+            </Button>
+          </>
+        ) : (
           <Text size="xs" className={`${BASE}__selection-hint`}>
-            Shift-click to select a run, Ctrl/⌘-click to add one, Ctrl/⌘+A for
-            all shown.
+            Pick cards to mark them familiar or known. Choose a deck or search
+            first to narrow what “Select all” takes.
           </Text>
-          <Button
-            size="sm"
-            variant="default"
-            leftSection={<IconCheck size={16} />}
-            onClick={() => setKnownModalOpened(true)}
-          >
-            Mark familiar or known
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className={`${BASE}__container`}>
         <section
@@ -205,6 +235,8 @@ function NoteExplorerView() {
               openModal={openModal}
               sort={sort}
               setSort={setSort}
+              selecting={selecting}
+              onToggleNote={toggleNote}
             />
           )}
         </section>
@@ -218,6 +250,10 @@ function NoteExplorerView() {
         <MarkKnownModal
           opened={knownModalOpened}
           setOpened={setKnownModalOpened}
+          onMarked={() => {
+            clearSelection();
+            setSelecting(false);
+          }}
           what={`the ${selectedNoteIds.size.toLocaleString()} selected note${selectedNoteIds.size === 1 ? "" : "s"}`}
           loadCards={() =>
             db.cards

@@ -109,3 +109,9 @@
   color: var(--theme-neutral-500);
   font-size: var(--font-size-md);
 }
+
+/* Select mode: a tick box at the start of each row. */
+.note-table__check {
+  width: 2rem;
+  text-align: center;
+}

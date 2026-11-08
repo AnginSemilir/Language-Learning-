@@ -17,6 +17,10 @@ interface UseNoteSelectionReturn {
   ) => void;
   handleKeyDown: (event: KeyboardEvent) => void;
   clearSelection: () => void;
+  /** Ticks or unticks one note, without opening it (select mode). */
+  toggleNote: (note: Note<NoteType>) => void;
+  /** Selects every note shown. */
+  selectAll: () => void;
   setRowRef: (index: number, element: HTMLTableRowElement | null) => void;
 }
 
@@ -244,6 +248,19 @@ export function useNoteSelection({
     [notes, clearSelection, scrollToIndex]
   );
 
+  const toggleNote = useCallback((note: Note<NoteType>) => {
+    setSelectedNoteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(note.id)) next.delete(note.id);
+      else next.add(note.id);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedNoteIds(new Set((notes ?? []).map((n) => n.id)));
+  }, [notes]);
+
   return {
     selectedNoteIds,
     openedNote,
@@ -251,6 +268,8 @@ export function useNoteSelection({
     handleNoteClick,
     handleKeyDown,
     clearSelection,
+    toggleNote,
+    selectAll,
     setRowRef,
   };
 }

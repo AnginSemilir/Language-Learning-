@@ -13,6 +13,8 @@ export type ImportDirection = "both" | "frontToBack";
 export interface ImportResult {
   added: number;
   skipped: number;
+  /** The notes added, to mark familiar or known after the import. */
+  noteIds: string[];
 }
 
 function escapeHtml(text: string) {
@@ -129,10 +131,11 @@ export async function importFlashcards(
     await db.cards.bulkAdd(cards as any);
     fresh.notes.push(...notes.map((n) => n.id));
     fresh.cards.push(...cards.map((c) => c.id));
+    // The deck passed in can be a read-only object from the database cache
+    // (the Flashcards page's), so it isn't updated: readers see the change
+    // through their live queries.
     await db.decks.update(deck.id, { notes: fresh.notes, cards: fresh.cards });
-    deck.notes = fresh.notes;
-    deck.cards = fresh.cards;
     await invalidateDeckStatsCache(deck.id);
-    return { added: notes.length, skipped };
+    return { added: notes.length, skipped, noteIds: notes.map((n) => n.id) };
   });
 }

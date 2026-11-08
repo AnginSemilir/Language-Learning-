@@ -3,6 +3,11 @@ import { Stack } from "../../../components/ui/Stack";
 import { TextInput } from "../../../components/ui/TextInput";
 import { Textarea } from "../../../components/ui/Textarea";
 import ImportButton from "./ImportButton";
+import {
+  type ImportLevel,
+  ImportLevelChoice,
+  useMarkImported,
+} from "./ImportLevel";
 import { ImportFromSourceProps } from "./ImportModal";
 import { importCards } from "./importLogic";
 
@@ -14,6 +19,8 @@ export default function ImportFromPaste({
   deck,
 }: ImportFromPasteProps) {
   const [pastedText, setPastedText] = useState<string>("");
+  const [level, setLevel] = useState<ImportLevel>("new");
+  const markImported = useMarkImported();
   const [cardSeparator] = useState<string>("\n");
   const [questionAnswerSeperator, setQuestionAnswerSeperator] =
     useState<string>("\t");
@@ -41,14 +48,16 @@ export default function ImportFromPaste({
         description="Default is Tab character. Change if your data uses a different separator."
         style={{ width: "100%" }}
       />
+      <ImportLevelChoice value={level} onChange={setLevel} />
       <ImportButton
         importFunction={async () => {
-          await importCards(
+          const noteIds = await importCards(
             pastedText,
             deck,
             cardSeparator,
             questionAnswerSeperator
           );
+          await markImported(noteIds, level);
         }}
         importStatus={importStatus}
         setImportStatus={setImportStatus}

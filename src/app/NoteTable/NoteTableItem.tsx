@@ -27,6 +27,9 @@ interface NoteTableItemProps {
   visibleColumns: ColumnConfig[];
   isMobile: boolean;
   openModal: () => void;
+  /** Select mode: a tap ticks the row instead of opening it. */
+  selecting?: boolean;
+  onToggle?: (note: Note<NoteType>) => void;
 }
 
 export const NoteTableItem = memo(
@@ -42,6 +45,8 @@ export const NoteTableItem = memo(
     visibleColumns,
     isMobile,
     openModal,
+    selecting = false,
+    onToggle,
   }: NoteTableItemProps) {
     const classes = [
       `${BASE}__row`,
@@ -69,6 +74,10 @@ export const NoteTableItem = memo(
     };
 
     const handleClick = (event: React.MouseEvent) => {
+      if (selecting) {
+        onToggle?.(note);
+        return;
+      }
       onNoteClick(note, index, event);
       if (isMobile && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
         openModal();
@@ -84,8 +93,20 @@ export const NoteTableItem = memo(
         ref={handleRef}
         className={classes}
         onClick={handleClick}
-        onDoubleClick={onOpen}
+        onDoubleClick={selecting ? undefined : onOpen}
+        aria-selected={selecting ? isSelected : undefined}
       >
+        {selecting && (
+          <td className={`${BASE}__cell ${BASE}__check`}>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              readOnly
+              tabIndex={-1}
+              aria-label={`Select ${note.sortField}`}
+            />
+          </td>
+        )}
         {visibleColumns.map((column) => (
           <td key={column.key} className={`${BASE}__cell`}>
             {getCellContent(column.key)}
@@ -102,6 +123,7 @@ export const NoteTableItem = memo(
       prevProps.note.id === nextProps.note.id &&
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.isOpened === nextProps.isOpened &&
+      prevProps.selecting === nextProps.selecting &&
       prevProps.visibleColumns === nextProps.visibleColumns &&
       prevNote.deckName === nextNote.deckName
     );

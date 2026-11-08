@@ -30,6 +30,9 @@ interface NoteTableProps {
   ) => void;
   onSetRowRef: (index: number, element: HTMLTableRowElement | null) => void;
   openModal: () => void;
+  /** Select mode: a tap ticks a row instead of opening it. */
+  selecting?: boolean;
+  onToggleNote?: (note: Note<NoteType>) => void;
 }
 
 interface ColumnConfig {
@@ -48,6 +51,8 @@ function NoteTable({
   onNoteClick,
   onSetRowRef,
   openModal,
+  selecting = false,
+  onToggleNote,
 }: NoteTableProps) {
   const isMobile = useMediaQuery("(max-width: 50em)");
   const { t } = useTranslation();
@@ -144,6 +149,7 @@ function NoteTable({
       <table className={`${BASE}__table`}>
         <thead className={`${BASE}__head`}>
           <tr>
+            {selecting && <th className={`${BASE}__check`} />}
             {visibleColumns.map((column) => (
               <NoteTableHeadItem
                 key={column.key}
@@ -158,7 +164,10 @@ function NoteTable({
         <tbody className={`${BASE}__body`}>
           {displayNotes.length === 0 ? (
             <tr>
-              <td className={`${BASE}__empty`} colSpan={visibleColumns.length}>
+              <td
+                className={`${BASE}__empty`}
+                colSpan={visibleColumns.length + (selecting ? 1 : 0)}
+              >
                 No notes found
               </td>
             </tr>
@@ -177,6 +186,8 @@ function NoteTable({
                 visibleColumns={visibleColumns}
                 isMobile={isMobile}
                 openModal={openModal}
+                selecting={selecting}
+                onToggle={onToggleNote}
               />
             ))
           )}

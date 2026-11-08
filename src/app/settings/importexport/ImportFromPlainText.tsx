@@ -3,6 +3,11 @@ import { Stack } from "../../../components/ui/Stack";
 import { TextInput } from "../../../components/ui/TextInput";
 import FileImport from "./FileImport";
 import ImportButton from "./ImportButton";
+import {
+  type ImportLevel,
+  ImportLevelChoice,
+  useMarkImported,
+} from "./ImportLevel";
 import { ImportFromSourceProps } from "./ImportModal";
 import { importCards } from "./importLogic";
 
@@ -18,6 +23,8 @@ export default function ImportFromPlainText({
   deck,
 }: ImportFromPlainTextProps) {
   const [cardSeparator, _] = useState<string>("\n");
+  const [level, setLevel] = useState<ImportLevel>("new");
+  const markImported = useMarkImported();
   const [questionAnswerSeperator, setQuestionAnswerSeperator] =
     useState<string>("\t");
   return (
@@ -34,14 +41,16 @@ export default function ImportFromPlainText({
         onChange={(e) => setQuestionAnswerSeperator(e.currentTarget.value)}
         style={{ width: "100%" }}
       />
+      <ImportLevelChoice value={level} onChange={setLevel} />
       <ImportButton
         importFunction={async () => {
-          await importCards(
+          const noteIds = await importCards(
             fileText,
             deck,
             cardSeparator,
             questionAnswerSeperator
           );
+          await markImported(noteIds, level);
         }}
         importStatus={importStatus}
         setImportStatus={setImportStatus}

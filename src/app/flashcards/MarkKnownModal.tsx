@@ -26,6 +26,8 @@ interface MarkKnownModalProps {
   /** What's being marked: "the Indonesian deck", "12 selected notes". */
   what: string;
   loadCards: () => Promise<Card<NoteType>[]>;
+  /** After the cards are marked (not on Cancel). */
+  onMarked?: () => void;
 }
 
 export default function MarkKnownModal({
@@ -33,6 +35,7 @@ export default function MarkKnownModal({
   setOpened,
   what,
   loadCards,
+  onMarked,
 }: MarkKnownModalProps) {
   const scheduler = useGlobalScheduler();
   const range = useFamiliarRange(scheduler.p.maximum_interval);
@@ -69,6 +72,7 @@ export default function MarkKnownModal({
         "success"
       );
       setOpened(false);
+      onMarked?.();
     } catch (e) {
       notify(
         "Couldn't mark the cards",
