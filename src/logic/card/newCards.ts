@@ -4,10 +4,14 @@ import { NoteType } from "../note/note";
 import { Card } from "./card";
 
 export async function newCards(cards: Card<NoteType>[], deck: Deck) {
-  cards.forEach((card) => (card.deck = deck.id));
-  deck.cards.push(...cards.map((card) => card.id));
-  return db.transaction("rw", db.decks, db.cards, () => {
-    db.cards.bulkAdd(cards);
-    db.decks.update(deck.id, { cards: deck.cards });
+  for (const card of cards) card.deck = deck.id;
+  // The deck's list is read inside the transaction rather than taken from
+  // `deck`, which can be a read-only object from the database cache.
+  return db.transaction("rw", db.decks, db.cards, async () => {
+    await db.cards.bulkAdd(cards);
+    const fresh = await db.decks.get(deck.id);
+    await db.decks.update(deck.id, {
+      cards: [...(fresh?.cards ?? []), ...cards.map((card) => card.id)],
+    });
   });
 }

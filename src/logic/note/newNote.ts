@@ -22,11 +22,13 @@ export async function newNote<T extends NoteType>(
       content
     ),
   };
+  // The deck's list is read inside the transaction rather than taken from
+  // `deck`, which can be a read-only object from the database cache.
   await db.transaction("rw", db.decks, db.notes, async () => {
     await db.notes.add(note, note.id);
-    deck.notes.push(note.id);
+    const fresh = await db.decks.get(deck.id);
     await db.decks.update(deck.id, {
-      notes: deck.notes,
+      notes: [...(fresh?.notes ?? []), note.id],
     });
   });
   return note.id;

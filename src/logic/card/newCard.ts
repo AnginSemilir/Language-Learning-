@@ -12,10 +12,14 @@ import { Card } from "./card";
 
 export async function newCard(card: Card<NoteType>, deck: Deck) {
   card.deck = deck.id;
-  deck.cards.push(card.id);
-  await db.transaction("rw", db.decks, db.cards, () => {
-    db.cards.add(card, card.id);
-    db.decks.update(deck.id, { cards: deck.cards });
+  // The deck's list is read inside the transaction rather than taken from
+  // `deck`, which can be a read-only object from the database cache.
+  await db.transaction("rw", db.decks, db.cards, async () => {
+    await db.cards.add(card, card.id);
+    const fresh = await db.decks.get(deck.id);
+    await db.decks.update(deck.id, {
+      cards: [...(fresh?.cards ?? []), card.id],
+    });
   });
 
   await invalidateDeckStatsCache(deck.id);

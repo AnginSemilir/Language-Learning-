@@ -2,14 +2,15 @@ import { getAdapterOfType } from "@/logic/NoteTypeAdapter";
 import { Deck } from "@/logic/deck/deck";
 import { NoteType } from "@/logic/note/note";
 
+/** Adds a basic card per line; returns the notes added. */
 export async function importCards(
   text: string | null,
   deck: Deck | undefined,
   cardSeparator: string,
   questionAnswerSeperator: string
-) {
+): Promise<string[]> {
   if (!text || !deck) {
-    return;
+    return [];
   }
   const questionAnswerPairs = text
     .split(cardSeparator)
@@ -19,9 +20,9 @@ export async function importCards(
       return line.split(questionAnswerSeperator);
     });
 
-  await Promise.all(
+  const ids = await Promise.all(
     questionAnswerPairs.map(async (pair) => {
-      if (pair.length < 2) return;
+      if (pair.length < 2) return undefined;
       return getAdapterOfType(NoteType.Basic).createNote(
         {
           front: pair[0],
@@ -31,4 +32,5 @@ export async function importCards(
       );
     })
   );
+  return ids.filter((id): id is string => typeof id === "string");
 }

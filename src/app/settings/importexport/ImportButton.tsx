@@ -28,7 +28,8 @@ export default function ImportButton({
         try {
           await importFunction();
           setImportStatus("success");
-        } catch {
+        } catch (e) {
+          console.error("Import failed", e);
           setImportStatus("error");
         }
       }}

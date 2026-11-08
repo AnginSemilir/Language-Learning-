@@ -10,6 +10,11 @@ import { parseFlashcardCsv } from "@/logic/import/parseCsv";
 import { useMemo, useState } from "react";
 import FileImport from "./FileImport";
 import ImportButton from "./ImportButton";
+import {
+  type ImportLevel,
+  ImportLevelChoice,
+  useMarkImported,
+} from "./ImportLevel";
 import { ImportFromSourceProps } from "./ImportModal";
 
 export default function ImportFromCsv({
@@ -23,6 +28,8 @@ export default function ImportFromCsv({
   onResult,
 }: ImportFromSourceProps & { onResult: (result: ImportResult) => void }) {
   const [direction, setDirection] = useState<ImportDirection>("both");
+  const [level, setLevel] = useState<ImportLevel>("new");
+  const markImported = useMarkImported();
   const rows = useMemo(
     () => (fileText ? parseFlashcardCsv(fileText) : []),
     [fileText]
@@ -55,10 +62,13 @@ export default function ImportFromCsv({
           { value: "frontToBack", label: "Front → back only" },
         ]}
       />
+      <ImportLevelChoice value={level} onChange={setLevel} />
       <ImportButton
         importFunction={async () => {
           if (!deck) return;
-          onResult(await importFlashcards(rows, deck, direction));
+          const result = await importFlashcards(rows, deck, direction);
+          await markImported(result.noteIds, level);
+          onResult(result);
         }}
         importStatus={importStatus}
         setImportStatus={setImportStatus}
