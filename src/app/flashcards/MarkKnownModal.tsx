@@ -1,11 +1,20 @@
-// Marking many cards known at once: a deck, or the cards picked in Manage
-// Cards. Each comes back for a check at its own random time in the known
-// range (Settings → Learning), so they come back a few at a time.
+// Marking many cards familiar or known at once: a deck, or the cards picked
+// in Manage Cards. Familiar cards come back once for a check, each at its own
+// random time in the range (Settings → Learning), so a few a day; known cards
+// don't come back.
 import { notify } from "@/components/Notification";
-import { Button, Checkbox, Group, Modal, Stack, Text } from "@/components/ui";
+import {
+  Button,
+  Checkbox,
+  Group,
+  Modal,
+  SegmentedControl,
+  Stack,
+  Text,
+} from "@/components/ui";
 import { useGlobalScheduler } from "@/logic/card/CardScheduler";
-import type { Card } from "@/logic/card/card";
-import { describeRange, useKnownRange } from "@/logic/card/known";
+import type { Card, KnownLevel } from "@/logic/card/card";
+import { describeRange, useFamiliarRange } from "@/logic/card/known";
 import { markCardsKnown } from "@/logic/card/markKnown";
 import type { NoteType } from "@/logic/note/note";
 import { State } from "fsrs.js";
@@ -26,8 +35,9 @@ export default function MarkKnownModal({
   loadCards,
 }: MarkKnownModalProps) {
   const scheduler = useGlobalScheduler();
-  const range = useKnownRange(scheduler.p.maximum_interval);
+  const range = useFamiliarRange(scheduler.p.maximum_interval);
   const [cards, setCards] = useState<Card<NoteType>[] | null>(null);
+  const [level, setLevel] = useState<KnownLevel>("familiar");
   const [includeStarted, setIncludeStarted] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -45,20 +55,23 @@ export default function MarkKnownModal({
   const include = includeStarted || notStarted.length === 0;
   const chosen = include ? (cards ?? []) : notStarted;
   const count = chosen.length;
+  const plural = count === 1 ? "" : "s";
 
   const confirm = async () => {
     setBusy(true);
     try {
-      const moved = await markCardsKnown(chosen, scheduler, range);
+      const moved = await markCardsKnown(chosen, scheduler, range, level);
       notify(
-        "Marked known",
-        `${moved.toLocaleString()} card${moved === 1 ? "" : "s"} will come back for a check over the next ${describeRange(range)}.`,
+        level === "known" ? "Marked known" : "Marked familiar",
+        level === "known"
+          ? `${moved.toLocaleString()} card${moved === 1 ? "" : "s"} won't come back.`
+          : `${moved.toLocaleString()} card${moved === 1 ? "" : "s"} will come back for a check over the next ${describeRange(range)}.`,
         "success"
       );
       setOpened(false);
     } catch (e) {
       notify(
-        "Couldn't mark the cards known",
+        "Couldn't mark the cards",
         e instanceof Error ? e.message : String(e),
         "error"
       );
@@ -69,7 +82,7 @@ export default function MarkKnownModal({
 
   return (
     <Modal
-      title="Mark cards known"
+      title="Mark cards familiar or known"
       opened={opened}
       onClose={() => setOpened(false)}
     >
@@ -80,8 +93,18 @@ export default function MarkKnownModal({
           <Text size="sm">{`There are no cards in ${what}.`}</Text>
         ) : (
           <>
+            <SegmentedControl
+              value={level}
+              onChange={(value) => setLevel(value as KnownLevel)}
+              data={[
+                { value: "familiar", label: "Familiar" },
+                { value: "known", label: "Known" },
+              ]}
+            />
             <Text size="sm">
-              {`Mark ${count.toLocaleString()} card${count === 1 ? "" : "s"} in ${what} as known. Each comes back for a check once, at a random time ${describeRange(range)} from now, so they come back a few a day rather than all at once. After that they're scheduled like any card.`}
+              {level === "familiar"
+                ? `Mark ${count.toLocaleString()} card${plural} in ${what} as familiar: probably known. Each comes back once for a check, at a random time ${describeRange(range)} from now, so they come back a few a day rather than all at once. Get one right then and it's known; miss it and it's learned again.`
+                : `Mark ${count.toLocaleString()} card${plural} in ${what} as known. They won't come back.`}
             </Text>
             {started.length > 0 && notStarted.length > 0 && (
               <Checkbox
@@ -91,8 +114,9 @@ export default function MarkKnownModal({
               />
             )}
             <Text size="xs" className="mark-known__note">
-              A card that's already scheduled further out keeps its date. You
-              can change how long known cards stay away in Settings → Learning.
+              {level === "familiar"
+                ? "Cards already known stay known, and a card already scheduled further out keeps its date. How long familiar cards stay away is in Settings → Learning."
+                : "The words count as known in reading too."}
             </Text>
           </>
         )}
@@ -105,7 +129,9 @@ export default function MarkKnownModal({
             onClick={confirm}
             disabled={busy || count === 0}
           >
-            {busy ? "Marking…" : `Mark ${count.toLocaleString()} known`}
+            {busy
+              ? "Marking…"
+              : `Mark ${count.toLocaleString()} ${level === "known" ? "known" : "familiar"}`}
           </Button>
         </Group>
       </Stack>

@@ -152,6 +152,31 @@ export function phraseRuns(
   return runs;
 }
 
+/** Each phrase `has` knows in the block, with its key, longest first. */
+export function phraseRanges(
+  block: BlockWords,
+  has: (key: string) => boolean,
+  maxWords: number
+): (WordRange & { key: string })[] {
+  const runs = phraseRuns(block, has, maxWords);
+  const out: (WordRange & { key: string })[] = [];
+  for (let i = 0; i < runs.length; ) {
+    if (runs[i] < 0) {
+      i++;
+      continue;
+    }
+    let to = i;
+    while (to + 1 < runs.length && runs[to + 1] === runs[i]) to++;
+    out.push({
+      from: i,
+      to,
+      key: phraseKey(phraseText(block, { from: i, to })),
+    });
+    i = to + 1;
+  }
+  return out;
+}
+
 // ── Picking a phrase with the mouse ────────────────────────────────────────
 // Dragging from one word to another picks the words between. The reader
 // handles the drag itself: Chromium starts no text selection on a focusable

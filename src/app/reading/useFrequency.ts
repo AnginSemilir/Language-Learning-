@@ -1,5 +1,6 @@
 // Ranked frequency list plus how many of the top 1,000 / 2,000 / 5,000 / 10,000 words
-// you know, using the reader's own word states (including mature flashcards).
+// you know or are familiar with, using the reader's word states (flashcards
+// included).
 import {
   BANDS,
   type RankedWord,
@@ -11,7 +12,10 @@ import { useEffect, useMemo, useState } from "react";
 
 export interface BandCoverage {
   band: number;
+  /** Known: doesn't come back. */
   known: number;
+  /** Familiar: probably known, still checked now and then. */
+  familiar: number;
 }
 
 export function useFrequency() {
@@ -34,12 +38,15 @@ export function useFrequency() {
   const coverage: BandCoverage[] | null = useMemo(() => {
     if (!ranked) return null;
     let known = 0;
+    let familiar = 0;
     const out: BandCoverage[] = [];
     let next = 0;
     ranked.slice(0, BANDS[BANDS.length - 1]).forEach((r, i) => {
-      if (stateOf(r.headword) === "known") known++;
+      const state = stateOf(r.headword);
+      if (state === "known") known++;
+      if (state === "familiar") familiar++;
       if (i + 1 === BANDS[next]) {
-        out.push({ band: BANDS[next], known });
+        out.push({ band: BANDS[next], known, familiar });
         next++;
       }
     });

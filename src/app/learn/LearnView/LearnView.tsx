@@ -13,7 +13,7 @@ import FinishedLearningView from "../FinishedLearningView/FinishedLearningView";
 import LearnViewCurrentCardStateIndicator from "../LearnViewCurrentCardStateIndicator/LearnViewCurrentCardStateIndicator";
 import CognitivePromptConnector from "./CognitivePromptConnector";
 import ExplainCard from "./ExplainCard";
-import KnownButton from "./KnownButton";
+import KnownButtons from "./KnownButton";
 import "./LearnView.css";
 import LearnViewDailyProgress from "./LearnViewDailyProgress";
 import LearnViewFooter from "./LearnViewFooter";
@@ -79,6 +79,7 @@ function LearnView() {
           <div className={`${BASE}__card-stack`}>
             <LearnViewCurrentCardStateIndicator
               currentCardModel={controller.currentCard?.model}
+              known={controller.currentCard?.known}
             />
             <Paper shadow="xs" withBorder className={`${BASE}__card`}>
               {!controller.showingAnswer &&
@@ -96,9 +97,9 @@ function LearnView() {
             </Paper>
             {controller.currentCard && (
               <div className={`${BASE}__card-actions`}>
-                <KnownButton
-                  range={controller.knownRange}
-                  onKnown={markKnown}
+                <KnownButtons
+                  range={controller.familiarRange}
+                  onMark={markKnown}
                 />
                 {controller.showingAnswer &&
                   typeof controller.currentCard.note === "string" && (

@@ -1,6 +1,7 @@
 // Bridges Lector's reader vocabulary and Skola's flashcards: look up a word in
 // the user's own cards, and save a word from the reader as a new card.
 
+import type { KnownLevel } from "@/logic/card/card";
 import { db } from "@/logic/db";
 import { newDeck } from "@/logic/deck/newDeck";
 import { MATURE_DAYS } from "@/logic/growth";
@@ -72,36 +73,57 @@ export interface CardMatch {
   back: string;
   /**
    * The Indonesian → English card is mature: in review with an interval of
-   * 21 days or more (Anki's definition). Such a word counts as known.
+   * 21 days or more (Anki's definition).
    */
   mature: boolean;
+  /**
+   * How well the card's word is known, for reading: known when the card is
+   * marked known (it doesn't come back), familiar when it's marked familiar
+   * or mature (it still comes back now and then).
+   */
+  status?: KnownLevel;
 }
 
 /** Days between reviews from which a flashcard counts the word as known. */
 export { MATURE_DAYS };
 
-/** Notes whose Indonesian → English card is mature. */
-async function matureNoteIds(): Promise<Set<string>> {
+/**
+ * Each note's mature flag and familiar/known level, read from its
+ * Indonesian → English card, or its only card when it has just the other.
+ */
+async function noteStatuses(): Promise<
+  Map<string, { mature: boolean; status?: KnownLevel }>
+> {
   const cards = await db.cards.toArray();
-  const ids = new Set<string>();
+  const byNote = new Map<
+    string,
+    { forward: boolean; card: (typeof cards)[0] }
+  >();
   for (const card of cards) {
     const content = card.content as { frontIsField1?: boolean };
-    if (content.frontIsField1 === false) continue; // English → Indonesian side
-    if (
-      card.model.state === State.Review &&
-      card.model.scheduled_days >= MATURE_DAYS
-    ) {
-      ids.add(card.note);
-    }
+    const forward = content.frontIsField1 !== false;
+    const seen = byNote.get(card.note);
+    if (!seen || (forward && !seen.forward))
+      byNote.set(card.note, { forward, card });
   }
-  return ids;
+  const out = new Map<string, { mature: boolean; status?: KnownLevel }>();
+  for (const [note, { card }] of byNote) {
+    const mature =
+      card.model.state === State.Review &&
+      card.model.scheduled_days >= MATURE_DAYS;
+    out.set(note, {
+      mature,
+      status: card.known ?? (mature ? "familiar" : undefined),
+    });
+  }
+  return out;
 }
 
 /** The user's own cards keyed by the folded word on the Indonesian side. */
 export async function getUserCardIndex(): Promise<Map<string, CardMatch>> {
-  const [notes, mature] = await Promise.all([
+  const [notes, statuses] = await Promise.all([
     db.notes.toArray(),
-    matureNoteIds(),
+    noteStatuses(),
   ]);
   const index = new Map<string, CardMatch>();
   for (const n of notes) {
@@ -114,7 +136,8 @@ export async function getUserCardIndex(): Promise<Map<string, CardMatch>> {
         deckId: n.deck,
         front: firstParagraph(frontSide),
         back: stripHtml(backSide),
-        mature: mature.has(n.id),
+        mature: statuses.get(n.id)?.mature ?? false,
+        status: statuses.get(n.id)?.status,
       });
     }
   }

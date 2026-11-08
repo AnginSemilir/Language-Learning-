@@ -63,10 +63,16 @@ const LABEL: Record<DisplayState, string> = {
   level2: "learning",
   level3: "learning",
   level4: "learning",
+  familiar: "familiar",
   known: "known",
   ignored: "ignored",
   name: "name",
 };
+
+/** Known, or familiar (probably known). */
+function isKnownish(state: DisplayState) {
+  return state === "known" || state === "familiar";
+}
 
 export default function FrequencyListView() {
   const dictionary = useDictionaryChoice();
@@ -102,14 +108,17 @@ export default function FrequencyListView() {
         filter === "all"
           ? true
           : filter === "known"
-            ? r.state === "known"
-            : r.state !== "known"
+            ? isKnownish(r.state)
+            : !isKnownish(r.state)
       );
     return rarestFirst ? filtered.reverse() : filtered;
   }, [ranked, band, stateOf, filter, rarestFirst]);
 
-  const known = coverage?.find((c) => c.band === band)?.known;
+  const bandCoverage = coverage?.find((c) => c.band === band);
+  const known = bandCoverage && bandCoverage.known + bandCoverage.familiar;
 
+  // A tap marks a word known, a familiar one too; tapping a word marked
+  // known while reading unmarks it.
   const toggle = async (row: (typeof rows)[number]) => {
     if (row.state === "known") {
       if (explicitKnown?.has(row.headword)) await deleteVocab(row.headword);
@@ -137,7 +146,7 @@ export default function FrequencyListView() {
           </h1>
           <Text size="sm">
             {known !== undefined
-              ? `${known.toLocaleString()} of ${band.toLocaleString()} known (${formatPercent(known, band)}). `
+              ? `${known.toLocaleString()} of ${band.toLocaleString()} known or familiar (${formatPercent(known, band)}). `
               : ""}
             {rarestFirst ? "Least" : "Most"} frequent first. Tap a word to mark
             it known, or tap a known word to unmark it.
@@ -181,19 +190,22 @@ export default function FrequencyListView() {
           {rows.slice(0, shown).map((r) => {
             const viaCardOnly =
               r.state === "known" && !explicitKnown?.has(r.headword);
+            const knownish = isKnownish(r.state);
             return (
               <li key={r.headword}>
                 <button
                   type="button"
-                  className={`frequency-list__row frequency-list__row--${r.state === "known" ? "known" : "unknown"}`}
+                  className={`frequency-list__row frequency-list__row--${knownish ? "known" : "unknown"}`}
                   onClick={() => toggle(r)}
-                  aria-pressed={r.state === "known"}
+                  aria-pressed={knownish}
                   title={
                     viaCardOnly
                       ? "Known through your flashcards"
                       : r.state === "known"
                         ? "Tap to unmark"
-                        : "Tap to mark known"
+                        : r.state === "familiar"
+                          ? "Familiar: tap to mark known"
+                          : "Tap to mark known"
                   }
                 >
                   <span className="frequency-list__rank">{r.rank}</span>

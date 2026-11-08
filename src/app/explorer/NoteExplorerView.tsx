@@ -178,7 +178,7 @@ function NoteExplorerView() {
             leftSection={<IconCheck size={16} />}
             onClick={() => setKnownModalOpened(true)}
           >
-            Mark known
+            Mark familiar or known
           </Button>
         </div>
       )}

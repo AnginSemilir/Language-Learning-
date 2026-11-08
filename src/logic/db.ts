@@ -88,8 +88,8 @@ export class Database extends Dexie {
     this.version(28).stores({
       explanations: "id, createdAt",
     });
-    // Known first sent a card away for 100 years; it now means a check in
-    // one to six months, so the cards marked then come back in that range.
+    // Known first sent a card away for 100 years. Those cards are familiar
+    // now: they come back once, in one to six months, for a check.
     this.version(29)
       .stores({})
       .upgrade(async (tx) => {
@@ -98,7 +98,7 @@ export class Database extends Dexie {
           .table("cards")
           .toCollection()
           .modify((card: Card<NoteType>) => {
-            bringBackFirstKnown(card.model, now);
+            bringBackFirstKnown(card, now);
           });
       });
     // Opened below, after sync is configured.

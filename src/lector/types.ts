@@ -8,8 +8,21 @@ export type WordState =
   | "level2"
   | "level3"
   | "level4"
+  /** Probably known: checked once more before it counts as known. */
+  | "familiar"
   | "known"
   | "ignored";
+
+/** How far along a word is, for comparing states (ignored is apart). */
+export const STATE_RANK: Record<Exclude<WordState, "ignored">, number> = {
+  new: 0,
+  level1: 1,
+  level2: 2,
+  level3: 3,
+  level4: 4,
+  familiar: 5,
+  known: 6,
+};
 export type VocabType = "word" | "phrase";
 export type ClozeMasteryLevel = 0 | 25 | 50 | 75 | 100;
 export type ClozeSource =

@@ -174,7 +174,7 @@ function DeckMenu({
           leftSection={<IconCheck />}
           onClick={() => setKnownModalOpened(true)}
         >
-          Mark cards known…
+          Mark familiar or known…
         </MenuItem>
         {developerMode ? (
           <MenuItem

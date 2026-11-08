@@ -51,27 +51,34 @@ describe("describeDays", () => {
 
 describe("bringBackFirstKnown", () => {
   const now = new Date("2026-11-08T12:00:00Z");
-  it("brings a card sent away for 100 years back into one to six months", () => {
-    const model = {
-      state: State.Review,
-      scheduled_days: 36500,
-      stability: 36500,
-      due: new Date("2126-10-14"),
+  it("makes a card sent away for 100 years familiar, back in one to six months", () => {
+    const card = {
+      model: {
+        state: State.Review,
+        scheduled_days: 36500,
+        stability: 36500,
+        due: new Date("2126-10-14"),
+      } as Card,
+      known: undefined,
     };
-    expect(bringBackFirstKnown(model, now, () => 0.5)).toBe(true);
-    expect(model.scheduled_days).toBe(105);
-    expect(model.stability).toBe(105);
-    expect(model.due.getTime() - now.getTime()).toBe(105 * 86400000);
+    expect(bringBackFirstKnown(card, now, () => 0.5)).toBe(true);
+    expect(card.known).toBe("familiar");
+    expect(card.model.scheduled_days).toBe(105);
+    expect(card.model.stability).toBe(105);
+    expect(card.model.due.getTime() - now.getTime()).toBe(105 * 86400000);
   });
 
   it("leaves other cards alone", () => {
-    const model = {
-      state: State.Review,
-      scheduled_days: 700,
-      stability: 700,
-      due: new Date("2028-10-01"),
+    const card = {
+      model: {
+        state: State.Review,
+        scheduled_days: 700,
+        stability: 700,
+        due: new Date("2028-10-01"),
+      } as Card,
+      known: undefined,
     };
-    expect(bringBackFirstKnown(model, now)).toBe(false);
-    expect(model.scheduled_days).toBe(700);
+    expect(bringBackFirstKnown(card, now)).toBe(false);
+    expect(card.model.scheduled_days).toBe(700);
   });
 });

@@ -17,8 +17,15 @@ import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { id as pack } from "../languages/id/manifest";
 import { splitSentences } from "../languages/tokenizer";
+import { STATE_RANK } from "../types";
 import WordCell from "./WordCell";
-import { type WordPlace, blockWords, phraseInSet, phraseRuns } from "./phrase";
+import {
+  type WordPlace,
+  blockWords,
+  phraseInSet,
+  phraseRanges,
+  phraseRuns,
+} from "./phrase";
 import type { DisplayState } from "./useLexicon";
 import { collectParts, readableText, splitWords } from "./utils";
 import "./reader.css";
@@ -36,6 +43,12 @@ export interface SavedPhrases {
   maxWords: number;
 }
 
+/** Fixed phrases known or familiar through flashcards (phraseKey form). */
+export interface KnownPhrases {
+  levels: ReadonlyMap<string, "known" | "familiar">;
+  maxWords: number;
+}
+
 type WordClick = (word: string, sentence: string, place: WordPlace) => void;
 
 type BlockTag = "p" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -48,6 +61,7 @@ interface ReaderBlockProps {
   stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
   savedPhrases?: SavedPhrases;
+  knownPhrases?: KnownPhrases;
   onWordClick: WordClick;
   onActivateWord: (word: ActiveReaderWord) => void;
 }
@@ -70,10 +84,31 @@ function ReaderBlock({
   stateOf,
   activeWord,
   savedPhrases,
+  knownPhrases,
   onWordClick,
   onActivateWord,
 }: ReaderBlockProps) {
   const parts = collectParts(children, pack);
+  // Words of a known or familiar fixed phrase show at its level where the
+  // phrase appears (tanggung jawab), if that's further along.
+  const phraseLevel: ("known" | "familiar" | undefined)[] = [];
+  if (knownPhrases?.levels.size) {
+    for (const range of phraseRanges(
+      blockWords(parts),
+      (key) => knownPhrases.levels.has(key),
+      knownPhrases.maxWords
+    )) {
+      for (let i = range.from; i <= range.to; i++) {
+        phraseLevel[i] = knownPhrases.levels.get(range.key);
+      }
+    }
+  }
+  const shownState = (word: string, index: number): DisplayState => {
+    const own = stateOf(word);
+    const level = phraseLevel[index];
+    if (!level || own === "ignored" || own === "name") return own;
+    return STATE_RANK[own] >= STATE_RANK[level] ? own : level;
+  };
   const runs = savedPhrases?.keys.size
     ? phraseRuns(
         blockWords(parts),
@@ -125,7 +160,7 @@ function ReaderBlock({
         // pre-increment.
         const wordIndex = context.i;
         context.i += 1;
-        const state = stateOf(part.text);
+        const state = shownState(part.text, wordIndex);
         return (
           <WordCell
             // biome-ignore lint/suspicious/noArrayIndexKey: tokens of static text; position is the identity
@@ -180,6 +215,7 @@ interface ReaderArticleProps {
   stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
   savedPhrases?: SavedPhrases;
+  knownPhrases?: KnownPhrases;
   onWordClick: WordClick;
   onActivateWord: (word: ActiveReaderWord) => void;
 }
@@ -189,6 +225,7 @@ function ReaderArticle({
   stateOf,
   activeWord,
   savedPhrases,
+  knownPhrases,
   onWordClick,
   onActivateWord,
 }: ReaderArticleProps) {
@@ -196,6 +233,7 @@ function ReaderArticle({
     stateOf,
     activeWord,
     savedPhrases,
+    knownPhrases,
     onWordClick,
     onActivateWord,
   };
@@ -265,6 +303,7 @@ interface ReaderTitleProps {
   stateOf: (word: string) => DisplayState;
   activeWord: ActiveReaderWord | null;
   savedPhrases?: SavedPhrases;
+  knownPhrases?: KnownPhrases;
   onWordClick: WordClick;
   onActivateWord: (word: ActiveReaderWord) => void;
 }
