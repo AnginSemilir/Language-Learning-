@@ -4,7 +4,7 @@
   "version": "0.3.4",
   "private": false,
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.6.0",
+    "@anthropic-ai/sdk": "^1.7.0",
     "@hello-pangea/dnd": "16.5.0",
     "@mozilla/readability": "0.6.0",
     "@tabler/icons-react": "3.14.0",
